@@ -22,9 +22,3 @@ Fridgy is powered by **Firebase** 🚀. That means:
 * Always available ☁️ → even if you switch devices, your fridges are always there.
 
 ---
-
-## 🌟 Why You’ll Love It
-
-No more *“Do we have eggs?”* texts 🥚. No more double-buying ketchup. Fridgy keeps your household in sync and makes shopping a breeze.
-
-**Fridgy = less stress, fresher fridge, happier family!** 🛒💙
