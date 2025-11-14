@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "547195765674",
+    "project_id": "fridgey-2b269",
+    "storage_bucket": "fridgey-2b269.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:547195765674:android:a663e1064aba0fe26be1d3",
+        "android_client_info": {
+          "package_name": "fyi.goodbye.fridgy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxCkmGRVABXaNIqfDFbaB-0XTP6hfq5UU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
