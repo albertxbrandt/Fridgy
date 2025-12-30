@@ -2,17 +2,37 @@ package fyi.goodbye.fridgy.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+// --- Modern "Fridgy" Branding ---
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Primary Brand Color: Fresh Mint Green
+val FridgyPrimary = Color(0xFF1975CF)
+val FridgyOnPrimary = Color(0xFFFFFFFF)
+val FridgyPrimaryContainer = Color(0xFFC8E6C9)
+val FridgyOnPrimaryContainer = Color(0xFF003300)
 
-val FridgyLightBlue = Color(0xFF87CEEB) // Close to the main fridge body blue (sky blue)
-val FridgyDarkBlue = Color(0xFF4682B4) // Close to the darker blue outline/handle (steel blue)
-val FridgyWhite = Color(0xFFFFFFFF)    // Pure white from the fridge interior/highlights
-val FridgyTextBlue = Color(0xFF191970) // A very dark blue, similar to the text shadow for contrast on white
-val FridgyVeryDarkBlue = Color(0xFF191970)
-val FridgyDarkGray = Color(0x5B636363)
+// Secondary Color: Clean Slate Blue (Fridge/Appliance feel)
+val FridgySecondary = Color(0xFF455A64)
+val FridgyOnSecondary = Color(0xFFFFFFFF)
+val FridgySecondaryContainer = Color(0xFFCFD8DC)
+val FridgyOnSecondaryContainer = Color(0xFF102027)
+
+// Tertiary Color: Warm Orange (Accents/Alerts)
+val FridgyTertiary = Color(0xFFF57C00)
+val FridgyOnTertiary = Color(0xFFFFFFFF)
+
+// Backgrounds and Surfaces
+val FridgyBackground = Color(0xFFF8F9FA) // Modern light gray background
+val FridgySurface = Color(0xFFFFFFFF)
+val FridgyOnSurface = Color(0xFF1B1B1F)
+val FridgySurfaceVariant = Color(0xFFE0E3E3)
+val FridgyOnSurfaceVariant = Color(0xFF444748)
+
+// Semantic Colors
+val FridgyError = Color(0xFFBA1A1A)
+val FridgyOnError = Color(0xFFFFFFFF)
+
+// Legacy Colors (kept for compatibility)
+val FridgyLightBlue = Color(0xFFE3F2FD)
+val FridgyDarkBlue = Color(0xFF1976D2)
+val FridgyWhite = Color(0xFFFFFFFF)
+val FridgyTextBlue = Color(0xFF0D47A1)

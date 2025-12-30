@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
@@ -16,10 +17,13 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkGray
-import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
-import fyi.goodbye.fridgy.ui.theme.FridgyVeryDarkBlue
 
+/**
+ * A custom styled TextField with a squared shape and brand-consistent colors.
+ * 
+ * This component wraps the standard Material 3 [TextField] and applies the 
+ * Fridgy theme's color scheme and a zero-radius rounded corner shape.
+ */
 @Composable
 fun SquaredInput(
     value: String,
@@ -45,39 +49,38 @@ fun SquaredInput(
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     shape: Shape = RoundedCornerShape(0.dp),
     colors: TextFieldColors = TextFieldDefaults.colors(
-        unfocusedContainerColor = FridgyDarkGray,
-        focusedContainerColor = FridgyDarkGray,
-        unfocusedIndicatorColor = FridgyVeryDarkBlue,
-        focusedIndicatorColor = FridgyVeryDarkBlue,
-        cursorColor = Color(0xFFFFFFFF),
-        focusedLabelColor = FridgyTextBlue,
-        unfocusedLabelColor = FridgyTextBlue
-
+        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+        cursorColor = MaterialTheme.colorScheme.primary,
+        focusedLabelColor = MaterialTheme.colorScheme.primary,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
     )
 ) {
     TextField(
-        value,
-        onValueChange,
-        modifier,
-        enabled,
-        readOnly,
-        textStyle,
-        label,
-        placeholder,
-        leadingIcon,
-        trailingIcon,
-        prefix,
-        suffix,
-        supportingText,
-        isError,
-        visualTransformation,
-        keyboardOptions,
-        keyboardActions,
-        singleLine,
-        maxLines,
-        minLines,
-        interactionSource,
-        shape,
-        colors
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier,
+        enabled = enabled,
+        readOnly = readOnly,
+        textStyle = textStyle,
+        label = label,
+        placeholder = placeholder,
+        leadingIcon = leadingIcon,
+        trailingIcon = trailingIcon,
+        prefix = prefix,
+        suffix = suffix,
+        supportingText = supportingText,
+        isError = isError,
+        visualTransformation = visualTransformation,
+        keyboardOptions = keyboardOptions,
+        keyboardActions = keyboardActions,
+        singleLine = singleLine,
+        maxLines = maxLines,
+        minLines = minLines,
+        interactionSource = interactionSource,
+        shape = shape,
+        colors = colors
     )
 }
