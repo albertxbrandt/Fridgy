@@ -6,7 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape // <--- NEW IMPORT for the badge shape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -14,12 +14,7 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,6 +38,23 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * The main dashboard screen displaying a list of the user's fridges.
+ * 
+ * It provides functionality to:
+ * - View a list of fridges the user belongs to.
+ * - Create a new fridge via a popup dialog.
+ * - View and manage pending fridge invitations (Accept/Decline).
+ * - Navigate to a specific fridge's inventory.
+ * - Logout of the application.
+ *
+ * @param onNavigateToFridgeInventory Callback to navigate to the inventory of a selected fridge.
+ * @param onAddFridgeClick Callback for when the add button is clicked (handled internally by a dialog).
+ * @param onNotificationsClick Callback for the notification icon (handled internally).
+ * @param onProfileClick Callback to navigate to the user's profile.
+ * @param onLogout Callback to navigate to the login screen after signing out.
+ * @param viewModel The state holder for the fridge list and invitations.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FridgeListScreen(
@@ -54,9 +66,11 @@ fun FridgeListScreen(
     viewModel: FridgeListViewModel = viewModel()
 ) {
     var showNotificationsDialog by remember { mutableStateOf(false) }
-    // State to control the visibility of the "!" badge
-    var hasNewNotifications by remember { mutableStateOf(true) } // <--- NEW STATE (set to true for demonstration)
+    var showAddFridgeDialog by remember { mutableStateOf(false) }
+    var newFridgeName by remember { mutableStateOf("") }
+
     val fridgeUiState by viewModel.fridgesUiState.collectAsState()
+    val invites by viewModel.invites.collectAsState()
     val auth = remember { FirebaseAuth.getInstance() }
 
     Scaffold(
@@ -77,33 +91,30 @@ fun FridgeListScreen(
                     IconButton(
                         onClick = {
                             showNotificationsDialog = true
-                            hasNewNotifications = false // Optionally clear badge when dialog is opened
                         }
                     ) {
-                        Box { // <--- Box to layer icon and badge
+                        BadgedBox(
+                            badge = {
+                                if (invites.isNotEmpty()) {
+                                    Badge(
+                                        containerColor = Color.Red,
+                                        contentColor = Color.White,
+                                        modifier = Modifier.offset(x = (-4).dp, y = 4.dp)
+                                    ) {
+                                        Text(
+                                            text = invites.size.toString(),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.Notifications,
                                 contentDescription = "Notifications",
                                 tint = FridgyWhite
                             )
-                            // Notification Badge
-                            if (hasNewNotifications) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp) // Size of the badge circle
-                                        .align(Alignment.TopEnd) // Position at top-end corner
-                                        .offset(x = 3.dp, y = (-3).dp) // Fine-tune position
-                                        .background(Color.Red, CircleShape), // Red circular background
-                                    contentAlignment = Alignment.Center // Center content (the "!")
-                                ) {
-                                    Text(
-                                        text = "!",
-                                        color = Color.White,
-                                        fontSize = 10.sp, // Small font size for "!"
-                                        fontWeight = FontWeight.Black // Bold exclamation
-                                    )
-                                }
-                            }
                         }
                     }
                     IconButton(onClick = onProfileClick) {
@@ -113,10 +124,9 @@ fun FridgeListScreen(
                             tint = FridgyWhite
                         )
                     }
-                    // Logout Button <--- NEW BUTTON
                     IconButton(onClick = {
-                        auth.signOut() // Sign out from Firebase
-                        onLogout()     // Call the logout callback to navigate
+                        auth.signOut()
+                        onLogout()
                     }) {
                         Icon(
                             imageVector = Icons.Default.ExitToApp,
@@ -129,7 +139,7 @@ fun FridgeListScreen(
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { viewModel.createNewFridge("Untitled") },
+                onClick = { showAddFridgeDialog = true },
                 containerColor = FridgyDarkBlue,
                 contentColor = FridgyWhite
             ) {
@@ -138,9 +148,7 @@ fun FridgeListScreen(
         },
         containerColor = FridgyLightBlue
     ) { paddingValues ->
-        // Use a 'when' expression to render UI based on the current fridgeUiState
-        when (val state = fridgeUiState) { // Smart-cast 'state' to its specific subtype
-            // Loading State: Show a progress indicator
+        when (val state = fridgeUiState) {
             FridgeListViewModel.FridgeUiState.Loading -> {
                 Box(
                     modifier = Modifier
@@ -151,7 +159,6 @@ fun FridgeListScreen(
                     CircularProgressIndicator(color = FridgyDarkBlue)
                 }
             }
-            // Error State: Display an error message and a retry button (optional)
             is FridgeListViewModel.FridgeUiState.Error -> {
                 Column(
                     modifier = Modifier
@@ -162,19 +169,18 @@ fun FridgeListScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
-                        text = "Error: ${state.message}", // Access message from the Error state
+                        text = "Error: ${state.message}",
                         color = MaterialTheme.colorScheme.error,
                         fontSize = 16.sp,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    Button(onClick = { /* TODO: Implement a retry mechanism in ViewModel if needed */ }) {
+                    Button(onClick = { /* Retry logic could be added to ViewModel */ }) {
                         Text("Retry")
                     }
                 }
             }
-            // Success State: Display the list of fridges or an empty state message
             is FridgeListViewModel.FridgeUiState.Success -> {
-                val fridges = state.fridges // Access the list of fridges from the Success state
+                val fridges = state.fridges
                 if (fridges.isEmpty()) {
                     Column(
                         modifier = Modifier
@@ -193,14 +199,13 @@ fun FridgeListScreen(
                         )
                     }
                 } else {
-                    // Display the list of fridges using LazyColumn
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(paddingValues)
                             .padding(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp), // Spacing between fridge cards
-                        contentPadding = PaddingValues(bottom = 80.dp) // Space for FAB
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         items(fridges) { fridge ->
                             FridgeCard(fridge = fridge) { clickedFridge ->
@@ -215,11 +220,78 @@ fun FridgeListScreen(
 
     if (showNotificationsDialog) {
         NotificationsDialog(
+            invites = invites,
+            onAccept = { viewModel.acceptInvite(it.id) },
+            onDecline = { viewModel.declineInvite(it.id) },
             onDismissRequest = { showNotificationsDialog = false }
+        )
+    }
+
+    if (showAddFridgeDialog) {
+        AlertDialog(
+            onDismissRequest = { 
+                showAddFridgeDialog = false
+                newFridgeName = ""
+            },
+            title = {
+                Text(
+                    text = "Create New Fridge",
+                    color = FridgyWhite,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
+            text = {
+                OutlinedTextField(
+                    value = newFridgeName,
+                    onValueChange = { newFridgeName = it },
+                    label = { Text("Fridge Name", color = FridgyWhite.copy(alpha = 0.7f)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = FridgyWhite,
+                        unfocusedTextColor = FridgyWhite,
+                        focusedBorderColor = FridgyWhite,
+                        unfocusedBorderColor = FridgyWhite.copy(alpha = 0.5f),
+                        focusedLabelColor = FridgyWhite,
+                        cursorColor = FridgyWhite
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newFridgeName.isNotBlank()) {
+                            viewModel.createNewFridge(newFridgeName)
+                            showAddFridgeDialog = false
+                            newFridgeName = ""
+                        }
+                    },
+                    enabled = newFridgeName.isNotBlank()
+                ) {
+                    Text("Create", color = FridgyWhite, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { 
+                    showAddFridgeDialog = false
+                    newFridgeName = ""
+                }) {
+                    Text("Cancel", color = FridgyWhite.copy(alpha = 0.7f))
+                }
+            },
+            containerColor = FridgyDarkBlue,
+            shape = RoundedCornerShape(16.dp)
         )
     }
 }
 
+/**
+ * A card component that displays summary information for a single fridge.
+ *
+ * @param fridge The [DisplayFridge] data to show.
+ * @param onClick Callback triggered when the card is clicked.
+ */
 @Composable
 fun FridgeCard(fridge: DisplayFridge, onClick: (DisplayFridge) -> Unit) {
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
@@ -272,41 +344,75 @@ fun FridgeCard(fridge: DisplayFridge, onClick: (DisplayFridge) -> Unit) {
     }
 }
 
+/**
+ * A dialog that displays a list of pending fridge invitations.
+ * 
+ * Users can accept or decline invitations directly from this dialog.
+ *
+ * @param invites The list of pending [Fridge] invitations.
+ * @param onAccept Callback when an invitation is accepted.
+ * @param onDecline Callback when an invitation is declined.
+ * @param onDismissRequest Callback to close the dialog.
+ */
 @Composable
 fun NotificationsDialog(
+    invites: List<Fridge>,
+    onAccept: (Fridge) -> Unit,
+    onDecline: (Fridge) -> Unit,
     onDismissRequest: () -> Unit
 ) {
-    val dummyNotifications = listOf(
-        "Invitation to 'Party Fridge' from Bob!",
-        "Milk in 'Home Fridge' expires tomorrow.",
-        "Alice accepted your invitation to 'Office Fridge'."
-    )
-
     AlertDialog(
         onDismissRequest = onDismissRequest,
         title = {
             Text(
-                text = "Notifications",
+                text = "Invitations",
                 color = FridgyDarkBlue,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
         },
         text = {
-            Column {
-                if (dummyNotifications.isEmpty()) {
-                    Text(
-                        text = "No new notifications.",
-                        color = FridgyTextBlue.copy(alpha = 0.8f)
-                    )
-                } else {
-                    dummyNotifications.forEach { notification ->
+            LazyColumn {
+                if (invites.isEmpty()) {
+                    item {
                         Text(
-                            text = "• $notification",
-                            fontSize = 16.sp,
-                            modifier = Modifier.padding(vertical = 4.dp),
-                            color = FridgyTextBlue
+                            text = "No pending invitations.",
+                            color = FridgyTextBlue.copy(alpha = 0.8f)
                         )
+                    }
+                } else {
+                    items(invites) { invite ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Invite to join '${invite.name}'",
+                                fontSize = 16.sp,
+                                color = FridgyTextBlue,
+                                fontWeight = FontWeight.Medium,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                TextButton(onClick = { onDecline(invite) }) {
+                                    Text("Decline", color = Color.Red)
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                TextButton(onClick = { onAccept(invite) }) {
+                                    Text("Accept", color = FridgyDarkBlue)
+                                }
+                            }
+                            HorizontalDivider(
+                                modifier = Modifier.padding(top = 8.dp),
+                                color = FridgyLightBlue.copy(alpha = 0.3f)
+                            )
+                        }
                     }
                 }
             }
@@ -319,29 +425,4 @@ fun NotificationsDialog(
         containerColor = FridgyWhite,
         shape = RoundedCornerShape(16.dp)
     )
-}
-
-
-@Preview(showBackground = true, widthDp = 360, heightDp = 720)
-@Composable
-fun PreviewFridgeListScreen() {
-    FridgyTheme {
-        FridgeListScreen(
-            onNavigateToFridgeInventory = { fridgeId ->
-                Log.d("FridgeListScreen", "Navigate to inventory for $fridgeId")
-            },
-            onAddFridgeClick = {
-                Log.d("FridgeListScreen", "Add Fridge clicked")
-            },
-            onNotificationsClick = {
-                Log.d("FridgeListScreen", "Notifications icon clicked (handled internally)")
-            },
-            onProfileClick = {
-                Log.d("FridgeListScreen", "Profile clicked")
-            },
-            {
-                Log.d("FridgeListScreen", "Logout")
-            }
-        )
-    }
 }

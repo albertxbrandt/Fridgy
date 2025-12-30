@@ -17,12 +17,8 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.models.DisplayFridge
-import fyi.goodbye.fridgy.ui.screens.BarcodeScannerScreen
-import fyi.goodbye.fridgy.ui.screens.FridgeInventoryScreen
-import fyi.goodbye.fridgy.ui.screens.LoginScreen
-import fyi.goodbye.fridgy.ui.screens.SignupScreen
+import fyi.goodbye.fridgy.ui.screens.*
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
-import fyi.goodbye.fridgy.ui.screens.FridgeListScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -71,7 +67,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToFridgeInventory = { displayFridge ->
                                     navController.navigate("fridgeInventory/${displayFridge.id}")
                                 },
-                                onAddFridgeClick = { /* TODO: Implement create fridge screen navigation */ },
+                                onAddFridgeClick = { /* Handled internally by FridgeListScreen */ },
                                 onNotificationsClick = { /* Handled internally by FridgeListScreen */ },
                                 onProfileClick = { /* TODO: Implement profile screen navigation */ },
                                 onLogout = {
@@ -95,12 +91,29 @@ class MainActivity : ComponentActivity() {
                                 fridgeId = fridgeId, // Pass only the ID
                                 navController= navController,
                                 onBackClick = { navController.popBackStack() },
-                                onSettingsClick = { id -> Log.d("Nav", "Settings for $id clicked") },
+                                onSettingsClick = { id -> 
+                                    navController.navigate("fridgeSettings/$id")
+                                },
                                 onAddItemClick = { currentFridgeId -> // Callback to add item, will now navigate to scanner
                                     // Pass the fridgeId to the scanner screen so it knows which fridge to add to
                                     navController.navigate("barcodeScanner/$currentFridgeId")
                                 },
                                 onItemClick = { fId, iId -> Log.d("Nav", "Item $iId in $fId clicked") }
+                            )
+                        }
+                        composable(
+                            route = "fridgeSettings/{fridgeId}",
+                            arguments = listOf(
+                                navArgument("fridgeId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
+                            FridgeSettingsScreen(
+                                fridgeId = fridgeId,
+                                onBackClick = { navController.popBackStack() },
+                                onDeleteSuccess = { 
+                                    navController.popBackStack("fridgeList", inclusive = false)
+                                }
                             )
                         }
                         composable(
@@ -132,75 +145,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-//class MainActivity : ComponentActivity() {
-//    private val repo = FridgeRepository()
-//
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//
-//        enableEdgeToEdge() // Enables edge-to-edge display for modern Android UI
-//        setContent {
-//            FridgeApp()
-//        }
-//
-//
-//
-//    }
-//
-//    @Composable
-//    fun TwoButtonScreen() {
-//        val scope = rememberCoroutineScope()
-//        Column(
-//            modifier = Modifier
-//                .fillMaxSize()
-//                .padding(16.dp),
-//            verticalArrangement = Arrangement.Center,
-//            horizontalAlignment = Alignment.CenterHorizontally
-//        ) {
-//            Button(
-//                onClick = {
-//                    scope.launch {
-//                        val uEmail = "alleg0mail@gmail.com"
-//                        val myFridges = repo.getFridges().filter { it.createdBy == uEmail }
-//                        val fridge = myFridges.get(0)
-//                        val item = GroceryItem(
-//                            fridgeId = fridge.id,
-//                            upc = "4321",
-//                            quantity = 1,
-//                            addedBy = uEmail,
-//                            addedAt = System.currentTimeMillis(),
-//                            lastUpdatedBy = uEmail,
-//                            lastUpdatedAt = System.currentTimeMillis()
-//                        )
-//
-//                        repo.addItem(item)
-//                    }
-//                },
-//                modifier = Modifier.padding(bottom = 8.dp)
-//            ) {
-//                Text(text = "Button 1")
-//            }
-//            Button(
-//                onClick = {
-//                    scope.launch {
-//                        val uEmail = "alleg0mail@gmail.com"
-//                        val myFridges = repo.getFridges().filter { it.createdBy == uEmail }
-//                        val fridge = myFridges.get(0)
-//
-//                        val items = repo.getItemsForFridge(fridge.id)
-//
-//                        Log.d("Firebase", items.size.toString())
-//
-//                        for (item in items) {
-//                            Log.d("Firebase", item.addedBy)
-//                            Log.d("Firebase", item.upc)
-//
-//                        }
-//                    }
-//                }
-//            ) {
-//                Text(text = "Button 2")
-//            }
-//        }
-//    }
-//}

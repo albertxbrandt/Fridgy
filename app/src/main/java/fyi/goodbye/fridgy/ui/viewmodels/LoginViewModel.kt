@@ -12,66 +12,73 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+/**
+ * ViewModel responsible for managing the user login process.
+ * 
+ * It handles user input for email and password, interacts with Firebase Authentication
+ * to sign in users, and exposes UI states such as loading status and error messages.
+ */
 class LoginViewModel : ViewModel() {
 
-    // Authentication instance
     private val auth = FirebaseAuth.getInstance()
 
-    // UI state for email and password
+    /** The email address entered by the user. */
     var email by mutableStateOf("")
-        private set // Only allow modification from viewmodel
+        private set
 
+    /** The password entered by the user. */
     var password by mutableStateOf("")
         private set
 
-    // UI state for displaying error msgs
+    /** Any error message resulting from the login attempt. */
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    // UI state for showing loading indicator
+    /** Indicates whether a login operation is currently in progress. */
     var isLoading by mutableStateOf(false)
         private set
 
-    // One-time event for successful login to trigger navigation
     private val _loginSuccess = MutableSharedFlow<Boolean>()
+    /** A stream of success events used to trigger navigation after a successful login. */
     val loginSuccess = _loginSuccess.asSharedFlow()
 
+    /** Updates the email state and clears any existing error message. */
     fun onEmailChange(newEmail: String) {
         email = newEmail
-        errorMessage = null // Clear error when user types
+        errorMessage = null
     }
 
+    /** Updates the password state and clears any existing error message. */
     fun onPasswordChange(newPassword: String) {
         password = newPassword
         errorMessage = null
     }
 
+    /**
+     * Attempts to sign in the user using the current email and password states.
+     * 
+     * If successful, emits a [loginSuccess] event. Otherwise, updates [errorMessage].
+     */
     fun login() {
-        errorMessage = null // Clear any previous errors
+        errorMessage = null
 
         if (email.isBlank() || password.isBlank()) {
             errorMessage = "Please enter both email and password."
             return
         }
 
-        isLoading = true // Show loading
+        isLoading = true
 
         viewModelScope.launch {
             try {
-                // Firebase authentication: Sign in user
                 auth.signInWithEmailAndPassword(email, password).await()
-                Log.d("LoginViewModel", "signInWithEmail:success")
-
-                // Emit success event
                 _loginSuccess.emit(true)
-
             } catch (e: Exception) {
                 Log.w("LoginViewModel", "signInWithEmail:failure", e)
                 errorMessage = e.message ?: "Login failed. Please try again."
             } finally {
-                isLoading = false // Hide loading indicator
+                isLoading = false
             }
         }
     }
-
 }

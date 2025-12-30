@@ -49,18 +49,25 @@ import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import java.util.concurrent.Executors
 
-
+/**
+ * Screen that integrates CameraX and Google ML Kit to scan product barcodes.
+ * 
+ * It displays a live camera feed and automatically detects UPC-A and EAN-13 barcodes.
+ * When a barcode is detected, it triggers the [onBarcodeScanned] callback with the raw UPC value.
+ *
+ * @param onBarcodeScanned Callback triggered when a barcode is successfully detected.
+ * @param onBackClick Callback to return to the previous screen.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BarcodeScannerScreen(
-    onBarcodeScanned: (String) -> Unit, // Callback when a barcode is found
-    onBackClick: () -> Unit // Callback to go back
+    onBarcodeScanned: (String) -> Unit,
+    onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
-    // State to hold the last scanned barcode, used to prevent continuous scanning
     var lastScannedBarcode by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
@@ -88,7 +95,7 @@ fun BarcodeScannerScreen(
                 )
             )
         },
-        containerColor = Color.Black // Camera preview background
+        containerColor = Color.Black
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -108,22 +115,20 @@ fun BarcodeScannerScreen(
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
 
-                        // ML Kit Barcode Scanner options (only scan UPC-A and EAN-13)
                         val options = BarcodeScannerOptions.Builder()
                             .setBarcodeFormats(Barcode.FORMAT_UPC_A, Barcode.FORMAT_EAN_13)
                             .build()
                         val barcodeScanner = BarcodeScanning.getClient(options)
 
                         val imageAnalyzer = ImageAnalysis.Builder()
-                            // Use STRATEGY_BLOCK_PRODUCER as STRATEGY_KEEP_LATEST is deprecated/removed
-                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_BLOCK_PRODUCER) // <--- CORRECTED LINE
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_BLOCK_PRODUCER)
                             .build()
                             .also {
                                 it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(barcodeScanner) { barcodeValue ->
                                     if (lastScannedBarcode == null || lastScannedBarcode != barcodeValue) {
-                                        lastScannedBarcode = barcodeValue // Store to prevent duplicates
+                                        lastScannedBarcode = barcodeValue
                                         Log.d("BarcodeScanner", "Scanned: $barcodeValue")
-                                        onBarcodeScanned(barcodeValue) // Trigger callback
+                                        onBarcodeScanned(barcodeValue)
                                     }
                                 })
                             }
@@ -145,15 +150,12 @@ fun BarcodeScannerScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
-            // Optional: Overlay for scanning area guidance
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
-                // A semi-transparent overlay to highlight the scanning area
-                // Can be refined with a custom shape or graphic
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.8f)
@@ -173,7 +175,11 @@ fun BarcodeScannerScreen(
     }
 }
 
-// ImageAnalysis.Analyzer implementation for ML Kit
+/**
+ * Custom [ImageAnalysis.Analyzer] that processes camera frames for barcodes using ML Kit.
+ * 
+ * It converts [ImageProxy] data into [InputImage] and uses [BarcodeScanner] to find values.
+ */
 private class BarcodeAnalyzer(
     private val barcodeScanner: BarcodeScanner,
     private val onBarcodeScanned: (String) -> Unit
@@ -196,10 +202,10 @@ private class BarcodeAnalyzer(
                     Log.e("BarcodeAnalyzer", "Barcode scanning failed", e)
                 }
                 .addOnCompleteListener {
-                    imageProxy.close() // Always close the image proxy!
+                    imageProxy.close()
                 }
         } else {
-            imageProxy.close() // Close even if mediaImage is null
+            imageProxy.close()
         }
     }
 }

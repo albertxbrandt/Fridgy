@@ -15,29 +15,38 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel responsible for managing the inventory and basic details of a specific fridge.
+ * 
+ * It observes real-time updates for items within the fridge and provides functionality
+ * to add new items. It also fetches the high-level [DisplayFridge] details for the UI header.
+ *
+ * @property fridgeRepository The repository for database operations.
+ * @property fridgeId The unique ID of the fridge whose inventory is being displayed.
+ */
 class FridgeInventoryViewModel(
     private val fridgeRepository: FridgeRepository = FridgeRepository(),
     private val fridgeId: String
 ) : ViewModel() {
 
-    // UI state for the specific fridge being displayed
     private val _displayFridgeState = MutableStateFlow<FridgeDetailUiState>(FridgeDetailUiState.Loading)
+    /** The UI state for the specific fridge being displayed (Loading, Success, or Error). */
     val displayFridgeState: StateFlow<FridgeDetailUiState> = _displayFridgeState.asStateFlow()
 
-    // UI state for the list of items in this fridge
     private val _itemsUiState = MutableStateFlow<ItemsUiState>(ItemsUiState.Loading)
+    /** The real-time UI state for the list of items in this fridge. */
     val itemsUiState: StateFlow<ItemsUiState> = _itemsUiState.asStateFlow()
 
-    // State for adding item operation
     private val _isAddingItem = MutableStateFlow(false)
+    /** Indicates whether an item is currently being added to the fridge. */
     val isAddingItem: StateFlow<Boolean> = _isAddingItem.asStateFlow()
 
-    // State for adding item error
     private val _addItemError = MutableStateFlow<String?>(null)
+    /** Any error message resulting from a failed add-item operation. */
     val addItemError: StateFlow<String?> = _addItemError.asStateFlow()
 
     init {
-        // Fetch the specific fridge details (e.g., name, owner)
+        // Fetch specific fridge details (e.g., name, owner) for the header
         viewModelScope.launch {
             _displayFridgeState.value = FridgeDetailUiState.Loading
             try {
@@ -53,7 +62,7 @@ class FridgeInventoryViewModel(
             }
         }
 
-        // Listen for real-time updates to items in this fridge
+        // Listen for real-time updates to items in this fridge's inventory
         viewModelScope.launch {
             _itemsUiState.value = ItemsUiState.Loading
             try {
@@ -67,47 +76,49 @@ class FridgeInventoryViewModel(
         }
     }
 
+    /**
+     * Adds a new item to the fridge's inventory using its barcode (UPC).
+     * 
+     * @param upc The barcode of the item to add.
+     * @param quantity The number of units to add.
+     */
     fun addItem(upc: String, quantity: Int) {
-        _addItemError.value = null // Clear previous errors
-        _isAddingItem.value = true // Set loading state
+        _addItemError.value = null
+        _isAddingItem.value = true
 
         viewModelScope.launch {
             try {
-                val newItem = Item(upc = upc, quantity = quantity) // Create a basic item
+                val newItem = Item(upc = upc, quantity = quantity)
                 fridgeRepository.addItemToFridge(fridgeId, newItem)
                 Log.d("FridgeInventoryVM", "Successfully added item $upc to fridge $fridgeId")
-                // The itemsUiState flow will automatically update due to the real-time listener in the repository
             } catch (e: Exception) {
                 Log.e("FridgeInventoryVM", "Failed to add item: ${e.message}", e)
                 _addItemError.value = e.message ?: "Failed to add item."
             } finally {
-                _isAddingItem.value = false // Clear loading state
+                _isAddingItem.value = false
             }
         }
     }
 
-    // Sealed interface for fridge details UI state
+    /** Sealed interface representing the UI state for fridge header details. */
     sealed interface FridgeDetailUiState {
         data object Loading : FridgeDetailUiState
         data class Success(val fridge: DisplayFridge) : FridgeDetailUiState
         data class Error(val message: String) : FridgeDetailUiState
     }
 
-    // Sealed interface for items UI state
+    /** Sealed interface representing the UI state for the inventory item grid. */
     sealed interface ItemsUiState {
         data object Loading : ItemsUiState
         data class Success(val items: List<Item>) : ItemsUiState
         data class Error(val message: String) : ItemsUiState
     }
 
-    // Companion object to provide the factory for creating the ViewModel with arguments
     companion object {
-        // Factory method to create FridgeInventoryViewModel with arguments
+        /** Factory method to create [FridgeInventoryViewModel] with a required [fridgeId]. */
         fun provideFactory(fridgeId: String, fridgeRepository: FridgeRepository = FridgeRepository()): ViewModelProvider.Factory {
             return viewModelFactory {
                 initializer {
-                    // Create an instance of FridgeInventoryViewModel, injecting the dependencies
-                    // No SavedStateHandle needed here if fridgeId is passed directly
                     FridgeInventoryViewModel(fridgeRepository, fridgeId)
                 }
             }

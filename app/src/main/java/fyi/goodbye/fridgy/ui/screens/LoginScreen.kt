@@ -40,15 +40,24 @@ import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import fyi.goodbye.fridgy.ui.viewmodels.LoginViewModel
 import kotlinx.coroutines.flow.collectLatest
 
-
+/**
+ * Composable screen that allows users to log in to their account.
+ * 
+ * It provides input fields for email and password, displays error messages,
+ * and handles the transition to the [SignupScreen] or main application list.
+ *
+ * @param onLoginSuccess Callback triggered when the user successfully authenticates.
+ * @param onNavigateToSignup Callback triggered when the user clicks the "Sign Up" button.
+ * @param viewModel The state holder for login logic.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToSignup: () -> Unit,
-    viewModel: LoginViewModel = viewModel() // Get ViewModel Instance
+    viewModel: LoginViewModel = viewModel()
 ) {
-    // Collect one-time success event from ViewModel
+    // Navigate to the next screen when the loginSuccess event is received
     LaunchedEffect(Unit) {
         viewModel.loginSuccess.collectLatest { success ->
             if (success) {
@@ -77,38 +86,34 @@ fun LoginScreen(
                     .padding(bottom = 32.dp)
             )
 
-            // App Name / Tagline
             Text(
                 text = "Welcome to Fridgy!",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
-                color = FridgyTextBlue, // <--- CHANGED: Text color to White
+                color = FridgyTextBlue,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
                 text = "Manage your fridge, effortlessly.",
                 fontSize = 16.sp,
-                color = FridgyTextBlue.copy(alpha = 0.7f), // <--- CHANGED: Text color to White (slightly transparent)
+                color = FridgyTextBlue.copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 48.dp)
             )
 
-            // Email Input Field
             SquaredInput(
                 value = viewModel.email,
                 onValueChange = viewModel::onEmailChange,
                 label = { Text("Email") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
                 enabled = !viewModel.isLoading
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Password Input Field
             SquaredInput(
                 value = viewModel.password,
                 onValueChange = viewModel::onPasswordChange,
@@ -116,14 +121,12 @@ fun LoginScreen(
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
                 enabled = !viewModel.isLoading
             )
 
-            // Error Message Display (color remains default error red)
             viewModel.errorMessage?.let {
                 Text(
                     text = it,
@@ -134,7 +137,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Login Button (background remains DarkerBlue, text White)
             SquaredButton(
                 onClick = viewModel::login,
                 modifier = Modifier
@@ -152,7 +154,6 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Don't have an account? Sign Up button
             TextButton(
                 onClick = onNavigateToSignup,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
@@ -160,7 +161,7 @@ fun LoginScreen(
             ) {
                 Text(
                     text = "Don't have an account? Sign Up",
-                    color = FridgyTextBlue, // <--- CHANGED: Text color to White
+                    color = FridgyTextBlue,
                     fontSize = 16.sp
                 )
             }
@@ -173,12 +174,8 @@ fun LoginScreen(
 fun PreviewLoginScreen() {
     FridgyTheme {
         LoginScreen(
-            onLoginSuccess = {
-                println("Login clicked")
-            },
-            onNavigateToSignup = {
-                println("Navigate to Signup")
-            }
+            onLoginSuccess = {},
+            onNavigateToSignup = {}
         )
     }
 }

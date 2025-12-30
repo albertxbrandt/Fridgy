@@ -6,7 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.* // Ensure this is importing Material 3
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +29,16 @@ import fyi.goodbye.fridgy.ui.elements.SquaredButton
 import fyi.goodbye.fridgy.ui.viewmodels.SignupViewModel
 import kotlinx.coroutines.flow.collectLatest
 
+/**
+ * Composable screen that allows new users to register for an account.
+ * 
+ * It provides input fields for email, password, and password confirmation.
+ * It handles validation feedback and navigation back to the login screen.
+ *
+ * @param onSignupSuccess Callback triggered when the account is successfully created.
+ * @param onNavigateToLogin Callback triggered when the user wants to return to the login screen.
+ * @param viewModel The state holder for signup logic.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SignupScreen(
@@ -36,7 +46,7 @@ fun SignupScreen(
     onNavigateToLogin: () -> Unit,
     viewModel: SignupViewModel = viewModel()
 ) {
-
+    // Navigate to the next screen when the signupSuccess event is received
     LaunchedEffect(Unit) {
         viewModel.signupSuccess.collectLatest { success ->
             if (success) {
@@ -79,15 +89,13 @@ fun SignupScreen(
                 modifier = Modifier.padding(bottom = 48.dp)
             )
 
-            // Email Input Field
             SquaredInput(
                 value = viewModel.email,
                 onValueChange = viewModel::onEmailChange,
                 label = { Text("Email") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier =
-                    Modifier
+                modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                 enabled = !viewModel.isLoading
@@ -95,7 +103,6 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Password Input Field
             SquaredInput(
                 value = viewModel.password,
                 onValueChange = viewModel::onPasswordChange,
@@ -103,8 +110,7 @@ fun SignupScreen(
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier =
-                    Modifier
+                modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp),
                 enabled = !viewModel.isLoading
@@ -112,7 +118,6 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Confirm Password Input Field
             SquaredInput(
                 value = viewModel.confirmPassword,
                 onValueChange = viewModel::onConfirmPasswordChange,
@@ -120,13 +125,11 @@ fun SignupScreen(
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier =
-                    Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp),
                 enabled = !viewModel.isLoading
             )
-
 
             viewModel.errorMessage?.let {
                 Text(
@@ -175,12 +178,8 @@ fun SignupScreen(
 fun PreviewSignupScreen() {
     FridgyTheme {
         SignupScreen(
-            onSignupSuccess = {
-                println("Signup success!")
-            },
-            onNavigateToLogin = {
-                println("Navigate to Login")
-            }
+            onSignupSuccess = {},
+            onNavigateToLogin = {}
         )
     }
 }

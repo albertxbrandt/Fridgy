@@ -4,15 +4,17 @@ import android.util.Log
 import fyi.goodbye.fridgy.data.api.model.OpenFoodFactsProductResponse
 import okhttp3.Credentials
 import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.GET
 import retrofit2.http.Path
-import okhttp3.logging.HttpLoggingInterceptor
 
 interface OpenFoodFactsApi {
     @GET("api/v0/product/{barcode}.json")
     suspend fun getProductByBarcode(@Path("barcode") barcode: String): OpenFoodFactsProductResponse
 }
+
 class ProductRepository {
 
     private val api: OpenFoodFactsApi

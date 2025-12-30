@@ -20,12 +20,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -35,32 +30,45 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.viewmodels.FridgeInventoryViewModel
 import kotlinx.coroutines.launch
 
-// Removed SimpleDateFormat and Date/Locale imports as expirationDate is no longer directly in Item
-
-/*
- * FridgeInventoryScreen composable
- * Displays the items within a specific fridge in a grid layout.
+/**
+ * Screen displaying the inventory of items for a specific fridge.
+ * 
+ * It provides a grid view of all products, allowing users to:
+ * - See real-time updates of item quantities.
+ * - Add new items via barcode scanning.
+ * - Access fridge-specific settings (if owner).
+ * - Receive feedback for background operations via Snackbars.
+ *
+ * @param fridgeId The unique ID of the fridge.
+ * @param navController Controller for navigating between screens.
+ * @param onBackClick Callback to return to the fridge list.
+ * @param onSettingsClick Callback to navigate to fridge settings.
+ * @param onAddItemClick Callback to initiate adding a new item (scanner).
+ * @param onItemClick Callback when a specific item card is selected.
+ * @param viewModel The state holder for fridge inventory logic.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FridgeInventoryScreen(
-    fridgeId: String, // CHANGED: Now takes only fridgeId as String
-    navController: NavController, // <--- NEW: NavController parameter
+    fridgeId: String,
+    navController: NavController,
     onBackClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
     onAddItemClick: (String) -> Unit,
     onItemClick: (String, String) -> Unit,
-    viewModel: FridgeInventoryViewModel = viewModel(factory = FridgeInventoryViewModel.provideFactory(fridgeId)) // NEW: Inject ViewModel
+    viewModel: FridgeInventoryViewModel = viewModel(factory = FridgeInventoryViewModel.provideFactory(fridgeId))
 ) {
-    // Observe the UI states from the ViewModel
     val fridgeDetailUiState by viewModel.displayFridgeState.collectAsState()
     val itemsUiState by viewModel.itemsUiState.collectAsState()
-    val isAddingItem by viewModel.isAddingItem.collectAsState() // Observe adding item loading
-    val addItemError by viewModel.addItemError.collectAsState() // Observe adding item error
+    val isAddingItem by viewModel.isAddingItem.collectAsState()
+    val addItemError by viewModel.addItemError.collectAsState()
+
+    val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid }
 
     val fridgeName = when(val state = fridgeDetailUiState) {
         is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.name
@@ -68,7 +76,11 @@ fun FridgeInventoryScreen(
         FridgeInventoryViewModel.FridgeDetailUiState.Loading -> "Loading Fridge..."
     }
 
-    // Show a Snackbar for add item errors
+    val isOwner = when(val state = fridgeDetailUiState) {
+        is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.createdByUid == currentUserId
+        else -> false
+    }
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -80,27 +92,18 @@ fun FridgeInventoryScreen(
                     actionLabel = "Dismiss",
                     duration = SnackbarDuration.Long
                 )
-                // Optionally clear the error after showing
-                // viewModel.clearAddItemError() // You'd add this function to ViewModel
             }
         }
     }
 
-    // NEW: LaunchedEffect to check for scanned UPC when screen becomes active
     LaunchedEffect(navController) {
-        // Access SavedStateHandle from the current back stack entry for data passed back
-        navController?.currentBackStackEntry?.savedStateHandle?.let { savedStateHandle ->
-            // Retrieve scannedUpc and targetFridgeId
+        navController.currentBackStackEntry?.savedStateHandle?.let { savedStateHandle ->
             val scannedUpc = savedStateHandle.get<String>("scannedUpc")
             val targetFridgeId = savedStateHandle.get<String>("targetFridgeId")
 
-            // Process only if a UPC was scanned and it belongs to this fridge
             if (scannedUpc != null && targetFridgeId == fridgeId) {
-                Log.d("FridgeInventoryScreen", "Received scanned UPC: $scannedUpc for fridge $targetFridgeId")
-                // Now, add the item using the scanned UPC via the ViewModel
-                viewModel.addItem(upc = scannedUpc, quantity = 1) // Default quantity 1 for now
-
-                // Clear the SavedStateHandle to prevent processing the same UPC again on recomposition
+                Log.d("FridgeInventoryScreen", "Received scanned UPC: $scannedUpc")
+                viewModel.addItem(upc = scannedUpc, quantity = 1)
                 savedStateHandle.remove<String>("scannedUpc")
                 savedStateHandle.remove<String>("targetFridgeId")
             }
@@ -130,12 +133,14 @@ fun FridgeInventoryScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { onSettingsClick(fridgeId) }) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Fridge Settings",
-                            tint = FridgyWhite
-                        )
+                    if (isOwner) {
+                        IconButton(onClick = { onSettingsClick(fridgeId) }) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Fridge Settings",
+                                tint = FridgyWhite
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -154,7 +159,6 @@ fun FridgeInventoryScreen(
         },
         containerColor = FridgyLightBlue
     ) { paddingValues ->
-        // Handle UI states for items
         when (val state = itemsUiState) {
             FridgeInventoryViewModel.ItemsUiState.Loading -> {
                 Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
@@ -168,7 +172,6 @@ fun FridgeInventoryScreen(
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(text = "Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-                    // TODO: Add retry button or more sophisticated error handling
                 }
             }
             is FridgeInventoryViewModel.ItemsUiState.Success -> {
@@ -213,9 +216,11 @@ fun FridgeInventoryScreen(
     }
 }
 
-/*
- * InventoryItemCard composable
- * Displays a single item in the fridge inventory grid based on the new Item data class.
+/**
+ * A card representing a single inventory item in the grid.
+ *
+ * @param item The [Item] data to display.
+ * @param onClick Callback triggered when the item card is selected.
  */
 @Composable
 fun InventoryItemCard(item: Item, onClick: (String) -> Unit) {
@@ -268,20 +273,3 @@ fun InventoryItemCard(item: Item, onClick: (String) -> Unit) {
         }
     }
 }
-
-/*
- * Preview function for FridgeInventoryScreen
- */
-//@Preview(showBackground = true, widthDp = 360, heightDp = 720)
-//@Composable
-//fun PreviewFridgeInventoryScreen() {
-//    FridgyTheme {
-//        FridgeInventoryScreen(
-//            fridgeId = "fridge123", // Now expects just the ID
-//            onBackClick = { Log.d("FridgeInventoryScreen", "Back clicked") },
-//            onSettingsClick = { id -> Log.d("FridgeInventoryScreen", "Settings for fridge $id clicked") },
-//            onAddItemClick = { id -> Log.d("FridgeInventoryScreen", "Add item to fridge $id clicked") },
-//            onItemClick = { fridgeId, itemId -> Log.d("FridgeInventoryScreen", "Item $itemId in fridge $fridgeId clicked") }
-//        )
-//    }
-//}

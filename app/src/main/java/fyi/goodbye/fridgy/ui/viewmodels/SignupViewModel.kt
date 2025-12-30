@@ -13,49 +13,65 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
+/**
+ * ViewModel responsible for managing the user signup process.
+ * 
+ * This class handles input validation, Firebase Authentication account creation,
+ * and the subsequent creation of a user profile document in Firestore. It exposes
+ * various UI states to the [SignupScreen] including loading status and error messages.
+ */
 class SignupViewModel : ViewModel() {
-    // Authentication Instance
     private val auth = FirebaseAuth.getInstance()
-    // Firestore instance
     private val firestore = FirebaseFirestore.getInstance()
 
-    // UI state for email, password, confirm password
+    /** The email address entered by the user. */
     var email by mutableStateOf("")
-        private set // Only VM can modify
+        private set
 
+    /** The password entered by the user. */
     var password by mutableStateOf("")
         private set
 
+    /** The confirmation password entered by the user. */
     var confirmPassword by mutableStateOf("")
         private set
 
-    // UI state for displaying error messages
+    /** Any error message resulting from validation or network operations. */
     var errorMessage by mutableStateOf<String?>(null)
         private set
 
-    // UI state for showing loading indicator
+    /** Indicates whether a signup operation is currently in progress. */
     var isLoading by mutableStateOf(false)
         private set
 
-    // One-time event for successful signup to trigger nav
     private val _signupSucess = MutableSharedFlow<Boolean>()
+    /** A stream of success events used to trigger navigation after a successful signup. */
     val signupSuccess = _signupSucess.asSharedFlow()
 
+    /** Updates the email state and clears any existing error message. */
     fun onEmailChange(newEmail: String) {
         email = newEmail
         errorMessage = null
     }
 
+    /** Updates the password state and clears any existing error message. */
     fun onPasswordChange(newPassword: String) {
         password = newPassword
         errorMessage = null
     }
 
+    /** Updates the confirm password state and clears any existing error message. */
     fun onConfirmPasswordChange(newConfirmPassword: String) {
         confirmPassword = newConfirmPassword
         errorMessage = null
     }
 
+    /**
+     * Attempts to sign up a new user with the current email and password states.
+     * 
+     * Performs basic validation, then creates a Firebase Auth user. If successful,
+     * it creates a corresponding document in the 'users' collection in Firestore.
+     */
     fun signup() {
         errorMessage = null
         if (email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
@@ -68,32 +84,21 @@ class SignupViewModel : ViewModel() {
             return
         }
 
-        isLoading = true // Show loading indicator
+        isLoading = true
 
         viewModelScope.launch {
             try {
-                // Firebase authentication: Create user
                 val authResult = auth.createUserWithEmailAndPassword(email, password).await()
-                Log.d("SignupViewModel", "createUserWithEmail:success")
-
-                // Get the new user's uid
                 val uid = authResult.user?.uid
 
                 if (uid != null) {
-                    // Firestore: Create User Document
                     val userMap = hashMapOf(
                         "email" to email,
                         "username" to email.substringBefore("@"),
-                        "createdAt" to System.currentTimeMillis(),
-                        "ownerOfFridges" to emptyList<String>(),
-                        "memberOfFridges" to emptyList<String>(),
-                        "invitations" to emptyList<String>()
+                        "createdAt" to System.currentTimeMillis()
                     )
 
                     firestore.collection("users").document(uid).set(userMap).await()
-                    Log.d("SignupViewModel", "User document created in Firestore for UID: $uid")
-
-                    // Emit success event
                     _signupSucess.emit(true)
                 }
             } catch (e: Exception) {
