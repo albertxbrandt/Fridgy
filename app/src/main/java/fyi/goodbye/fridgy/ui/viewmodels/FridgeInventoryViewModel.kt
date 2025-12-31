@@ -1,5 +1,6 @@
 package fyi.goodbye.fridgy.ui.viewmodels
 
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -8,7 +9,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Item
+import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
+import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,36 +20,34 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel responsible for managing the inventory and basic details of a specific fridge.
- * 
- * It observes real-time updates for items within the fridge and provides functionality
- * to add new items. It also fetches the high-level [DisplayFridge] details for the UI header.
- *
- * @property fridgeRepository The repository for database operations.
- * @property fridgeId The unique ID of the fridge whose inventory is being displayed.
  */
 class FridgeInventoryViewModel(
-    private val fridgeRepository: FridgeRepository = FridgeRepository(),
+    private val fridgeRepository: FridgeRepository,
+    private val productRepository: ProductRepository,
     private val fridgeId: String
 ) : ViewModel() {
 
     private val _displayFridgeState = MutableStateFlow<FridgeDetailUiState>(FridgeDetailUiState.Loading)
-    /** The UI state for the specific fridge being displayed (Loading, Success, or Error). */
     val displayFridgeState: StateFlow<FridgeDetailUiState> = _displayFridgeState.asStateFlow()
 
     private val _itemsUiState = MutableStateFlow<ItemsUiState>(ItemsUiState.Loading)
-    /** The real-time UI state for the list of items in this fridge. */
     val itemsUiState: StateFlow<ItemsUiState> = _itemsUiState.asStateFlow()
 
     private val _isAddingItem = MutableStateFlow(false)
-    /** Indicates whether an item is currently being added to the fridge. */
     val isAddingItem: StateFlow<Boolean> = _isAddingItem.asStateFlow()
 
     private val _addItemError = MutableStateFlow<String?>(null)
-    /** Any error message resulting from a failed add-item operation. */
     val addItemError: StateFlow<String?> = _addItemError.asStateFlow()
 
+    private val _pendingScannedUpc = MutableStateFlow<String?>(null)
+    val pendingScannedUpc: StateFlow<String?> = _pendingScannedUpc.asStateFlow()
+
     init {
-        // Fetch specific fridge details (e.g., name, owner) for the header
+        loadFridgeDetails()
+        listenToInventoryUpdates()
+    }
+
+    private fun loadFridgeDetails() {
         viewModelScope.launch {
             _displayFridgeState.value = FridgeDetailUiState.Loading
             try {
@@ -58,11 +59,11 @@ class FridgeInventoryViewModel(
                 }
             } catch (e: Exception) {
                 _displayFridgeState.value = FridgeDetailUiState.Error(e.message ?: "Failed to load fridge details.")
-                Log.e("FridgeInventoryVM", "Error fetching fridge details for $fridgeId: ${e.message}", e)
             }
         }
+    }
 
-        // Listen for real-time updates to items in this fridge's inventory
+    private fun listenToInventoryUpdates() {
         viewModelScope.launch {
             _itemsUiState.value = ItemsUiState.Loading
             try {
@@ -71,43 +72,82 @@ class FridgeInventoryViewModel(
                 }
             } catch (e: Exception) {
                 _itemsUiState.value = ItemsUiState.Error(e.message ?: "Failed to load items.")
-                Log.e("FridgeInventoryVM", "Error collecting items for fridge $fridgeId: ${e.message}", e)
             }
         }
     }
 
     /**
-     * Adds a new item to the fridge's inventory using its barcode (UPC).
-     * 
-     * @param upc The barcode of the item to add.
-     * @param quantity The number of units to add.
+     * Checks if a scanned UPC exists in the global database.
      */
-    fun addItem(upc: String, quantity: Int) {
-        _addItemError.value = null
-        _isAddingItem.value = true
-
+    fun onBarcodeScanned(upc: String) {
         viewModelScope.launch {
             try {
-                val newItem = Item(upc = upc, quantity = quantity)
-                fridgeRepository.addItemToFridge(fridgeId, newItem)
-                Log.d("FridgeInventoryVM", "Successfully added item $upc to fridge $fridgeId")
+                val product = productRepository.getProductInfo(upc)
+                if (product != null) {
+                    addItemToFridge(upc, product.name, product.imageUrl)
+                } else {
+                    _pendingScannedUpc.value = upc
+                }
             } catch (e: Exception) {
-                Log.e("FridgeInventoryVM", "Failed to add item: ${e.message}", e)
-                _addItemError.value = e.message ?: "Failed to add item."
+                Log.e("FridgeInventoryVM", "Error handling scan: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Saves a brand new product to the global database AND adds it to the current fridge.
+     */
+    fun createAndAddProduct(upc: String, name: String, brand: String, category: String, imageUri: Uri?) {
+        _pendingScannedUpc.value = null
+        _isAddingItem.value = true
+        
+        viewModelScope.launch {
+            try {
+                val initialProduct = Product(
+                    upc = upc,
+                    name = name,
+                    brand = brand,
+                    category = category,
+                    lastUpdated = System.currentTimeMillis()
+                )
+                
+                val savedProduct = productRepository.saveProductWithImage(initialProduct, imageUri)
+                addItemToFridge(upc, savedProduct.name, savedProduct.imageUrl)
+                
+                Log.d("FridgeInventoryVM", "Successfully created and added product: $name")
+            } catch (e: Exception) {
+                Log.e("FridgeInventoryVM", "Failed to create product: ${e.message}")
+                _addItemError.value = "Failed to create product: ${e.message}"
             } finally {
                 _isAddingItem.value = false
             }
         }
     }
 
-    /** Sealed interface representing the UI state for fridge header details. */
+    private suspend fun addItemToFridge(upc: String, name: String, imageUrl: String?) {
+        try {
+            val newItem = Item(
+                upc = upc,
+                name = name,
+                imageUrl = imageUrl,
+                quantity = 1
+            )
+            fridgeRepository.addItemToFridge(fridgeId, newItem)
+        } catch (e: Exception) {
+            _addItemError.value = "Failed to add item to fridge: ${e.message}"
+        }
+    }
+
+    fun cancelPendingProduct() {
+        _pendingScannedUpc.value = null
+    }
+
     sealed interface FridgeDetailUiState {
         data object Loading : FridgeDetailUiState
         data class Success(val fridge: DisplayFridge) : FridgeDetailUiState
         data class Error(val message: String) : FridgeDetailUiState
     }
 
-    /** Sealed interface representing the UI state for the inventory item grid. */
     sealed interface ItemsUiState {
         data object Loading : ItemsUiState
         data class Success(val items: List<Item>) : ItemsUiState
@@ -115,11 +155,14 @@ class FridgeInventoryViewModel(
     }
 
     companion object {
-        /** Factory method to create [FridgeInventoryViewModel] with a required [fridgeId]. */
-        fun provideFactory(fridgeId: String, fridgeRepository: FridgeRepository = FridgeRepository()): ViewModelProvider.Factory {
+        fun provideFactory(
+            fridgeId: String, 
+            fridgeRepository: FridgeRepository = FridgeRepository(),
+            productRepository: ProductRepository = ProductRepository()
+        ): ViewModelProvider.Factory {
             return viewModelFactory {
                 initializer {
-                    FridgeInventoryViewModel(fridgeRepository, fridgeId)
+                    FridgeInventoryViewModel(fridgeRepository, productRepository, fridgeId)
                 }
             }
         }

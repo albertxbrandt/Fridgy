@@ -12,26 +12,17 @@ import fyi.goodbye.fridgy.models.User
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.tasks.await
 
 /**
  * Repository class responsible for handling all data operations related to Fridges and Items.
- * 
- * Optimization: Uses an in-memory cache [_fridgeCache] to store the results of the 
- * real-time listener, reducing redundant Firestore reads when navigating between screens.
  */
 class FridgeRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
-    // Memory cache to store the latest fridges fetched via listener
     private var _fridgeCache: List<Fridge> = emptyList()
 
-    /**
-     * Returns a real-time stream of all fridges where the current user is a member.
-     * Caches the result in memory to optimize subsequent individual lookups.
-     */
     fun getFridgesForCurrentUser(): Flow<List<Fridge>> = callbackFlow {
         val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
         
@@ -40,15 +31,12 @@ class FridgeRepository {
             .addSnapshotListener { snapshot, e ->
                 if (e != null) { close(e); return@addSnapshotListener }
                 val fridgesList = snapshot?.documents?.mapNotNull { it.toObject(Fridge::class.java)?.copy(id = it.id) } ?: emptyList()
-                _fridgeCache = fridgesList // Update cache
+                _fridgeCache = fridgesList
                 trySend(fridgesList).isSuccess
             }
         awaitClose { fridgesListenerRegistration.remove() }
     }
 
-    /**
-     * Returns a real-time stream of fridges where the current user has a pending invitation.
-     */
     fun getInvitesForCurrentUser(): Flow<List<Fridge>> = callbackFlow {
         val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
         
@@ -62,20 +50,11 @@ class FridgeRepository {
         awaitClose { invitesListener.remove() }
     }
 
-    /**
-     * Fetches detailed information about a specific fridge.
-     * 
-     * Optimization: Checks the in-memory cache first. If not found, attempts to fetch 
-     * from Firestore cache before hitting the network.
-     */
     suspend fun getFridgeById(fridgeId: String): DisplayFridge? {
-        // 1. Check Memory Cache first (0 cost, 0 latency)
         val cachedFridge = _fridgeCache.find { it.id == fridgeId }
-        
         val fridge = if (cachedFridge != null) {
             cachedFridge
         } else {
-            // 2. Fetch from Firestore (Try CACHE source first to save reads)
             try {
                 val doc = firestore.collection("fridges").document(fridgeId).get(Source.DEFAULT).await()
                 doc.toObject(Fridge::class.java)?.copy(id = doc.id)
@@ -93,9 +72,6 @@ class FridgeRepository {
         )
     }
 
-    /**
-     * Creates a new fridge in Firestore and adds the current user as the owner and first member.
-     */
     suspend fun createFridge(fridgeName: String): Fridge {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
         val userDoc = firestore.collection("users").document(currentUser.uid).get().await()
@@ -116,9 +92,6 @@ class FridgeRepository {
         return newFridge
     }
 
-    /**
-     * Invites a user to a fridge using their email address.
-     */
     suspend fun inviteUserByEmail(fridgeId: String, email: String) {
         val snapshot = firestore.collection("users").whereEqualTo("email", email).get().await()
         val userDoc = snapshot.documents.firstOrNull() ?: throw Exception("User not found.")
@@ -136,9 +109,6 @@ class FridgeRepository {
             .await()
     }
 
-    /**
-     * Accepts a pending invitation for the current user.
-     */
     suspend fun acceptInvite(fridgeId: String) {
         val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in.")
         val userDoc = firestore.collection("users").document(currentUserId).get().await()
@@ -152,18 +122,24 @@ class FridgeRepository {
         }.await()
     }
 
-    /**
-     * Declines a pending invitation for the current user.
-     */
     suspend fun declineInvite(fridgeId: String) {
         val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in.")
         firestore.collection("fridges").document(fridgeId)
             .update("pendingInvites.$currentUserId", FieldValue.delete()).await()
     }
 
-    /**
-     * Removes the current user from a fridge's membership.
-     */
+    suspend fun removeMember(fridgeId: String, userId: String) {
+        firestore.collection("fridges").document(fridgeId)
+            .update("members.$userId", FieldValue.delete())
+            .await()
+    }
+
+    suspend fun revokeInvite(fridgeId: String, userId: String) {
+        firestore.collection("fridges").document(fridgeId)
+            .update("pendingInvites.$userId", FieldValue.delete())
+            .await()
+    }
+
     suspend fun leaveFridge(fridgeId: String) {
         val uid = auth.currentUser?.uid ?: return
         firestore.collection("fridges").document(fridgeId)
@@ -171,9 +147,6 @@ class FridgeRepository {
             .await()
     }
 
-    /**
-     * Returns a real-time stream of all items currently stored in a specific fridge.
-     */
     fun getItemsForFridge(fridgeId: String): Flow<List<Item>> = callbackFlow {
         val listener = firestore.collection("fridges").document(fridgeId).collection("items")
             .addSnapshotListener { snapshot, e ->
@@ -185,19 +158,44 @@ class FridgeRepository {
     }
 
     /**
-     * Adds a new grocery item to a specific fridge's inventory.
+     * Optimized: Adds or increments an item. 
+     * Uses the UPC as the document ID to ensure atomicity.
      */
-    suspend fun addItemToFridge(fridgeId: String, item: Item): Item {
+    suspend fun addItemToFridge(fridgeId: String, item: Item) {
+        Log.d("FridgeRepo", "Starting addItemToFridge for UPC: ${item.upc}")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
-        val ref = firestore.collection("fridges").document(fridgeId).collection("items").document()
-        val itemToAdd = item.copy(id = ref.id, addedBy = currentUser.uid, addedAt = System.currentTimeMillis(), lastUpdatedBy = currentUser.uid, lastUpdatedAt = System.currentTimeMillis())
-        ref.set(itemToAdd).await()
-        return itemToAdd
+        val itemRef = firestore.collection("fridges").document(fridgeId)
+            .collection("items").document(item.upc)
+        
+        try {
+            firestore.runTransaction { transaction ->
+                val snapshot = transaction.get(itemRef)
+                if (snapshot.exists()) {
+                    Log.d("FridgeRepo", "Item exists, incrementing quantity for UPC: ${item.upc}")
+                    transaction.update(itemRef, 
+                        "quantity", FieldValue.increment(item.quantity.toLong()),
+                        "lastUpdatedBy", currentUser.uid,
+                        "lastUpdatedAt", System.currentTimeMillis()
+                    )
+                } else {
+                    Log.d("FridgeRepo", "Item new, creating document for UPC: ${item.upc}")
+                    val itemToAdd = item.copy(
+                        id = item.upc,
+                        addedBy = currentUser.uid,
+                        addedAt = System.currentTimeMillis(),
+                        lastUpdatedBy = currentUser.uid,
+                        lastUpdatedAt = System.currentTimeMillis()
+                    )
+                    transaction.set(itemRef, itemToAdd)
+                }
+            }.await()
+            Log.d("FridgeRepo", "Transaction successfully committed for UPC: ${item.upc}")
+        } catch (e: Exception) {
+            Log.e("FridgeRepo", "Transaction failed for UPC: ${item.upc}", e)
+            throw e
+        }
     }
 
-    /**
-     * Permanently deletes a fridge and all its contained items.
-     */
     suspend fun deleteFridge(fridgeId: String) {
         val fridgeRef = firestore.collection("fridges").document(fridgeId)
         val items = fridgeRef.collection("items").get().await()
@@ -207,9 +205,6 @@ class FridgeRepository {
         batch.commit().await()
     }
 
-    /**
-     * Fetches basic user information by their unique ID.
-     */
     suspend fun getUserById(userId: String): User? {
         return try {
             val doc = firestore.collection("users").document(userId).get().await()

@@ -38,6 +38,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true // Enable BuildConfig generation
     }
 }
 
@@ -63,6 +64,9 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.firebase.auth.ktx)
+    implementation(libs.firebase.storage.ktx) // Added Storage
+    implementation(libs.firebase.appcheck.playintegrity)
+    implementation(libs.firebase.appcheck.debug)
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.extensions)
     implementation(libs.androidx.camera.core)
@@ -73,10 +77,12 @@ dependencies {
     implementation(libs.androidx.camera.mlkit.vision)
     implementation(libs.androidx.concurrent.futures.ktx)
     implementation(libs.androidx.compose.material)
+    implementation(libs.androidx.compose.material.icons.extended) // Added Extended Icons
     implementation(libs.squareup.retrofit)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging)
     implementation(libs.google.gson)
+    implementation(libs.coil.compose) // Added Coil
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

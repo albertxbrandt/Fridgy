@@ -108,6 +108,38 @@ class FridgeSettingsViewModel(
     }
 
     /**
+     * Removes a member from the fridge. Only for owners.
+     * 
+     * @param userId The ID of the member to remove.
+     */
+    fun removeMember(userId: String) {
+        viewModelScope.launch {
+            try {
+                fridgeRepository.removeMember(fridgeId, userId)
+                loadFridgeDetails() // Refresh
+            } catch (e: Exception) {
+                Log.e("FridgeSettingsVM", "Error removing member: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Revokes a pending invitation. Only for owners.
+     * 
+     * @param userId The ID of the user whose invite should be revoked.
+     */
+    fun revokeInvite(userId: String) {
+        viewModelScope.launch {
+            try {
+                fridgeRepository.revokeInvite(fridgeId, userId)
+                loadFridgeDetails() // Refresh
+            } catch (e: Exception) {
+                Log.e("FridgeSettingsVM", "Error revoking invite: ${e.message}")
+            }
+        }
+    }
+
+    /**
      * Removes the current user from the fridge's membership.
      * 
      * @param onSuccess Callback triggered after successful removal.

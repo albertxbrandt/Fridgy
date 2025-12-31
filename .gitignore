@@ -13,4 +13,12 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase & Secrets
 app/google-services.json
+*.jks
+*.keystore
+
+# JVM/Crash Logs
+hs_err_pid*
+replay_pid*

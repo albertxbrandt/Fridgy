@@ -1,64 +1,78 @@
 package fyi.goodbye.fridgy.repositories
 
+import android.net.Uri
 import android.util.Log
-import fyi.goodbye.fridgy.data.api.model.OpenFoodFactsProductResponse
-import okhttp3.Credentials
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
-import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.GET
-import retrofit2.http.Path
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import fyi.goodbye.fridgy.models.Product
+import kotlinx.coroutines.tasks.await
 
-interface OpenFoodFactsApi {
-    @GET("api/v0/product/{barcode}.json")
-    suspend fun getProductByBarcode(@Path("barcode") barcode: String): OpenFoodFactsProductResponse
-}
-
+/**
+ * Repository for managing a private, crowdsourced barcode database.
+ * 
+ * It stores product metadata in Firestore and product images in Firebase Storage.
+ */
 class ProductRepository {
+    private val firestore = FirebaseFirestore.getInstance()
+    private val storage = FirebaseStorage.getInstance()
+    private val productsCollection = firestore.collection("products")
 
-    private val api: OpenFoodFactsApi
-
-    // Constants based on documentation
-    private val BASE_URL_STAGING = "https://world.openfoodfacts.net/"
-    private val USER_AGENT = "FridgyApp/1.0 (dev.fridgy@example.com)" // Use your app's info
-
-    init {
-        // Logging interceptor
-        val logging = HttpLoggingInterceptor { message -> Log.d("OkHttp", message) }
-        logging.setLevel(HttpLoggingInterceptor.Level.BODY)
-
-        // Custom OkHttpClient configuration
-        val httpClient = OkHttpClient.Builder()
-            .addInterceptor(logging)
-            // Add interceptor to include User-Agent and Basic Auth headers
-            .addInterceptor { chain ->
-                val originalRequest = chain.request()
-                val requestBuilder = originalRequest.newBuilder()
-                    // 1. Add Custom User-Agent (Required for all requests)
-                    .header("User-Agent", USER_AGENT)
-
-                // 2. Add Basic Auth for the Staging environment (off:off)
-                val credentials = Credentials.basic("off", "off")
-                requestBuilder.header("Authorization", credentials)
-
-                chain.proceed(requestBuilder.build())
+    /**
+     * Fetches product metadata from the internal database using a barcode.
+     */
+    suspend fun getProductInfo(upc: String): Product? {
+        return try {
+            val doc = productsCollection.document(upc).get().await()
+            if (doc.exists()) {
+                doc.toObject(Product::class.java)?.copy(upc = doc.id)
+            } else {
+                null
             }
-            .build()
-
-        // Initialize Retrofit
-        val retrofit = Retrofit.Builder()
-            // Use STAGING URL for development
-            .baseUrl(BASE_URL_STAGING)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(httpClient)
-            .build()
-
-        api = retrofit.create(OpenFoodFactsApi::class.java)
+        } catch (e: Exception) {
+            Log.e("ProductRepo", "Error fetching product $upc: ${e.message}")
+            null
+        }
     }
 
-    // Suspend function to fetch product details by UPC
-    suspend fun getProductByUpc(upc: String): OpenFoodFactsProductResponse {
-        return api.getProductByBarcode(upc)
+    /**
+     * Saves a product to the global database, including uploading its image to Storage.
+     * 
+     * @param product The product metadata.
+     * @param imageUri The local URI of the captured image to upload.
+     */
+    suspend fun saveProductWithImage(product: Product, imageUri: Uri?): Product {
+        var finalImageUrl = product.imageUrl
+
+        // 1. Upload Image to Firebase Storage if provided
+        if (imageUri != null) {
+            try {
+                val storageRef = storage.reference.child("products/${product.upc}.jpg")
+                storageRef.putFile(imageUri).await()
+                finalImageUrl = storageRef.downloadUrl.await().toString()
+                Log.d("ProductRepo", "Image uploaded successfully: $finalImageUrl")
+            } catch (e: Exception) {
+                Log.e("ProductRepo", "Image upload failed for ${product.upc}: ${e.message}")
+                // Continue saving without image if upload fails
+            }
+        }
+
+        // 2. Save Product metadata to Firestore
+        val updatedProduct = product.copy(imageUrl = finalImageUrl)
+        try {
+            productsCollection.document(product.upc).set(updatedProduct).await()
+            Log.d("ProductRepo", "Product metadata saved: ${product.upc}")
+        } catch (e: Exception) {
+            Log.e("ProductRepo", "Error saving product ${product.upc}: ${e.message}")
+            throw e
+        }
+
+        return updatedProduct
+    }
+
+    /**
+     * Legacy save function for backward compatibility.
+     */
+    suspend fun saveProductInfo(product: Product) {
+        saveProductWithImage(product, null)
     }
 }

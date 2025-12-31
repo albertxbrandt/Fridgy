@@ -15,8 +15,11 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.google.firebase.FirebaseApp
+import com.google.firebase.appcheck.FirebaseAppCheck
+import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
+import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.auth.FirebaseAuth
-import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.screens.*
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 
@@ -24,7 +27,25 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Initialize Firebase Auth outside Composable for checking current user
+        // Initialize Firebase
+        FirebaseApp.initializeApp(this)
+        
+        // Initialize App Check
+        val firebaseAppCheck = FirebaseAppCheck.getInstance()
+        
+        if (BuildConfig.DEBUG) {
+            // Use Debug Provider for emulators/local development
+            firebaseAppCheck.installAppCheckProviderFactory(
+                DebugAppCheckProviderFactory.getInstance()
+            )
+            Log.d("MainActivity", "Firebase App Check initialized with Debug Provider")
+        } else {
+            // Use Play Integrity for production
+            firebaseAppCheck.installAppCheckProviderFactory(
+                PlayIntegrityAppCheckProviderFactory.getInstance()
+            )
+        }
+
         val auth = FirebaseAuth.getInstance()
 
         setContent {
@@ -33,9 +54,8 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    val navController = rememberNavController() // Create NavController
+                    val navController = rememberNavController()
 
-                    // Check if user is already logged in
                     val startDestination = if (auth.currentUser != null) "fridgeList" else "login"
 
                     NavHost(navController = navController, startDestination = startDestination) {
@@ -43,8 +63,6 @@ class MainActivity : ComponentActivity() {
                             LoginScreen(
                                 onLoginSuccess = {
                                     navController.navigate("fridgeList") {
-                                        // Pop up to the start destination of the graph to avoid
-                                        // having multiple copies of the same destination on the stack
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
@@ -54,12 +72,11 @@ class MainActivity : ComponentActivity() {
                         composable("signup") {
                             SignupScreen(
                                 onSignupSuccess = {
-                                    // After signup, navigate to fridge list, clearing back stack
                                     navController.navigate("fridgeList") {
-                                        popUpTo("login") { inclusive = true } // Clear login/signup from stack
+                                        popUpTo("login") { inclusive = true }
                                     }
                                 },
-                                onNavigateToLogin = { navController.popBackStack() } // Go back to login
+                                onNavigateToLogin = { navController.popBackStack() }
                             )
                         }
                         composable("fridgeList") {
@@ -67,9 +84,9 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToFridgeInventory = { displayFridge ->
                                     navController.navigate("fridgeInventory/${displayFridge.id}")
                                 },
-                                onAddFridgeClick = { /* Handled internally by FridgeListScreen */ },
-                                onNotificationsClick = { /* Handled internally by FridgeListScreen */ },
-                                onProfileClick = { /* TODO: Implement profile screen navigation */ },
+                                onAddFridgeClick = { },
+                                onNotificationsClick = { },
+                                onProfileClick = { },
                                 onLogout = {
                                     navController.navigate("login") {
                                         popUpTo(navController.graph.id) {inclusive = true}
@@ -83,19 +100,16 @@ class MainActivity : ComponentActivity() {
                                 navArgument("fridgeId") {type = NavType.StringType}
                             )
                         ) { backStackEntry ->
-                            // The ViewModel will use the fridgeId from SavedStateHandle to fetch DisplayFridge
                             val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
 
-                            // Pass the fridgeId to FridgeInventoryScreen. The screen will then inject its ViewModel.
                             FridgeInventoryScreen(
-                                fridgeId = fridgeId, // Pass only the ID
+                                fridgeId = fridgeId,
                                 navController= navController,
                                 onBackClick = { navController.popBackStack() },
                                 onSettingsClick = { id -> 
                                     navController.navigate("fridgeSettings/$id")
                                 },
-                                onAddItemClick = { currentFridgeId -> // Callback to add item, will now navigate to scanner
-                                    // Pass the fridgeId to the scanner screen so it knows which fridge to add to
+                                onAddItemClick = { currentFridgeId ->
                                     navController.navigate("barcodeScanner/$currentFridgeId")
                                 },
                                 onItemClick = { fId, iId -> Log.d("Nav", "Item $iId in $fId clicked") }
@@ -117,7 +131,7 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(
-                            route = "barcodeScanner/{fridgeId}", // Pass fridgeId to scanner
+                            route = "barcodeScanner/{fridgeId}",
                             arguments = listOf(
                                 navArgument("fridgeId") { type = NavType.StringType }
                             )
@@ -126,13 +140,7 @@ class MainActivity : ComponentActivity() {
 
                             BarcodeScannerScreen(
                                 onBarcodeScanned = { scannedUpc ->
-                                    Log.d("MainActivity", "Barcode scanned: $scannedUpc for fridge $fridgeId")
-
-                                    // Pop back from scanner, and pass data to the FridgeInventoryScreen's SavedStateHandle
                                     navController.popBackStack()
-
-                                    // Ensure you're setting the data to the SavedStateHandle of the destination (FridgeInventoryScreen)
-                                    // not the current one. The previousBackStackEntry is the FridgeInventoryScreen's entry.
                                     navController.currentBackStackEntry?.savedStateHandle?.set("scannedUpc", scannedUpc)
                                     navController.currentBackStackEntry?.savedStateHandle?.set("targetFridgeId", fridgeId)
                                 },
