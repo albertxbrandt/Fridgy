@@ -3,8 +3,10 @@ package fyi.goodbye.fridgy.repositories
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.net.Uri
 import android.util.Log
+import androidx.exifinterface.media.ExifInterface
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.models.Product
@@ -34,12 +36,17 @@ class ProductRepository(private val context: Context? = null) {
      * Compresses an image from URI to optimized JPEG bytes.
      * Resizes to max 1024x1024 while maintaining aspect ratio.
      * Compresses to 85% JPEG quality.
+     * Handles EXIF orientation to ensure correct image rotation.
      * Target: ~100-300KB per image (down from 1.5MB)
      */
     private fun compressImage(uri: Uri): ByteArray? {
         if (context == null) return null
         
         return try {
+            // Read EXIF orientation first
+            val exifOrientation = getExifOrientation(uri)
+            
+            // Decode bitmap
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
             val originalBitmap = BitmapFactory.decodeStream(inputStream)
             inputStream?.close()
@@ -49,15 +56,18 @@ class ProductRepository(private val context: Context? = null) {
                 return null
             }
             
+            // Apply EXIF rotation to bitmap
+            val rotatedBitmap = rotateImageIfRequired(originalBitmap, exifOrientation)
+            
             // Calculate scaled dimensions maintaining aspect ratio
             val (scaledWidth, scaledHeight) = calculateScaledDimensions(
-                originalBitmap.width,
-                originalBitmap.height
+                rotatedBitmap.width,
+                rotatedBitmap.height
             )
             
             // Resize bitmap
             val scaledBitmap = Bitmap.createScaledBitmap(
-                originalBitmap,
+                rotatedBitmap,
                 scaledWidth,
                 scaledHeight,
                 true
@@ -70,7 +80,10 @@ class ProductRepository(private val context: Context? = null) {
             
             // Cleanup
             originalBitmap.recycle()
-            if (scaledBitmap != originalBitmap) {
+            if (rotatedBitmap != originalBitmap) {
+                rotatedBitmap.recycle()
+            }
+            if (scaledBitmap != rotatedBitmap) {
                 scaledBitmap.recycle()
             }
             outputStream.close()
@@ -80,6 +93,60 @@ class ProductRepository(private val context: Context? = null) {
         } catch (e: Exception) {
             Log.e("ProductRepo", "Image compression failed: ${e.message}")
             null
+        }
+    }
+    
+    /**
+     * Reads EXIF orientation from image URI.
+     */
+    private fun getExifOrientation(uri: Uri): Int {
+        if (context == null) return ExifInterface.ORIENTATION_NORMAL
+        
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return ExifInterface.ORIENTATION_NORMAL
+            val exif = ExifInterface(inputStream)
+            val orientation = exif.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            )
+            inputStream.close()
+            orientation
+        } catch (e: Exception) {
+            Log.e("ProductRepo", "Failed to read EXIF orientation: ${e.message}")
+            ExifInterface.ORIENTATION_NORMAL
+        }
+    }
+    
+    /**
+     * Rotates bitmap according to EXIF orientation.
+     */
+    private fun rotateImageIfRequired(bitmap: Bitmap, orientation: Int): Bitmap {
+        val matrix = Matrix()
+        
+        when (orientation) {
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.postRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.postRotate(-90f)
+                matrix.postScale(-1f, 1f)
+            }
+            else -> return bitmap // No rotation needed
+        }
+        
+        return try {
+            val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+            Log.d("ProductRepo", "Applied EXIF rotation: $orientation")
+            rotated
+        } catch (e: Exception) {
+            Log.e("ProductRepo", "Failed to rotate bitmap: ${e.message}")
+            bitmap
         }
     }
     

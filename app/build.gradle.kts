@@ -90,6 +90,7 @@ dependencies {
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended) // Added Extended Icons
     implementation(libs.coil.compose) // Added Coil
+    implementation(libs.androidx.exifinterface) // Added ExifInterface for image orientation
     
     // Unit Testing
     testImplementation(libs.junit)
