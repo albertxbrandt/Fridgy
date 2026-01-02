@@ -67,14 +67,22 @@ class FridgeListViewModel(
             // Collect real-time stream of fridges the user is a member of
             viewModelScope.launch {
                 fridgeRepository.getFridgesForCurrentUser().collectLatest { fridges ->
+                    // Fetch all user data for all fridges
+                    val allUserIds = fridges.flatMap { it.members + it.pendingInvites + listOf(it.createdBy) }.distinct()
+                    val usersMap = fridgeRepository.getUsersByIds(allUserIds)
+                    
                     val displayFridges = fridges.map { fridge ->
+                        val memberUsers = fridge.members.mapNotNull { usersMap[it] }
+                        val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
+                        val creatorName = usersMap[fridge.createdBy]?.username ?: "Unknown"
+                        
                         DisplayFridge(
                             id = fridge.id,
                             name = fridge.name,
                             createdByUid = fridge.createdBy,
-                            creatorDisplayName = fridge.members[fridge.createdBy] ?: "Unknown",
-                            members = fridge.members,
-                            pendingInvites = fridge.pendingInvites,
+                            creatorDisplayName = creatorName,
+                            memberUsers = memberUsers,
+                            pendingInviteUsers = inviteUsers,
                             createdAt = fridge.createdAt
                         )
                     }

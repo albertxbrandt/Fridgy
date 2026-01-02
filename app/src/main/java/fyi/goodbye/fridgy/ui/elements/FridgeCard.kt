@@ -66,7 +66,7 @@ fun FridgeCard(fridge: DisplayFridge, onClick: (DisplayFridge) -> Unit) {
                     color = FridgyTextBlue.copy(alpha = 0.7f)
                 )
                 Text(
-                    text = stringResource(R.string.members_count, fridge.members.size),
+                    text = stringResource(R.string.members_count, fridge.memberUsers.size),
                     fontSize = 14.sp,
                     color = FridgyTextBlue.copy(alpha = 0.7f)
                 )

@@ -2,6 +2,7 @@ package fyi.goodbye.fridgy.repositories
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
@@ -22,15 +23,61 @@ class FridgeRepository {
     private val auth = FirebaseAuth.getInstance()
 
     private var _fridgeCache: List<Fridge> = emptyList()
+    
+    /**
+     * Converts a Firestore document to a Fridge, handling both old Map and new List formats.
+     * This provides backward compatibility during data migration.
+     */
+    private fun DocumentSnapshot.toFridgeCompat(): Fridge? {
+        try {
+            // Try to parse as new format first
+            return this.toObject(Fridge::class.java)?.copy(id = this.id)
+        } catch (e: Exception) {
+            // Fallback: manually parse for old Map format
+            try {
+                val id = this.id
+                val name = this.getString("name") ?: ""
+                val createdBy = this.getString("createdBy") ?: ""
+                val createdAt = this.getLong("createdAt") ?: System.currentTimeMillis()
+                
+                // Handle members - can be Map or List
+                val members = when (val membersField = this.get("members")) {
+                    is List<*> -> membersField.filterIsInstance<String>()
+                    is Map<*, *> -> membersField.keys.filterIsInstance<String>()
+                    else -> emptyList()
+                }
+                
+                // Handle pendingInvites - can be Map or List
+                val pendingInvites = when (val invitesField = this.get("pendingInvites")) {
+                    is List<*> -> invitesField.filterIsInstance<String>()
+                    is Map<*, *> -> invitesField.keys.filterIsInstance<String>()
+                    else -> emptyList()
+                }
+                
+                return Fridge(
+                    id = id,
+                    name = name,
+                    createdBy = createdBy,
+                    members = members,
+                    pendingInvites = pendingInvites,
+                    createdAt = createdAt
+                )
+            } catch (e2: Exception) {
+                Log.e("FridgeRepo", "Error parsing fridge document: ${e2.message}")
+                return null
+            }
+        }
+    }
 
     fun getFridgesForCurrentUser(): Flow<List<Fridge>> = callbackFlow {
         val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
         
+        // Optimized query using whereArrayContains (all data migrated to List format)
         val fridgesListenerRegistration = firestore.collection("fridges")
-            .whereNotEqualTo("members.$currentUserId", null)
+            .whereArrayContains("members", currentUserId)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) { close(e); return@addSnapshotListener }
-                val fridgesList = snapshot?.documents?.mapNotNull { it.toObject(Fridge::class.java)?.copy(id = it.id) } ?: emptyList()
+                val fridgesList = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
                 _fridgeCache = fridgesList
                 trySend(fridgesList).isSuccess
             }
@@ -40,11 +87,12 @@ class FridgeRepository {
     fun getInvitesForCurrentUser(): Flow<List<Fridge>> = callbackFlow {
         val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
         
+        // Optimized query using whereArrayContains (all data migrated to List format)
         val invitesListener = firestore.collection("fridges")
-            .whereNotEqualTo("pendingInvites.$currentUserId", null)
+            .whereArrayContains("pendingInvites", currentUserId)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) { close(e); return@addSnapshotListener }
-                val invites = snapshot?.documents?.mapNotNull { it.toObject(Fridge::class.java)?.copy(id = it.id) } ?: emptyList()
+                val invites = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
                 trySend(invites).isSuccess
             }
         awaitClose { invitesListener.remove() }
@@ -62,30 +110,36 @@ class FridgeRepository {
                 } catch (e: Exception) { null }
                 
                 if (cacheDoc?.exists() == true) {
-                    cacheDoc.toObject(Fridge::class.java)?.copy(id = cacheDoc.id)
+                    cacheDoc.toFridgeCompat()
                 } else {
                     // Fallback to network if cache miss
                     val doc = firestore.collection("fridges").document(fridgeId).get(Source.DEFAULT).await()
-                    doc.toObject(Fridge::class.java)?.copy(id = doc.id)
+                    doc.toFridgeCompat()
                 }
             } catch (e: Exception) { null }
         } ?: return null
+        
+        // Fetch all user data for members and invites
+        val allUserIds = (fridge.members + fridge.pendingInvites + listOf(fridge.createdBy)).distinct()
+        val usersMap = getUsersByIds(allUserIds)
+        
+        val memberUsers = fridge.members.mapNotNull { usersMap[it] }
+        val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
+        val creatorName = usersMap[fridge.createdBy]?.username ?: "Unknown"
         
         return DisplayFridge(
             id = fridge.id,
             name = fridge.name,
             createdByUid = fridge.createdBy,
-            creatorDisplayName = fridge.members[fridge.createdBy] ?: "Unknown",
-            members = fridge.members,
-            pendingInvites = fridge.pendingInvites,
+            creatorDisplayName = creatorName,
+            memberUsers = memberUsers,
+            pendingInviteUsers = inviteUsers,
             createdAt = fridge.createdAt
         )
     }
 
     suspend fun createFridge(fridgeName: String): Fridge {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
-        val userDoc = firestore.collection("users").document(currentUser.uid).get().await()
-        val username = userDoc.getString("username") ?: "Unknown"
 
         val newFridgeDocRef = firestore.collection("fridges").document()
         val fridgeId = newFridgeDocRef.id
@@ -94,7 +148,7 @@ class FridgeRepository {
             id = fridgeId,
             name = fridgeName,
             createdBy = currentUser.uid,
-            members = mapOf(currentUser.uid to username),
+            members = listOf(currentUser.uid),
             createdAt = System.currentTimeMillis()
         )
 
@@ -106,54 +160,51 @@ class FridgeRepository {
         val snapshot = firestore.collection("users").whereEqualTo("email", email).get().await()
         val userDoc = snapshot.documents.firstOrNull() ?: throw Exception("User not found.")
         val userUid = userDoc.id
-        val username = userDoc.getString("username") ?: "Unknown"
         
         val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
         val fridge = fridgeDoc.toObject(Fridge::class.java) ?: throw Exception("Fridge not found.")
         
-        if (fridge.members.containsKey(userUid)) throw Exception("User is already a member.")
-        if (fridge.pendingInvites.containsKey(userUid)) throw Exception("Invitation already sent.")
+        if (fridge.members.contains(userUid)) throw Exception("User is already a member.")
+        if (fridge.pendingInvites.contains(userUid)) throw Exception("Invitation already sent.")
         
         firestore.collection("fridges").document(fridgeId)
-            .update("pendingInvites.$userUid", username)
+            .update("pendingInvites", FieldValue.arrayUnion(userUid))
             .await()
     }
 
     suspend fun acceptInvite(fridgeId: String) {
         val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in.")
-        val userDoc = firestore.collection("users").document(currentUserId).get().await()
-        val username = userDoc.getString("username") ?: "Unknown"
 
         val fridgeRef = firestore.collection("fridges").document(fridgeId)
         
         firestore.runTransaction { transaction ->
-            transaction.update(fridgeRef, "members.$currentUserId", username)
-            transaction.update(fridgeRef, "pendingInvites.$currentUserId", FieldValue.delete())
+            transaction.update(fridgeRef, "members", FieldValue.arrayUnion(currentUserId))
+            transaction.update(fridgeRef, "pendingInvites", FieldValue.arrayRemove(currentUserId))
         }.await()
     }
 
     suspend fun declineInvite(fridgeId: String) {
         val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in.")
         firestore.collection("fridges").document(fridgeId)
-            .update("pendingInvites.$currentUserId", FieldValue.delete()).await()
+            .update("pendingInvites", FieldValue.arrayRemove(currentUserId)).await()
     }
 
     suspend fun removeMember(fridgeId: String, userId: String) {
         firestore.collection("fridges").document(fridgeId)
-            .update("members.$userId", FieldValue.delete())
+            .update("members", FieldValue.arrayRemove(userId))
             .await()
     }
 
     suspend fun revokeInvite(fridgeId: String, userId: String) {
         firestore.collection("fridges").document(fridgeId)
-            .update("pendingInvites.$userId", FieldValue.delete())
+            .update("pendingInvites", FieldValue.arrayRemove(userId))
             .await()
     }
 
     suspend fun leaveFridge(fridgeId: String) {
         val uid = auth.currentUser?.uid ?: return
         firestore.collection("fridges").document(fridgeId)
-            .update("members.$uid", FieldValue.delete())
+            .update("members", FieldValue.arrayRemove(uid))
             .await()
     }
 
@@ -249,5 +300,34 @@ class FridgeRepository {
             val doc = firestore.collection("users").document(userId).get().await()
             doc.toObject(User::class.java)?.copy(uid = doc.id)
         } catch (e: Exception) { null }
+    }
+    
+    /**
+     * Fetches multiple users by their IDs.
+     * Returns a map of userId to User for easy lookup.
+     */
+    suspend fun getUsersByIds(userIds: List<String>): Map<String, User> {
+        if (userIds.isEmpty()) return emptyMap()
+        
+        return try {
+            // Firestore 'in' queries are limited to 10 items, so batch if needed
+            val result = mutableMapOf<String, User>()
+            userIds.chunked(10).forEach { chunk ->
+                val snapshot = firestore.collection("users")
+                    .whereIn("__name__", chunk)
+                    .get()
+                    .await()
+                    
+                snapshot.documents.forEach { doc ->
+                    doc.toObject(User::class.java)?.let { user ->
+                        result[doc.id] = user.copy(uid = doc.id)
+                    }
+                }
+            }
+            result
+        } catch (e: Exception) {
+            Log.e("FridgeRepo", "Error fetching users by IDs: ${e.message}")
+            emptyMap()
+        }
     }
 }

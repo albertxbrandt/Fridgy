@@ -125,21 +125,21 @@ fun FridgeSettingsScreen(
                         ) {
                             Column {
                                 // Existing members (excluding the owner)
-                                fridge.members.forEach { (uid, memberName) ->
-                                    if (uid != fridge.createdByUid) {
+                                fridge.memberUsers.forEach { member ->
+                                    if (member.uid != fridge.createdByUid) {
                                         SwipeToDismissMember(
-                                            name = memberName,
+                                            name = member.username,
                                             isOwner = isOwner,
-                                            onRemove = { viewModel.removeMember(uid) }
+                                            onRemove = { viewModel.removeMember(member.uid) }
                                         )
                                     }
                                 }
                                 // Pending invites
-                                fridge.pendingInvites.forEach { (uid, pendingName) ->
+                                fridge.pendingInviteUsers.forEach { invitedUser ->
                                     SwipeToDismissMember(
-                                        name = "$pendingName (Pending)",
+                                        name = "${invitedUser.username} (Pending)",
                                         isOwner = isOwner,
-                                        onRemove = { viewModel.revokeInvite(uid) }
+                                        onRemove = { viewModel.revokeInvite(invitedUser.uid) }
                                     )
                                 }
                             }
