@@ -202,12 +202,13 @@ class FridgeInventoryViewModel(
         fun provideFactory(
             fridgeId: String, 
             fridgeRepository: FridgeRepository = FridgeRepository(),
-            productRepository: ProductRepository = ProductRepository()
+            productRepository: ProductRepository? = null
         ): ViewModelProvider.Factory {
             return viewModelFactory {
                 initializer {
                     val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                    FridgeInventoryViewModel(app, fridgeRepository, productRepository, fridgeId)
+                    val repo = productRepository ?: ProductRepository(app.applicationContext)
+                    FridgeInventoryViewModel(app, fridgeRepository, repo, fridgeId)
                 }
             }
         }

@@ -94,11 +94,12 @@ class ItemDetailViewModel(
             fridgeId: String,
             itemId: String,
             fridgeRepository: FridgeRepository = FridgeRepository(),
-            productRepository: ProductRepository = ProductRepository()
+            productRepository: ProductRepository? = null
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
                 val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                ItemDetailViewModel(app, fridgeRepository, productRepository, fridgeId, itemId)
+                val repo = productRepository ?: ProductRepository(app.applicationContext)
+                ItemDetailViewModel(app, fridgeRepository, repo, fridgeId, itemId)
             }
         }
     }
