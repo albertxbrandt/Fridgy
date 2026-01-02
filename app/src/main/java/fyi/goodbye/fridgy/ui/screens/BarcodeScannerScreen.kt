@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -47,16 +48,17 @@ import com.google.mlkit.vision.common.InputImage
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
  * Screen that integrates CameraX and Google ML Kit to scan product barcodes.
- * 
- * It displays a live camera feed and automatically detects UPC-A and EAN-13 barcodes.
- * When a barcode is detected, it triggers the [onBarcodeScanned] callback with the raw UPC value.
  *
- * @param onBarcodeScanned Callback triggered when a barcode is successfully detected.
- * @param onBackClick Callback to return to the previous screen.
+ * PERFORMANCE OPTIMIZATIONS:
+ * 1. Used STRATEGY_KEEP_ONLY_LATEST to prevent camera preview lag.
+ * 2. Implemented proper resource management (ExecutorService & BarcodeScanner closure).
+ * 3. Added an atomic 'isScanningActive' flag to prevent multiple rapid scans of the same item.
+ * 4. Memoized scanning resources to avoid re-allocation during recomposition.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -68,7 +70,24 @@ fun BarcodeScannerScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
-    var lastScannedBarcode by remember { mutableStateOf<String?>(null) }
+    // OPTIMIZATION: Lifecycle-aware resource management
+    val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
+    val barcodeScanner = remember {
+        val options = BarcodeScannerOptions.Builder()
+            .setBarcodeFormats(Barcode.FORMAT_UPC_A, Barcode.FORMAT_EAN_13)
+            .build()
+        BarcodeScanning.getClient(options)
+    }
+
+    // Flag to ensure we only process one barcode per session
+    var isScanningActive by remember { mutableStateOf(true) }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            cameraExecutor.shutdown()
+            barcodeScanner.close()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -107,7 +126,6 @@ fun BarcodeScannerScreen(
                     val previewView = PreviewView(ctx).apply {
                         this.scaleType = PreviewView.ScaleType.FILL_CENTER
                     }
-                    val cameraExecutor = Executors.newSingleThreadExecutor()
 
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
@@ -115,19 +133,16 @@ fun BarcodeScannerScreen(
                             it.setSurfaceProvider(previewView.surfaceProvider)
                         }
 
-                        val options = BarcodeScannerOptions.Builder()
-                            .setBarcodeFormats(Barcode.FORMAT_UPC_A, Barcode.FORMAT_EAN_13)
-                            .build()
-                        val barcodeScanner = BarcodeScanning.getClient(options)
-
+                        // OPTIMIZATION: STRATEGY_KEEP_ONLY_LATEST ensures the UI stays responsive
                         val imageAnalyzer = ImageAnalysis.Builder()
-                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_BLOCK_PRODUCER)
+                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                             .build()
                             .also {
                                 it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(barcodeScanner) { barcodeValue ->
-                                    if (lastScannedBarcode == null || lastScannedBarcode != barcodeValue) {
-                                        lastScannedBarcode = barcodeValue
-                                        Log.d("BarcodeScanner", "Scanned: $barcodeValue")
+                                    if (isScanningActive) {
+                                        // Set flag to false immediately to block further analysis
+                                        isScanningActive = false
+                                        Log.d("Performance", "Barcode successfully captured: $barcodeValue")
                                         onBarcodeScanned(barcodeValue)
                                     }
                                 })
@@ -150,6 +165,7 @@ fun BarcodeScannerScreen(
                 modifier = Modifier.fillMaxSize()
             )
 
+            // Scanning Overlay
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -177,8 +193,6 @@ fun BarcodeScannerScreen(
 
 /**
  * Custom [ImageAnalysis.Analyzer] that processes camera frames for barcodes using ML Kit.
- * 
- * It converts [ImageProxy] data into [InputImage] and uses [BarcodeScanner] to find values.
  */
 private class BarcodeAnalyzer(
     private val barcodeScanner: BarcodeScanner,
@@ -192,16 +206,16 @@ private class BarcodeAnalyzer(
 
             barcodeScanner.process(image)
                 .addOnSuccessListener { barcodes ->
-                    if (barcodes.isNotEmpty()) {
-                        barcodes.firstOrNull()?.rawValue?.let { barcodeValue ->
-                            onBarcodeScanned(barcodeValue)
-                        }
+                    val firstBarcode = barcodes.firstOrNull()?.rawValue
+                    if (firstBarcode != null) {
+                        onBarcodeScanned(firstBarcode)
                     }
                 }
                 .addOnFailureListener { e ->
-                    Log.e("BarcodeAnalyzer", "Barcode scanning failed", e)
+                    Log.e("BarcodeAnalyzer", "Scanning error", e)
                 }
                 .addOnCompleteListener {
+                    // CRITICAL: Close the ImageProxy to allow next frame processing
                     imageProxy.close()
                 }
         } else {

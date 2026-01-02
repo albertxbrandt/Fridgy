@@ -40,6 +40,17 @@ android {
         compose = true
         buildConfig = true // Enable BuildConfig generation
     }
+    packaging {
+        resources {
+            excludes += setOf(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md",
+                "META-INF/NOTICE.md",
+                "META-INF/ASL2.0",
+                "META-INF/LGPL2.1"
+            )
+        }
+    }
 }
 
 dependencies {
@@ -78,16 +89,24 @@ dependencies {
     implementation(libs.androidx.concurrent.futures.ktx)
     implementation(libs.androidx.compose.material)
     implementation(libs.androidx.compose.material.icons.extended) // Added Extended Icons
-    implementation(libs.squareup.retrofit)
-    implementation(libs.retrofit.converter.gson)
-    implementation(libs.okhttp.logging)
-    implementation(libs.google.gson)
     implementation(libs.coil.compose) // Added Coil
+    
+    // Unit Testing
     testImplementation(libs.junit)
+    testImplementation("org.jetbrains.kotlin:kotlin-test:2.2.21")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("app.cash.turbine:turbine:1.0.0") // For testing Flows
+    testImplementation("io.mockk:mockk:1.13.8") // For mocking Firebase/dependencies
+    testImplementation("androidx.arch.core:core-testing:2.2.0") // For InstantTaskExecutorRule
+    
+    // UI Testing
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation("io.mockk:mockk-android:1.13.8")
+    
+    // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 }

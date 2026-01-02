@@ -148,6 +148,7 @@ class FridgeRepository {
     }
 
     fun getItemsForFridge(fridgeId: String): Flow<List<Item>> = callbackFlow {
+        // Use SnapshotListener with local cache support
         val listener = firestore.collection("fridges").document(fridgeId).collection("items")
             .addSnapshotListener { snapshot, e ->
                 if (e != null) { close(e); return@addSnapshotListener }
@@ -158,41 +159,69 @@ class FridgeRepository {
     }
 
     /**
-     * Optimized: Adds or increments an item. 
-     * Uses the UPC as the document ID to ensure atomicity.
+     * Adds or increments an item in the fridge.
+     * Uses a non-blocking Firestore update to ensure instant local response.
      */
-    suspend fun addItemToFridge(fridgeId: String, item: Item) {
-        Log.d("FridgeRepo", "Starting addItemToFridge for UPC: ${item.upc}")
+    suspend fun addItemToFridge(fridgeId: String, upc: String) {
+        Log.d("FridgeRepo", "Starting addItemToFridge for UPC: $upc")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
         val itemRef = firestore.collection("fridges").document(fridgeId)
-            .collection("items").document(item.upc)
+            .collection("items").document(upc)
         
         try {
+            // First, try a simple non-transactional update for speed (Firestore handles local latency)
+            val snapshot = itemRef.get(Source.CACHE).await()
+            if (snapshot.exists()) {
+                itemRef.update(
+                    "quantity", FieldValue.increment(1),
+                    "lastUpdatedBy", currentUser.uid,
+                    "lastUpdatedAt", System.currentTimeMillis()
+                )
+            } else {
+                val itemToAdd = Item(
+                    id = upc,
+                    upc = upc,
+                    quantity = 1,
+                    addedBy = currentUser.uid,
+                    addedAt = System.currentTimeMillis(),
+                    lastUpdatedBy = currentUser.uid,
+                    lastUpdatedAt = System.currentTimeMillis()
+                )
+                itemRef.set(itemToAdd)
+            }
+            Log.d("FridgeRepo", "Item $upc locally added to fridge $fridgeId")
+        } catch (e: Exception) {
+            // Fallback to transaction if cache fetch fails or other issues occur
+            Log.w("FridgeRepo", "Local add failed, falling back to transaction: ${e.message}")
             firestore.runTransaction { transaction ->
-                val snapshot = transaction.get(itemRef)
-                if (snapshot.exists()) {
-                    Log.d("FridgeRepo", "Item exists, incrementing quantity for UPC: ${item.upc}")
+                val serverSnapshot = transaction.get(itemRef)
+                if (serverSnapshot.exists()) {
                     transaction.update(itemRef, 
-                        "quantity", FieldValue.increment(item.quantity.toLong()),
+                        "quantity", FieldValue.increment(1),
                         "lastUpdatedBy", currentUser.uid,
                         "lastUpdatedAt", System.currentTimeMillis()
                     )
                 } else {
-                    Log.d("FridgeRepo", "Item new, creating document for UPC: ${item.upc}")
-                    val itemToAdd = item.copy(
-                        id = item.upc,
-                        addedBy = currentUser.uid,
-                        addedAt = System.currentTimeMillis(),
-                        lastUpdatedBy = currentUser.uid,
-                        lastUpdatedAt = System.currentTimeMillis()
-                    )
+                    val itemToAdd = Item(id = upc, upc = upc, quantity = 1, addedBy = currentUser.uid, addedAt = System.currentTimeMillis(), lastUpdatedBy = currentUser.uid, lastUpdatedAt = System.currentTimeMillis())
                     transaction.set(itemRef, itemToAdd)
                 }
             }.await()
-            Log.d("FridgeRepo", "Transaction successfully committed for UPC: ${item.upc}")
-        } catch (e: Exception) {
-            Log.e("FridgeRepo", "Transaction failed for UPC: ${item.upc}", e)
-            throw e
+        }
+    }
+
+    suspend fun updateItemQuantity(fridgeId: String, itemId: String, newQuantity: Int) {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        if (newQuantity <= 0) {
+            firestore.collection("fridges").document(fridgeId)
+                .collection("items").document(itemId).delete()
+        } else {
+            firestore.collection("fridges").document(fridgeId)
+                .collection("items").document(itemId)
+                .update(
+                    "quantity", newQuantity,
+                    "lastUpdatedBy", currentUser.uid,
+                    "lastUpdatedAt", System.currentTimeMillis()
+                )
         }
     }
 

@@ -16,14 +16,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
-import fyi.goodbye.fridgy.models.Item
+import fyi.goodbye.fridgy.ui.viewmodels.InventoryItem
 
 /**
- * A card representing a single inventory item in the grid, redesigned with
- * the image as the background and text overlaid at the bottom.
+ * A card representing a single inventory item in the grid.
+ * Displays global product info (image, name, brand) and fridge-specific info (quantity).
  */
 @Composable
-fun InventoryItemCard(item: Item, onClick: (String) -> Unit) {
+fun InventoryItemCard(inventoryItem: InventoryItem, onClick: (String) -> Unit) {
+    val item = inventoryItem.item
+    val product = inventoryItem.product
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -35,10 +38,10 @@ fun InventoryItemCard(item: Item, onClick: (String) -> Unit) {
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             // Product Image as Background
-            if (item.imageUrl != null) {
+            if (product.imageUrl != null) {
                 AsyncImage(
-                    model = item.imageUrl,
-                    contentDescription = item.name,
+                    model = product.imageUrl,
+                    contentDescription = product.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -54,14 +57,13 @@ fun InventoryItemCard(item: Item, onClick: (String) -> Unit) {
                 }
             }
 
-            // Enhanced Gradient Scrim to ensure text readability
-            // We use colorStops to start the darkening further down (around 50% height)
+            // Enhanced Gradient Scrim
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(
                         Brush.verticalGradient(
-                            0.5f to Color.Transparent,
+                            0.4f to Color.Transparent,
                             1.0f to Color.Black.copy(alpha = 0.85f)
                         )
                     )
@@ -74,9 +76,19 @@ fun InventoryItemCard(item: Item, onClick: (String) -> Unit) {
                     .fillMaxWidth()
                     .padding(12.dp)
             ) {
+                if (product.brand.isNotBlank()) {
+                    Text(
+                        text = product.brand,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.8f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
                 Text(
-                    text = item.name,
-                    fontSize = 16.sp,
+                    text = product.name,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     maxLines = 1,
@@ -84,7 +96,7 @@ fun InventoryItemCard(item: Item, onClick: (String) -> Unit) {
                 )
                 Text(
                     text = "Qty: ${item.quantity}",
-                    fontSize = 14.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.White.copy(alpha = 0.9f)
                 )

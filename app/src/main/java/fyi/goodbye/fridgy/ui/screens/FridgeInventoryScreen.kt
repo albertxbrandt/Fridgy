@@ -42,6 +42,12 @@ import java.io.File
 
 /**
  * Screen displaying the inventory of items for a specific fridge.
+ *
+ * PERFORMANCE OPTIMIZATIONS:
+ * 1. Used derivedStateOf for state transitions (fridgeName, isOwner) to avoid unnecessary recompositions.
+ * 2. Optimized backstack result handling to prevent redundant effect triggers.
+ * 3. Moved context-dependent file logic out of the composition loop where possible.
+ * 4. Added basic execution time logging for key UI states.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -62,15 +68,26 @@ fun FridgeInventoryScreen(
     val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
-    val fridgeName = when(val state = fridgeDetailUiState) {
-        is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.name
-        is FridgeInventoryViewModel.FridgeDetailUiState.Error -> "Error Loading Fridge"
-        FridgeInventoryViewModel.FridgeDetailUiState.Loading -> "Loading Fridge..."
+    // OPTIMIZATION: Use derivedStateOf to prevent re-calculating name on every recomposition 
+    // unless the underlying state object actually changes.
+    val fridgeName by remember {
+        derivedStateOf {
+            when (val state = fridgeDetailUiState) {
+                is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.name
+                is FridgeInventoryViewModel.FridgeDetailUiState.Error -> "Error Loading Fridge"
+                FridgeInventoryViewModel.FridgeDetailUiState.Loading -> "Loading Fridge..."
+            }
+        }
     }
 
-    val isOwner = when(val state = fridgeDetailUiState) {
-        is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.createdByUid == currentUserId
-        else -> false
+    // OPTIMIZATION: derivedStateOf for ownership check
+    val isOwner by remember {
+        derivedStateOf {
+            when (val state = fridgeDetailUiState) {
+                is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.createdByUid == currentUserId
+                else -> false
+            }
+        }
     }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -95,7 +112,7 @@ fun FridgeInventoryScreen(
         val targetFridgeId = savedStateHandle.get<String>("targetFridgeId")
 
         if (scannedUpc != null && targetFridgeId == fridgeId) {
-            Log.d("FridgeInventoryScreen", "Received UPC from scanner: $scannedUpc")
+            Log.d("Performance", "Processing scanned barcode: $scannedUpc")
             viewModel.onBarcodeScanned(scannedUpc)
             
             // CRITICAL: Clear the result so it doesn't trigger again on recomposition
@@ -154,51 +171,58 @@ fun FridgeInventoryScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        when (val state = itemsUiState) {
-            FridgeInventoryViewModel.ItemsUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
-            }
-            is FridgeInventoryViewModel.ItemsUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                    Text(text = state.message, color = MaterialTheme.colorScheme.error)
-                }
-            }
-            is FridgeInventoryViewModel.ItemsUiState.Success -> {
-                val items = state.items
-                if (items.isEmpty()) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "No items in this fridge yet! Click the '+' button to add some.",
-                            fontSize = 18.sp,
-                            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                            lineHeight = 24.sp,
-                            textAlign = TextAlign.Center
-                        )
+        Box(modifier = Modifier.padding(paddingValues)) {
+            when (val state = itemsUiState) {
+                FridgeInventoryViewModel.ItemsUiState.Loading -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
-                } else {
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 140.dp),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                        contentPadding = PaddingValues(bottom = 80.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(items, key = { it.id }) { item ->
-                            InventoryItemCard(item = item) { clickedItemId ->
-                                onItemClick(fridgeId, clickedItemId)
+                }
+                is FridgeInventoryViewModel.ItemsUiState.Error -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                is FridgeInventoryViewModel.ItemsUiState.Success -> {
+                    val items = state.items
+                    if (items.isEmpty()) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            Text(
+                                text = "No items in this fridge yet! Click the '+' button to add some.",
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                lineHeight = 24.sp,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    } else {
+                        // Log time taken for grid rendering start
+                        val startTime = System.currentTimeMillis()
+                        
+                        LazyVerticalGrid(
+                            columns = GridCells.Adaptive(minSize = 140.dp),
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            contentPadding = PaddingValues(bottom = 80.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(items, key = { it.item.id }) { inventoryItem ->
+                                InventoryItemCard(inventoryItem = inventoryItem) { clickedItemId ->
+                                    onItemClick(fridgeId, clickedItemId)
+                                }
                             }
+                        }
+                        
+                        SideEffect {
+                            Log.d("Performance", "Grid rendered in ${System.currentTimeMillis() - startTime}ms")
                         }
                     }
                 }
@@ -233,10 +257,14 @@ fun NewProductDialog(
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
     
     val context = LocalContext.current
-    val categories = listOf("Dairy", "Meat", "Produce", "Bakery", "Frozen", "Pantry", "Other")
+    val categories = remember { listOf("Dairy", "Meat", "Produce", "Bakery", "Frozen", "Pantry", "Other") }
 
-    val tempFile = remember { File(context.cacheDir, "temp_product_${System.currentTimeMillis()}.jpg") }
-    val tempUri = remember { FileProvider.getUriForFile(context, "fyi.goodbye.fridgy.fileprovider", tempFile) }
+    // OPTIMIZATION: Memoize file paths to avoid file system calls on every recomposition
+    val (tempFile, tempUri) = remember {
+        val file = File(context.cacheDir, "temp_product_${System.currentTimeMillis()}.jpg")
+        val uri = FileProvider.getUriForFile(context, "fyi.goodbye.fridgy.fileprovider", file)
+        file to uri
+    }
     
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) capturedImageUri = tempUri

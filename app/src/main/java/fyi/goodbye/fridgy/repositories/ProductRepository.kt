@@ -9,22 +9,32 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * Repository for managing a private, crowdsourced barcode database.
- * 
- * It stores product metadata in Firestore and product images in Firebase Storage.
  */
 class ProductRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val storage = FirebaseStorage.getInstance()
     private val productsCollection = firestore.collection("products")
 
+    companion object {
+        // Shared cache across all repository instances to ensure data persistence
+        private val productCache = mutableMapOf<String, Product>()
+    }
+
     /**
      * Fetches product metadata from the internal database using a barcode.
+     * Uses a local cache to speed up subsequent requests.
      */
     suspend fun getProductInfo(upc: String): Product? {
+        productCache[upc]?.let { return it }
+
         return try {
             val doc = productsCollection.document(upc).get().await()
             if (doc.exists()) {
-                doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                val product = doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                if (product != null) {
+                    productCache[upc] = product
+                }
+                product
             } else {
                 null
             }
@@ -35,43 +45,50 @@ class ProductRepository {
     }
 
     /**
-     * Saves a product to the global database, including uploading its image to Storage.
-     * 
-     * @param product The product metadata.
-     * @param imageUri The local URI of the captured image to upload.
+     * Injects a product into the cache manually. Useful for optimistic UI updates.
+     */
+    fun injectToCache(product: Product) {
+        productCache[product.upc] = product
+    }
+
+    /**
+     * Saves a product to the global database.
+     * Optimistically updates the cache before hitting the network.
      */
     suspend fun saveProductWithImage(product: Product, imageUri: Uri?): Product {
+        // Update cache immediately
+        productCache[product.upc] = product
+
+        // 1. Save metadata (fire-and-forget for local cache benefit)
+        val saveTask = productsCollection.document(product.upc).set(product)
+        
+        // We don't await the metadata save if we want instant UI, 
+        // Firestore's local persistence will handle the immediate fetch.
+        // However, we still want to handle the image upload in the background.
+
         var finalImageUrl = product.imageUrl
 
-        // 1. Upload Image to Firebase Storage if provided
+        // 2. Upload Image to Firebase Storage if provided
         if (imageUri != null) {
             try {
                 val storageRef = storage.reference.child("products/${product.upc}.jpg")
                 storageRef.putFile(imageUri).await()
                 finalImageUrl = storageRef.downloadUrl.await().toString()
-                Log.d("ProductRepo", "Image uploaded successfully: $finalImageUrl")
+                
+                // 3. Update metadata with the final image URL
+                val updatedProduct = product.copy(imageUrl = finalImageUrl)
+                productsCollection.document(product.upc).set(updatedProduct)
+                productCache[product.upc] = updatedProduct
+                Log.d("ProductRepo", "Product image uploaded and metadata updated: ${product.upc}")
+                return updatedProduct
             } catch (e: Exception) {
                 Log.e("ProductRepo", "Image upload failed for ${product.upc}: ${e.message}")
-                // Continue saving without image if upload fails
             }
         }
 
-        // 2. Save Product metadata to Firestore
-        val updatedProduct = product.copy(imageUrl = finalImageUrl)
-        try {
-            productsCollection.document(product.upc).set(updatedProduct).await()
-            Log.d("ProductRepo", "Product metadata saved: ${product.upc}")
-        } catch (e: Exception) {
-            Log.e("ProductRepo", "Error saving product ${product.upc}: ${e.message}")
-            throw e
-        }
-
-        return updatedProduct
+        return productCache[product.upc] ?: product
     }
 
-    /**
-     * Legacy save function for backward compatibility.
-     */
     suspend fun saveProductInfo(product: Product) {
         saveProductWithImage(product, null)
     }

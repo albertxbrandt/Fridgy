@@ -22,3 +22,6 @@ app/google-services.json
 # JVM/Crash Logs
 hs_err_pid*
 replay_pid*
+
+.github/
+TESTING.md

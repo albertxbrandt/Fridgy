@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -38,7 +37,14 @@ class MainActivity : ComponentActivity() {
             firebaseAppCheck.installAppCheckProviderFactory(
                 DebugAppCheckProviderFactory.getInstance()
             )
-            Log.d("MainActivity", "Firebase App Check initialized with Debug Provider")
+            Log.d("Fridgy_AppCheck", "Firebase App Check initialized with Debug Provider")
+            
+            // Explicitly request a token to force the debug secret to be printed in logcat early
+            firebaseAppCheck.getAppCheckToken(false).addOnSuccessListener { token ->
+                Log.d("Fridgy_AppCheck", "Initial token retrieved: ${token.token.take(10)}...")
+            }.addOnFailureListener { e ->
+                Log.e("Fridgy_AppCheck", "Failed to retrieve initial token: ${e.message}")
+            }
         } else {
             // Use Play Integrity for production
             firebaseAppCheck.installAppCheckProviderFactory(
@@ -112,7 +118,24 @@ class MainActivity : ComponentActivity() {
                                 onAddItemClick = { currentFridgeId ->
                                     navController.navigate("barcodeScanner/$currentFridgeId")
                                 },
-                                onItemClick = { fId, iId -> Log.d("Nav", "Item $iId in $fId clicked") }
+                                onItemClick = { fId, iId -> 
+                                    navController.navigate("itemDetail/$fId/$iId")
+                                }
+                            )
+                        }
+                        composable(
+                            route = "itemDetail/{fridgeId}/{itemId}",
+                            arguments = listOf(
+                                navArgument("fridgeId") { type = NavType.StringType },
+                                navArgument("itemId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
+                            val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
+                            ItemDetailScreen(
+                                fridgeId = fridgeId,
+                                itemId = itemId,
+                                onBackClick = { navController.popBackStack() }
                             )
                         }
                         composable(
