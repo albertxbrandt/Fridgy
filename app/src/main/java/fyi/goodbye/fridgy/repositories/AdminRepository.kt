@@ -18,13 +18,13 @@ class AdminRepository {
     private val auth = FirebaseAuth.getInstance()
     private val storage = FirebaseStorage.getInstance()
     private val adminsCollection = firestore.collection("admins")
-    
+
     /**
      * Checks if the current user is an admin.
      */
     suspend fun isCurrentUserAdmin(): Boolean {
         val currentUserId = auth.currentUser?.uid ?: return false
-        
+
         return try {
             val doc = adminsCollection.document(currentUserId).get().await()
             doc.exists()
@@ -33,13 +33,13 @@ class AdminRepository {
             false
         }
     }
-    
+
     /**
      * Gets the admin document for the current user if they are an admin.
      */
     suspend fun getCurrentAdminInfo(): Admin? {
         val currentUserId = auth.currentUser?.uid ?: return null
-        
+
         return try {
             val doc = adminsCollection.document(currentUserId).get().await()
             if (doc.exists()) {
@@ -52,7 +52,7 @@ class AdminRepository {
             null
         }
     }
-    
+
     /**
      * Gets all users from the users collection.
      */
@@ -67,7 +67,7 @@ class AdminRepository {
             emptyList()
         }
     }
-    
+
     /**
      * Gets all products from the products collection.
      */
@@ -82,7 +82,7 @@ class AdminRepository {
             emptyList()
         }
     }
-    
+
     /**
      * Gets all fridges from the fridges collection.
      */
@@ -97,7 +97,7 @@ class AdminRepository {
             emptyList()
         }
     }
-    
+
     /**
      * Deletes a user and all their associated data.
      * WARNING: This is a destructive operation.
@@ -106,28 +106,33 @@ class AdminRepository {
         return try {
             // Delete user document
             firestore.collection("users").document(userId).delete().await()
-            
+
             // Note: In a production app, you'd also want to:
             // - Delete user's Firebase Auth account
             // - Remove user from all fridge members
             // - Handle orphaned data
-            
+
             true
         } catch (e: Exception) {
             Log.e("AdminRepo", "Error deleting user: ${e.message}")
             false
         }
     }
-    
+
     /**
      * Updates a user's information.
      */
-    suspend fun updateUser(userId: String, username: String, email: String): Boolean {
+    suspend fun updateUser(
+        userId: String,
+        username: String,
+        email: String
+    ): Boolean {
         return try {
-            val updates = mapOf(
-                "username" to username,
-                "email" to email
-            )
+            val updates =
+                mapOf(
+                    "username" to username,
+                    "email" to email
+                )
             firestore.collection("users").document(userId).update(updates).await()
             true
         } catch (e: Exception) {
@@ -135,7 +140,7 @@ class AdminRepository {
             false
         }
     }
-    
+
     /**
      * Also deletes the associated product image from Firebase Storage.
      */
@@ -143,7 +148,7 @@ class AdminRepository {
         return try {
             // Delete product document from Firestore
             firestore.collection("products").document(upc).delete().await()
-            
+
             // Delete product image from Storage
             try {
                 val imageRef = storage.reference.child("products/$upc.jpg")
@@ -152,7 +157,7 @@ class AdminRepository {
                 // Log but don't fail if image doesn't exist
                 Log.w("AdminRepo", "Could not delete product image: ${e.message}")
             }
-            
+
             firestore.collection("products").document(upc).delete().await()
             true
         } catch (e: Exception) {
@@ -160,7 +165,7 @@ class AdminRepository {
             false
         }
     }
-    
+
     /**
      * Updates a product's information.
      */
@@ -171,12 +176,13 @@ class AdminRepository {
         category: String
     ): Boolean {
         return try {
-            val updates = mapOf(
-                "name" to name,
-                "brand" to brand,
-                "category" to category,
-                "lastUpdated" to System.currentTimeMillis()
-            )
+            val updates =
+                mapOf(
+                    "name" to name,
+                    "brand" to brand,
+                    "category" to category,
+                    "lastUpdated" to System.currentTimeMillis()
+                )
             firestore.collection("products").document(upc).update(updates).await()
             true
         } catch (e: Exception) {

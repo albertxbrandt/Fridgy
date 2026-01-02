@@ -1,0 +1,34 @@
+# EditorConfig for Fridgy - Kotlin Code Style
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+
+# Ktlint-specific rules
+ktlint_standard_no-wildcard-imports = disabled
+ktlint_standard_max-line-length = disabled
+ktlint_standard_filename = disabled
+ktlint_standard_trailing-comma-on-call-site = disabled
+ktlint_standard_trailing-comma-on-declaration-site = disabled
+
+# Compose-specific rules (allow long lines for @Composable chains)
+ktlint_function_naming_ignore_when_annotated_with = Composable
+
+[*.xml]
+indent_size = 4
+
+[*.gradle.kts]
+indent_size = 4
+
+[*.{json,yml,yaml}]
+indent_size = 2

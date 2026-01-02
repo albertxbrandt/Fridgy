@@ -4,7 +4,7 @@ import com.google.firebase.firestore.DocumentId
 
 /**
  * Data model representing a physical fridge shared among users.
- * 
+ *
  * This class is designed for efficient Firestore storage and querying.
  * It stores only User IDs to maintain a single source of truth for usernames.
  * Usernames are fetched from the users collection when needed.
@@ -21,7 +21,9 @@ data class Fridge(
     val id: String = "",
     val name: String = "",
     val createdBy: String = "",
-    val members: List<String> = listOf(), // List of user IDs
-    val pendingInvites: List<String> = listOf(), // List of user IDs
+    // List of user IDs
+    val members: List<String> = listOf(),
+    // List of user IDs
+    val pendingInvites: List<String> = listOf(),
     val createdAt: Long = System.currentTimeMillis()
 )

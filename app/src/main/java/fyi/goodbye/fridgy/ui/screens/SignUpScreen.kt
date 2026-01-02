@@ -1,10 +1,8 @@
 package fyi.goodbye.fridgy.ui.screens
 
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,20 +18,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.auth.FirebaseAuth
-import fyi.goodbye.fridgy.ui.theme.FridgyTheme
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
-import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
-import fyi.goodbye.fridgy.ui.elements.SquaredInput
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.SquaredButton
+import fyi.goodbye.fridgy.ui.elements.SquaredInput
+import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
+import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
+import fyi.goodbye.fridgy.ui.theme.FridgyTheme
+import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import fyi.goodbye.fridgy.ui.viewmodels.SignupViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Composable screen that allows new users to register for an account.
- * 
+ *
  * It provides input fields for email, password, and password confirmation.
  * It handles validation feedback and navigation back to the login screen.
  *
@@ -61,20 +58,22 @@ fun SignupScreen(
         containerColor = FridgyWhite
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp)
-                .background(FridgyWhite),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 24.dp)
+                    .background(FridgyWhite),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = stringResource(R.string.cd_fridge_logo),
-                modifier = Modifier
-                    .size(160.dp)
-                    .padding(bottom = 32.dp)
+                modifier =
+                    Modifier
+                        .size(160.dp)
+                        .padding(bottom = 32.dp)
             )
 
             Text(
@@ -97,7 +96,8 @@ fun SignupScreen(
                 label = { Text(stringResource(R.string.email)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier
+                modifier =
+                    Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
                         .testTag("signupEmailInput"),
@@ -113,7 +113,8 @@ fun SignupScreen(
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier
+                modifier =
+                    Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
                         .testTag("signupPasswordInput"),
@@ -129,10 +130,11 @@ fun SignupScreen(
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .testTag("signupConfirmPasswordInput"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .testTag("signupConfirmPasswordInput"),
                 enabled = !viewModel.isLoading
             )
 
@@ -146,11 +148,12 @@ fun SignupScreen(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            SquaredButton (
+            SquaredButton(
                 onClick = viewModel::signup,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = FridgyDarkBlue, contentColor = FridgyWhite),
                 enabled = !viewModel.isLoading
             ) {

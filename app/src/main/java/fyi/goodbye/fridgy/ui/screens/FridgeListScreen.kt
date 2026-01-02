@@ -34,7 +34,7 @@ import fyi.goodbye.fridgy.ui.viewmodels.FridgeListViewModel
 
 /**
  * The main dashboard screen displaying a list of the user's fridges.
- * 
+ *
  * It provides functionality to:
  * - View a list of fridges the user belongs to.
  * - Create a new fridge via a popup dialog.
@@ -92,9 +92,10 @@ fun FridgeListScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = FridgyDarkBlue
-                ),
+                colors =
+                    TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = FridgyDarkBlue
+                    ),
                 actions = {
                     IconButton(
                         onClick = {
@@ -132,7 +133,7 @@ fun FridgeListScreen(
                             tint = FridgyWhite
                         )
                     }
-                    
+
                     IconButton(onClick = {
                         auth.signOut()
                         onLogout()
@@ -160,9 +161,10 @@ fun FridgeListScreen(
         when (val state = fridgeUiState) {
             FridgeListViewModel.FridgeUiState.Loading -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator(color = FridgyDarkBlue)
@@ -170,10 +172,11 @@ fun FridgeListScreen(
             }
             is FridgeListViewModel.FridgeUiState.Error -> {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 24.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -192,10 +195,11 @@ fun FridgeListScreen(
                 val fridges = state.fridges
                 if (fridges.isEmpty()) {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = 24.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                                .padding(horizontal = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -209,19 +213,21 @@ fun FridgeListScreen(
                     }
                 } else {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         // OPTIMIZATION: Add key for item identity
                         items(fridges, key = { it.id }) { fridge ->
                             // OPTIMIZATION: Stable callback reference prevents recomposition
-                            val onCardClick = remember(fridge.id) {
-                                { _: DisplayFridge -> onNavigateToFridgeInventory(fridge) }
-                            }
+                            val onCardClick =
+                                remember(fridge.id) {
+                                    { _: DisplayFridge -> onNavigateToFridgeInventory(fridge) }
+                                }
                             FridgeCard(fridge = fridge, onClick = onCardClick)
                         }
                     }
@@ -241,7 +247,7 @@ fun FridgeListScreen(
 
     if (showAddFridgeDialog) {
         AlertDialog(
-            onDismissRequest = { 
+            onDismissRequest = {
                 showAddFridgeDialog = false
                 newFridgeName = ""
             },
@@ -260,14 +266,15 @@ fun FridgeListScreen(
                     label = { Text(stringResource(R.string.fridge_name), color = FridgyWhite.copy(alpha = 0.7f)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = FridgyWhite,
-                        unfocusedTextColor = FridgyWhite,
-                        focusedBorderColor = FridgyWhite,
-                        unfocusedBorderColor = FridgyWhite.copy(alpha = 0.5f),
-                        focusedLabelColor = FridgyWhite,
-                        cursorColor = FridgyWhite
-                    )
+                    colors =
+                        OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = FridgyWhite,
+                            unfocusedTextColor = FridgyWhite,
+                            focusedBorderColor = FridgyWhite,
+                            unfocusedBorderColor = FridgyWhite.copy(alpha = 0.5f),
+                            focusedLabelColor = FridgyWhite,
+                            cursorColor = FridgyWhite
+                        )
                 )
             },
             confirmButton = {
@@ -285,7 +292,7 @@ fun FridgeListScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
+                TextButton(onClick = {
                     showAddFridgeDialog = false
                     newFridgeName = ""
                 }) {
@@ -300,7 +307,7 @@ fun FridgeListScreen(
 
 /**
  * A dialog that displays a list of pending fridge invitations.
- * 
+ *
  * Users can accept or decline invitations directly from this dialog.
  *
  * @param invites The list of pending [Fridge] invitations.
@@ -337,9 +344,10 @@ fun NotificationsDialog(
                 } else {
                     items(invites) { invite ->
                         Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(

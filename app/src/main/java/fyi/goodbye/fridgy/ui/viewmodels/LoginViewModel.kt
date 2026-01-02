@@ -16,12 +16,11 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * ViewModel responsible for managing the user login process.
- * 
+ *
  * It handles user input for email and password, interacts with Firebase Authentication
  * to sign in users, and exposes UI states such as loading status and error messages.
  */
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
-
     private val auth = FirebaseAuth.getInstance()
 
     /** The email address entered by the user. */
@@ -41,6 +40,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     private val _loginSuccess = MutableSharedFlow<Boolean>()
+
     /** A stream of success events used to trigger navigation after a successful login. */
     val loginSuccess = _loginSuccess.asSharedFlow()
 
@@ -58,7 +58,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
     /**
      * Attempts to sign in the user using the current email and password states.
-     * 
+     *
      * If successful, emits a [loginSuccess] event. Otherwise, updates [errorMessage].
      */
     fun login() {

@@ -4,7 +4,7 @@ import com.google.firebase.firestore.DocumentId
 
 /**
  * Data model representing an admin user.
- * 
+ *
  * @property uid The user ID of the admin (matches User.uid).
  * @property email The email address of the admin.
  * @property grantedAt The timestamp when admin privileges were granted.

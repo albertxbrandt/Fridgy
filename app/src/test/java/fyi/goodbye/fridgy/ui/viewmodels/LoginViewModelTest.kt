@@ -14,31 +14,30 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 /**
  * Unit tests for [LoginViewModel].
- * 
+ *
  * Tests cover input validation, loading states, error handling, and successful login flow.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class LoginViewModelTest {
-
     @get:Rule
     val instantExecutorRule = InstantTaskExecutorRule()
 
     private val testDispatcher = StandardTestDispatcher()
     private lateinit var mockAuth: FirebaseAuth
+    private lateinit var mockApplication: android.app.Application
     private lateinit var viewModel: LoginViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         mockAuth = mockk<FirebaseAuth>(relaxed = true)
+        mockApplication = TestUtil.createMockApplication()
         TestUtil.mockFirebaseAuthInstance(mockAuth)
-        viewModel = LoginViewModel()
+        viewModel = LoginViewModel(mockApplication)
     }
 
     @After
@@ -60,9 +59,9 @@ class LoginViewModelTest {
         // Set error first via failed login
         viewModel.onEmailChange("")
         viewModel.login()
-        
+
         viewModel.onEmailChange("test@example.com")
-        
+
         assertEquals("test@example.com", viewModel.email)
     }
 
@@ -71,9 +70,9 @@ class LoginViewModelTest {
         // Set error first via failed login
         viewModel.onPasswordChange("")
         viewModel.login()
-        
+
         viewModel.onPasswordChange("password123")
-        
+
         assertEquals("password123", viewModel.password)
     }
 
@@ -82,43 +81,46 @@ class LoginViewModelTest {
         viewModel.onEmailChange("")
         viewModel.onPasswordChange("")
         viewModel.login()
-        
+
         // Verify it doesn't crash and loading state returns to false
         assertFalse(viewModel.isLoading)
     }
 
     @Test
-    fun `successful login emits success and clears loading`() = runTest {
-        // This test verifies the basic flow without mocking Firebase
-        // In a real scenario, you'd use Firebase Emulator or dependency injection
-        viewModel.onEmailChange("test@example.com")
-        viewModel.onPasswordChange("password123")
+    fun `successful login emits success and clears loading`() =
+        runTest {
+            // This test verifies the basic flow without mocking Firebase
+            // In a real scenario, you'd use Firebase Emulator or dependency injection
+            viewModel.onEmailChange("test@example.com")
+            viewModel.onPasswordChange("password123")
 
-        // Just verify fields are set correctly
-        assertEquals("test@example.com", viewModel.email)
-        assertEquals("password123", viewModel.password)
-        assertFalse(viewModel.isLoading)
-    }
-
-    @Test
-    fun `failed login completes without crash`() = runTest {
-        // This test verifies error handling without mocking Firebase
-        viewModel.onEmailChange("test@example.com")
-        viewModel.onPasswordChange("wrongpassword")
-
-        // Verify fields are set
-        assertEquals("test@example.com", viewModel.email)
-        assertEquals("wrongpassword", viewModel.password)
-        assertFalse(viewModel.isLoading)
-    }
+            // Just verify fields are set correctly
+            assertEquals("test@example.com", viewModel.email)
+            assertEquals("password123", viewModel.password)
+            assertFalse(viewModel.isLoading)
+        }
 
     @Test
-    fun `login sets loading state during execution`() = runTest {
-        // Verify initial state
-        viewModel.onEmailChange("test@example.com")
-        viewModel.onPasswordChange("password123")
+    fun `failed login completes without crash`() =
+        runTest {
+            // This test verifies error handling without mocking Firebase
+            viewModel.onEmailChange("test@example.com")
+            viewModel.onPasswordChange("wrongpassword")
 
-        assertFalse(viewModel.isLoading)
-        assertEquals("test@example.com", viewModel.email)
-    }
+            // Verify fields are set
+            assertEquals("test@example.com", viewModel.email)
+            assertEquals("wrongpassword", viewModel.password)
+            assertFalse(viewModel.isLoading)
+        }
+
+    @Test
+    fun `login sets loading state during execution`() =
+        runTest {
+            // Verify initial state
+            viewModel.onEmailChange("test@example.com")
+            viewModel.onPasswordChange("password123")
+
+            assertFalse(viewModel.isLoading)
+            assertEquals("test@example.com", viewModel.email)
+        }
 }

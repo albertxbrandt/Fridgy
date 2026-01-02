@@ -29,24 +29,30 @@ import java.util.Locale
  * @param onClick Callback triggered when the card is clicked.
  */
 @Composable
-fun FridgeCard(fridge: DisplayFridge, onClick: (DisplayFridge) -> Unit) {
+fun FridgeCard(
+    fridge: DisplayFridge,
+    onClick: (DisplayFridge) -> Unit
+) {
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(130.dp)
-            .clickable { onClick(fridge) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(130.dp)
+                .clickable { onClick(fridge) },
         shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = FridgyWhite
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = FridgyWhite
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {

@@ -22,8 +22,8 @@ class FridgeRepository {
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
-    private var _fridgeCache: List<Fridge> = emptyList()
-    
+    private var fridgeCache: List<Fridge> = emptyList()
+
     /**
      * Converts a Firestore document to a Fridge, handling both old Map and new List formats.
      * This provides backward compatibility during data migration.
@@ -39,21 +39,23 @@ class FridgeRepository {
                 val name = this.getString("name") ?: ""
                 val createdBy = this.getString("createdBy") ?: ""
                 val createdAt = this.getLong("createdAt") ?: System.currentTimeMillis()
-                
+
                 // Handle members - can be Map or List
-                val members = when (val membersField = this.get("members")) {
-                    is List<*> -> membersField.filterIsInstance<String>()
-                    is Map<*, *> -> membersField.keys.filterIsInstance<String>()
-                    else -> emptyList()
-                }
-                
+                val members =
+                    when (val membersField = this.get("members")) {
+                        is List<*> -> membersField.filterIsInstance<String>()
+                        is Map<*, *> -> membersField.keys.filterIsInstance<String>()
+                        else -> emptyList()
+                    }
+
                 // Handle pendingInvites - can be Map or List
-                val pendingInvites = when (val invitesField = this.get("pendingInvites")) {
-                    is List<*> -> invitesField.filterIsInstance<String>()
-                    is Map<*, *> -> invitesField.keys.filterIsInstance<String>()
-                    else -> emptyList()
-                }
-                
+                val pendingInvites =
+                    when (val invitesField = this.get("pendingInvites")) {
+                        is List<*> -> invitesField.filterIsInstance<String>()
+                        is Map<*, *> -> invitesField.keys.filterIsInstance<String>()
+                        else -> emptyList()
+                    }
+
                 return Fridge(
                     id = id,
                     name = name,
@@ -69,64 +71,80 @@ class FridgeRepository {
         }
     }
 
-    fun getFridgesForCurrentUser(): Flow<List<Fridge>> = callbackFlow {
-        val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
-        
-        // Optimized query using whereArrayContains (all data migrated to List format)
-        val fridgesListenerRegistration = firestore.collection("fridges")
-            .whereArrayContains("members", currentUserId)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) { close(e); return@addSnapshotListener }
-                val fridgesList = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
-                _fridgeCache = fridgesList
-                trySend(fridgesList).isSuccess
-            }
-        awaitClose { fridgesListenerRegistration.remove() }
-    }
+    fun getFridgesForCurrentUser(): Flow<List<Fridge>> =
+        callbackFlow {
+            val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
 
-    fun getInvitesForCurrentUser(): Flow<List<Fridge>> = callbackFlow {
-        val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
-        
-        // Optimized query using whereArrayContains (all data migrated to List format)
-        val invitesListener = firestore.collection("fridges")
-            .whereArrayContains("pendingInvites", currentUserId)
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) { close(e); return@addSnapshotListener }
-                val invites = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
-                trySend(invites).isSuccess
-            }
-        awaitClose { invitesListener.remove() }
-    }
+            // Optimized query using whereArrayContains (all data migrated to List format)
+            val fridgesListenerRegistration =
+                firestore.collection("fridges")
+                    .whereArrayContains("members", currentUserId)
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            close(e)
+                            return@addSnapshotListener
+                        }
+                        val fridgesList = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
+                        fridgeCache = fridgesList
+                        trySend(fridgesList).isSuccess
+                    }
+            awaitClose { fridgesListenerRegistration.remove() }
+        }
+
+    fun getInvitesForCurrentUser(): Flow<List<Fridge>> =
+        callbackFlow {
+            val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
+
+            // Optimized query using whereArrayContains (all data migrated to List format)
+            val invitesListener =
+                firestore.collection("fridges")
+                    .whereArrayContains("pendingInvites", currentUserId)
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            close(e)
+                            return@addSnapshotListener
+                        }
+                        val invites = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
+                        trySend(invites).isSuccess
+                    }
+            awaitClose { invitesListener.remove() }
+        }
 
     suspend fun getFridgeById(fridgeId: String): DisplayFridge? {
-        val cachedFridge = _fridgeCache.find { it.id == fridgeId }
-        val fridge = if (cachedFridge != null) {
-            cachedFridge
-        } else {
-            try {
-                // OPTIMIZATION: Try cache first for instant response
-                val cacheDoc = try {
-                    firestore.collection("fridges").document(fridgeId).get(Source.CACHE).await()
-                } catch (e: Exception) { null }
-                
-                if (cacheDoc?.exists() == true) {
-                    cacheDoc.toFridgeCompat()
-                } else {
-                    // Fallback to network if cache miss
-                    val doc = firestore.collection("fridges").document(fridgeId).get(Source.DEFAULT).await()
-                    doc.toFridgeCompat()
+        val cachedFridge = fridgeCache.find { it.id == fridgeId }
+        val fridge =
+            if (cachedFridge != null) {
+                cachedFridge
+            } else {
+                try {
+                    // OPTIMIZATION: Try cache first for instant response
+                    val cacheDoc =
+                        try {
+                            firestore.collection("fridges").document(fridgeId).get(Source.CACHE).await()
+                        } catch (e: Exception) {
+                            null
+                        }
+
+                    if (cacheDoc?.exists() == true) {
+                        cacheDoc.toFridgeCompat()
+                    } else {
+                        // Fallback to network if cache miss
+                        val doc = firestore.collection("fridges").document(fridgeId).get(Source.DEFAULT).await()
+                        doc.toFridgeCompat()
+                    }
+                } catch (e: Exception) {
+                    null
                 }
-            } catch (e: Exception) { null }
-        } ?: return null
-        
+            } ?: return null
+
         // Fetch all user data for members and invites
         val allUserIds = (fridge.members + fridge.pendingInvites + listOf(fridge.createdBy)).distinct()
         val usersMap = getUsersByIds(allUserIds)
-        
+
         val memberUsers = fridge.members.mapNotNull { usersMap[it] }
         val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
         val creatorName = usersMap[fridge.createdBy]?.username ?: "Unknown"
-        
+
         return DisplayFridge(
             id = fridge.id,
             name = fridge.name,
@@ -144,29 +162,33 @@ class FridgeRepository {
         val newFridgeDocRef = firestore.collection("fridges").document()
         val fridgeId = newFridgeDocRef.id
 
-        val newFridge = Fridge(
-            id = fridgeId,
-            name = fridgeName,
-            createdBy = currentUser.uid,
-            members = listOf(currentUser.uid),
-            createdAt = System.currentTimeMillis()
-        )
+        val newFridge =
+            Fridge(
+                id = fridgeId,
+                name = fridgeName,
+                createdBy = currentUser.uid,
+                members = listOf(currentUser.uid),
+                createdAt = System.currentTimeMillis()
+            )
 
         newFridgeDocRef.set(newFridge).await()
         return newFridge
     }
 
-    suspend fun inviteUserByEmail(fridgeId: String, email: String) {
+    suspend fun inviteUserByEmail(
+        fridgeId: String,
+        email: String
+    ) {
         val snapshot = firestore.collection("users").whereEqualTo("email", email).get().await()
         val userDoc = snapshot.documents.firstOrNull() ?: throw Exception("User not found.")
         val userUid = userDoc.id
-        
+
         val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
         val fridge = fridgeDoc.toObject(Fridge::class.java) ?: throw Exception("Fridge not found.")
-        
+
         if (fridge.members.contains(userUid)) throw Exception("User is already a member.")
         if (fridge.pendingInvites.contains(userUid)) throw Exception("Invitation already sent.")
-        
+
         firestore.collection("fridges").document(fridgeId)
             .update("pendingInvites", FieldValue.arrayUnion(userUid))
             .await()
@@ -176,7 +198,7 @@ class FridgeRepository {
         val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in.")
 
         val fridgeRef = firestore.collection("fridges").document(fridgeId)
-        
+
         firestore.runTransaction { transaction ->
             transaction.update(fridgeRef, "members", FieldValue.arrayUnion(currentUserId))
             transaction.update(fridgeRef, "pendingInvites", FieldValue.arrayRemove(currentUserId))
@@ -189,13 +211,19 @@ class FridgeRepository {
             .update("pendingInvites", FieldValue.arrayRemove(currentUserId)).await()
     }
 
-    suspend fun removeMember(fridgeId: String, userId: String) {
+    suspend fun removeMember(
+        fridgeId: String,
+        userId: String
+    ) {
         firestore.collection("fridges").document(fridgeId)
             .update("members", FieldValue.arrayRemove(userId))
             .await()
     }
 
-    suspend fun revokeInvite(fridgeId: String, userId: String) {
+    suspend fun revokeInvite(
+        fridgeId: String,
+        userId: String
+    ) {
         firestore.collection("fridges").document(fridgeId)
             .update("pendingInvites", FieldValue.arrayRemove(userId))
             .await()
@@ -208,46 +236,59 @@ class FridgeRepository {
             .await()
     }
 
-    fun getItemsForFridge(fridgeId: String): Flow<List<Item>> = callbackFlow {
-        // Use SnapshotListener with local cache support
-        val listener = firestore.collection("fridges").document(fridgeId).collection("items")
-            .addSnapshotListener { snapshot, e ->
-                if (e != null) { close(e); return@addSnapshotListener }
-                val items = snapshot?.documents?.mapNotNull { it.toObject(Item::class.java)?.copy(id = it.id) } ?: emptyList()
-                trySend(items).isSuccess
-            }
-        awaitClose { listener.remove() }
-    }
+    fun getItemsForFridge(fridgeId: String): Flow<List<Item>> =
+        callbackFlow {
+            // Use SnapshotListener with local cache support
+            val listener =
+                firestore.collection("fridges").document(fridgeId).collection("items")
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            close(e)
+                            return@addSnapshotListener
+                        }
+                        val items = snapshot?.documents?.mapNotNull { it.toObject(Item::class.java)?.copy(id = it.id) } ?: emptyList()
+                        trySend(items).isSuccess
+                    }
+            awaitClose { listener.remove() }
+        }
 
     /**
      * Adds or increments an item in the fridge.
      * Uses a non-blocking Firestore update to ensure instant local response.
      */
-    suspend fun addItemToFridge(fridgeId: String, upc: String) {
+    suspend fun addItemToFridge(
+        fridgeId: String,
+        upc: String
+    ) {
         Log.d("FridgeRepo", "Starting addItemToFridge for UPC: $upc")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
-        val itemRef = firestore.collection("fridges").document(fridgeId)
-            .collection("items").document(upc)
-        
+        val itemRef =
+            firestore.collection("fridges").document(fridgeId)
+                .collection("items").document(upc)
+
         try {
             // First, try a simple non-transactional update for speed (Firestore handles local latency)
             val snapshot = itemRef.get(Source.CACHE).await()
             if (snapshot.exists()) {
                 itemRef.update(
-                    "quantity", FieldValue.increment(1),
-                    "lastUpdatedBy", currentUser.uid,
-                    "lastUpdatedAt", System.currentTimeMillis()
+                    "quantity",
+                    FieldValue.increment(1),
+                    "lastUpdatedBy",
+                    currentUser.uid,
+                    "lastUpdatedAt",
+                    System.currentTimeMillis()
                 )
             } else {
-                val itemToAdd = Item(
-                    id = upc,
-                    upc = upc,
-                    quantity = 1,
-                    addedBy = currentUser.uid,
-                    addedAt = System.currentTimeMillis(),
-                    lastUpdatedBy = currentUser.uid,
-                    lastUpdatedAt = System.currentTimeMillis()
-                )
+                val itemToAdd =
+                    Item(
+                        id = upc,
+                        upc = upc,
+                        quantity = 1,
+                        addedBy = currentUser.uid,
+                        addedAt = System.currentTimeMillis(),
+                        lastUpdatedBy = currentUser.uid,
+                        lastUpdatedAt = System.currentTimeMillis()
+                    )
                 itemRef.set(itemToAdd)
             }
             Log.d("FridgeRepo", "Item $upc locally added to fridge $fridgeId")
@@ -257,20 +298,37 @@ class FridgeRepository {
             firestore.runTransaction { transaction ->
                 val serverSnapshot = transaction.get(itemRef)
                 if (serverSnapshot.exists()) {
-                    transaction.update(itemRef, 
-                        "quantity", FieldValue.increment(1),
-                        "lastUpdatedBy", currentUser.uid,
-                        "lastUpdatedAt", System.currentTimeMillis()
+                    transaction.update(
+                        itemRef,
+                        "quantity",
+                        FieldValue.increment(1),
+                        "lastUpdatedBy",
+                        currentUser.uid,
+                        "lastUpdatedAt",
+                        System.currentTimeMillis()
                     )
                 } else {
-                    val itemToAdd = Item(id = upc, upc = upc, quantity = 1, addedBy = currentUser.uid, addedAt = System.currentTimeMillis(), lastUpdatedBy = currentUser.uid, lastUpdatedAt = System.currentTimeMillis())
+                    val itemToAdd =
+                        Item(
+                            id = upc,
+                            upc = upc,
+                            quantity = 1,
+                            addedBy = currentUser.uid,
+                            addedAt = System.currentTimeMillis(),
+                            lastUpdatedBy = currentUser.uid,
+                            lastUpdatedAt = System.currentTimeMillis()
+                        )
                     transaction.set(itemRef, itemToAdd)
                 }
             }.await()
         }
     }
 
-    suspend fun updateItemQuantity(fridgeId: String, itemId: String, newQuantity: Int) {
+    suspend fun updateItemQuantity(
+        fridgeId: String,
+        itemId: String,
+        newQuantity: Int
+    ) {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
         if (newQuantity <= 0) {
             firestore.collection("fridges").document(fridgeId)
@@ -279,9 +337,12 @@ class FridgeRepository {
             firestore.collection("fridges").document(fridgeId)
                 .collection("items").document(itemId)
                 .update(
-                    "quantity", newQuantity,
-                    "lastUpdatedBy", currentUser.uid,
-                    "lastUpdatedAt", System.currentTimeMillis()
+                    "quantity",
+                    newQuantity,
+                    "lastUpdatedBy",
+                    currentUser.uid,
+                    "lastUpdatedAt",
+                    System.currentTimeMillis()
                 )
         }
     }
@@ -299,25 +360,28 @@ class FridgeRepository {
         return try {
             val doc = firestore.collection("users").document(userId).get().await()
             doc.toObject(User::class.java)?.copy(uid = doc.id)
-        } catch (e: Exception) { null }
+        } catch (e: Exception) {
+            null
+        }
     }
-    
+
     /**
      * Fetches multiple users by their IDs.
      * Returns a map of userId to User for easy lookup.
      */
     suspend fun getUsersByIds(userIds: List<String>): Map<String, User> {
         if (userIds.isEmpty()) return emptyMap()
-        
+
         return try {
             // Firestore 'in' queries are limited to 10 items, so batch if needed
             val result = mutableMapOf<String, User>()
             userIds.chunked(10).forEach { chunk ->
-                val snapshot = firestore.collection("users")
-                    .whereIn("__name__", chunk)
-                    .get()
-                    .await()
-                    
+                val snapshot =
+                    firestore.collection("users")
+                        .whereIn("__name__", chunk)
+                        .get()
+                        .await()
+
                 snapshot.documents.forEach { doc ->
                     doc.toObject(User::class.java)?.let { user ->
                         result[doc.id] = user.copy(uid = doc.id)

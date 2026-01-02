@@ -24,10 +24,11 @@ fun SquaredButton(
     modifier: androidx.compose.ui.Modifier = androidx.compose.ui.Modifier,
     enabled: Boolean = true,
     shape: Shape = RoundedCornerShape(0.dp),
-    colors: ButtonColors = ButtonDefaults.buttonColors(
-        containerColor = Color(0xC9FFFFFF),
-        contentColor = Color.Black
-    ),
+    colors: ButtonColors =
+        ButtonDefaults.buttonColors(
+            containerColor = Color(0xC9FFFFFF),
+            contentColor = Color.Black
+        ),
     elevation: ButtonElevation? = ButtonDefaults.buttonElevation(),
     border: BorderStroke? = null,
     contentPadding: PaddingValues = ButtonDefaults.ContentPadding,

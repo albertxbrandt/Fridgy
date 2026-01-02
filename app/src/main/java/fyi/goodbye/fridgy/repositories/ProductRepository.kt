@@ -25,13 +25,13 @@ class ProductRepository(private val context: Context? = null) {
     companion object {
         // Shared cache across all repository instances to ensure data persistence
         private val productCache = mutableMapOf<String, Product>()
-        
+
         // Image optimization constants
         private const val MAX_IMAGE_WIDTH = 1024
         private const val MAX_IMAGE_HEIGHT = 1024
         private const val JPEG_QUALITY = 85 // 85% quality provides good balance
     }
-    
+
     /**
      * Compresses an image from URI to optimized JPEG bytes.
      * Resizes to max 1024x1024 while maintaining aspect ratio.
@@ -41,43 +41,45 @@ class ProductRepository(private val context: Context? = null) {
      */
     private fun compressImage(uri: Uri): ByteArray? {
         if (context == null) return null
-        
+
         return try {
             // Read EXIF orientation first
             val exifOrientation = getExifOrientation(uri)
-            
+
             // Decode bitmap
             val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
             val originalBitmap = BitmapFactory.decodeStream(inputStream)
             inputStream?.close()
-            
+
             if (originalBitmap == null) {
                 Log.e("ProductRepo", "Failed to decode bitmap from URI")
                 return null
             }
-            
+
             // Apply EXIF rotation to bitmap
             val rotatedBitmap = rotateImageIfRequired(originalBitmap, exifOrientation)
-            
+
             // Calculate scaled dimensions maintaining aspect ratio
-            val (scaledWidth, scaledHeight) = calculateScaledDimensions(
-                rotatedBitmap.width,
-                rotatedBitmap.height
-            )
-            
+            val (scaledWidth, scaledHeight) =
+                calculateScaledDimensions(
+                    rotatedBitmap.width,
+                    rotatedBitmap.height
+                )
+
             // Resize bitmap
-            val scaledBitmap = Bitmap.createScaledBitmap(
-                rotatedBitmap,
-                scaledWidth,
-                scaledHeight,
-                true
-            )
-            
+            val scaledBitmap =
+                Bitmap.createScaledBitmap(
+                    rotatedBitmap,
+                    scaledWidth,
+                    scaledHeight,
+                    true
+                )
+
             // Compress to JPEG
             val outputStream = ByteArrayOutputStream()
             scaledBitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, outputStream)
             val compressedBytes = outputStream.toByteArray()
-            
+
             // Cleanup
             originalBitmap.recycle()
             if (rotatedBitmap != originalBitmap) {
@@ -87,28 +89,29 @@ class ProductRepository(private val context: Context? = null) {
                 scaledBitmap.recycle()
             }
             outputStream.close()
-            
-            Log.d("ProductRepo", "Image compressed: ${compressedBytes.size / 1024}KB (${scaledWidth}x${scaledHeight})")
+
+            Log.d("ProductRepo", "Image compressed: ${compressedBytes.size / 1024}KB (${scaledWidth}x$scaledHeight)")
             compressedBytes
         } catch (e: Exception) {
             Log.e("ProductRepo", "Image compression failed: ${e.message}")
             null
         }
     }
-    
+
     /**
      * Reads EXIF orientation from image URI.
      */
     private fun getExifOrientation(uri: Uri): Int {
         if (context == null) return ExifInterface.ORIENTATION_NORMAL
-        
+
         return try {
             val inputStream = context.contentResolver.openInputStream(uri) ?: return ExifInterface.ORIENTATION_NORMAL
             val exif = ExifInterface(inputStream)
-            val orientation = exif.getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_NORMAL
-            )
+            val orientation =
+                exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
+                )
             inputStream.close()
             orientation
         } catch (e: Exception) {
@@ -116,13 +119,16 @@ class ProductRepository(private val context: Context? = null) {
             ExifInterface.ORIENTATION_NORMAL
         }
     }
-    
+
     /**
      * Rotates bitmap according to EXIF orientation.
      */
-    private fun rotateImageIfRequired(bitmap: Bitmap, orientation: Int): Bitmap {
+    private fun rotateImageIfRequired(
+        bitmap: Bitmap,
+        orientation: Int
+    ): Bitmap {
         val matrix = Matrix()
-        
+
         when (orientation) {
             ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
             ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
@@ -139,7 +145,7 @@ class ProductRepository(private val context: Context? = null) {
             }
             else -> return bitmap // No rotation needed
         }
-        
+
         return try {
             val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
             Log.d("ProductRepo", "Applied EXIF rotation: $orientation")
@@ -149,17 +155,20 @@ class ProductRepository(private val context: Context? = null) {
             bitmap
         }
     }
-    
+
     /**
      * Calculates scaled dimensions while maintaining aspect ratio.
      */
-    private fun calculateScaledDimensions(width: Int, height: Int): Pair<Int, Int> {
+    private fun calculateScaledDimensions(
+        width: Int,
+        height: Int
+    ): Pair<Int, Int> {
         if (width <= MAX_IMAGE_WIDTH && height <= MAX_IMAGE_HEIGHT) {
             return width to height
         }
-        
+
         val aspectRatio = width.toFloat() / height.toFloat()
-        
+
         return if (width > height) {
             // Landscape
             val scaledWidth = MAX_IMAGE_WIDTH
@@ -208,14 +217,17 @@ class ProductRepository(private val context: Context? = null) {
      * Saves a product to the global database.
      * Optimistically updates the cache before hitting the network.
      */
-    suspend fun saveProductWithImage(product: Product, imageUri: Uri?): Product {
+    suspend fun saveProductWithImage(
+        product: Product,
+        imageUri: Uri?
+    ): Product {
         // Update cache immediately
         productCache[product.upc] = product
 
         // 1. Save metadata (fire-and-forget for local cache benefit)
         val saveTask = productsCollection.document(product.upc).set(product)
-        
-        // We don't await the metadata save if we want instant UI, 
+
+        // We don't await the metadata save if we want instant UI,
         // Firestore's local persistence will handle the immediate fetch.
         // However, we still want to handle the image upload in the background.
 
@@ -225,15 +237,15 @@ class ProductRepository(private val context: Context? = null) {
         if (imageUri != null) {
             try {
                 val storageRef = storage.reference.child("products/${product.upc}.jpg")
-                
+
                 // Compress image before upload
                 val compressedBytes = compressImage(imageUri)
-                
+
                 if (compressedBytes != null) {
                     // Upload compressed bytes instead of raw file
                     storageRef.putBytes(compressedBytes).await()
                     finalImageUrl = storageRef.downloadUrl.await().toString()
-                    
+
                     // 3. Update metadata with the final image URL
                     val updatedProduct = product.copy(imageUrl = finalImageUrl)
                     productsCollection.document(product.upc).set(updatedProduct)

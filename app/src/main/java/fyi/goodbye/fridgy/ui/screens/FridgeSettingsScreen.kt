@@ -3,7 +3,6 @@ package fyi.goodbye.fridgy.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -25,7 +24,7 @@ import fyi.goodbye.fridgy.ui.viewmodels.FridgeSettingsViewModel
 
 /**
  * Screen displaying the settings and management options for a specific fridge.
- * 
+ *
  * Allows users to view members, invite new members (if owner), leave the fridge,
  * or delete the fridge (if owner). It uses confirmation dialogs for destructive actions.
  *
@@ -47,13 +46,13 @@ fun FridgeSettingsScreen(
     val inviteError by viewModel.inviteError.collectAsState()
     val inviteSuccess by viewModel.inviteSuccess.collectAsState()
     val isDeletingOrLeaving by viewModel.isDeletingOrLeaving.collectAsState()
-    
+
     var showInviteDialog by remember { mutableStateOf(false) }
     var inviteEmail by remember { mutableStateOf("") }
-    
+
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var confirmText by remember { mutableStateOf("") }
-    
+
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -69,10 +68,20 @@ fun FridgeSettingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.fridge_settings), color = FridgyWhite, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        stringResource(R.string.fridge_settings),
+                        color = FridgyWhite,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back), tint = FridgyWhite)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.cd_back),
+                            tint = FridgyWhite
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -94,12 +103,13 @@ fun FridgeSettingsScreen(
             is FridgeSettingsViewModel.FridgeSettingsUiState.Success -> {
                 val fridge = state.fridge
                 val isOwner = fridge.createdByUid == viewModel.currentUserId
-                
+
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
@@ -115,13 +125,20 @@ fun FridgeSettingsScreen(
                     item {
                         SettingsSection(
                             title = "Members",
-                            action = if (isOwner) {
-                                {
-                                    IconButton(onClick = { showInviteDialog = true }) {
-                                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_invite), tint = MaterialTheme.colorScheme.primary)
+                            action =
+                                if (isOwner) {
+                                    {
+                                        IconButton(onClick = { showInviteDialog = true }) {
+                                            Icon(
+                                                Icons.Default.Add,
+                                                contentDescription = stringResource(R.string.cd_invite),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
+                                } else {
+                                    null
                                 }
-                            } else null
                         ) {
                             Column {
                                 // Existing members (excluding the owner)
@@ -148,9 +165,12 @@ fun FridgeSettingsScreen(
 
                     item {
                         Button(
-                            onClick = { 
-                                if (isOwner) showDeleteConfirmDialog = true 
-                                else showLeaveConfirmDialog = true
+                            onClick = {
+                                if (isOwner) {
+                                    showDeleteConfirmDialog = true
+                                } else {
+                                    showLeaveConfirmDialog = true
+                                }
                             },
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
@@ -158,9 +178,16 @@ fun FridgeSettingsScreen(
                             enabled = !isDeletingOrLeaving
                         ) {
                             if (isDeletingOrLeaving) {
-                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = MaterialTheme.colorScheme.onError, strokeWidth = 2.dp)
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    color = MaterialTheme.colorScheme.onError,
+                                    strokeWidth = 2.dp
+                                )
                             } else {
-                                Text(if (isOwner) "Delete Fridge" else "Leave Fridge", color = MaterialTheme.colorScheme.onError)
+                                Text(
+                                    if (isOwner) "Delete Fridge" else "Leave Fridge",
+                                    color = MaterialTheme.colorScheme.onError
+                                )
                             }
                         }
                     }
@@ -172,7 +199,13 @@ fun FridgeSettingsScreen(
     if (showInviteDialog) {
         AlertDialog(
             onDismissRequest = { if (!isInviting) showInviteDialog = false },
-            title = { Text(stringResource(R.string.invite_member), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    stringResource(R.string.invite_member),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
                 Column {
                     OutlinedTextField(
@@ -182,10 +215,11 @@ fun FridgeSettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isInviting,
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary
-                        )
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                focusedLabelColor = MaterialTheme.colorScheme.primary
+                            )
                     )
                     if (inviteError != null) {
                         Text(
@@ -217,7 +251,7 @@ fun FridgeSettingsScreen(
             },
             dismissButton = {
                 TextButton(
-                    onClick = { 
+                    onClick = {
                         showInviteDialog = false
                         inviteEmail = ""
                         viewModel.clearInviteStatus()
@@ -243,7 +277,13 @@ fun FridgeSettingsScreen(
     if (showDeleteConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
-            title = { Text(stringResource(R.string.delete_fridge), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    stringResource(R.string.delete_fridge),
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = {
                 Column {
                     Text(stringResource(R.string.delete_confirmation_message))
@@ -255,10 +295,11 @@ fun FridgeSettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         placeholder = { Text("CONFIRM") },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = MaterialTheme.colorScheme.error,
-                            focusedLabelColor = MaterialTheme.colorScheme.error
-                        )
+                        colors =
+                            OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MaterialTheme.colorScheme.error,
+                                focusedLabelColor = MaterialTheme.colorScheme.error
+                            )
                     )
                 }
             },
@@ -276,8 +317,8 @@ fun FridgeSettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { 
-                    showDeleteConfirmDialog = false 
+                TextButton(onClick = {
+                    showDeleteConfirmDialog = false
                     confirmText = ""
                 }) {
                     Text("Cancel")
@@ -291,7 +332,13 @@ fun FridgeSettingsScreen(
     if (showLeaveConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showLeaveConfirmDialog = false },
-            title = { Text(stringResource(R.string.leave_fridge), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    stringResource(R.string.leave_fridge),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+            },
             text = { Text(stringResource(R.string.leave_fridge_message)) },
             confirmButton = {
                 TextButton(onClick = {
@@ -300,7 +347,11 @@ fun FridgeSettingsScreen(
                         onDeleteSuccess()
                     }
                 }) {
-                    Text(stringResource(R.string.leave), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(
+                        stringResource(R.string.leave),
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             },
             dismissButton = {
@@ -329,28 +380,33 @@ fun SwipeToDismissMember(
         return
     }
 
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = {
-            if (it == SwipeToDismissBoxValue.EndToStart) {
-                onRemove()
-                true
-            } else false
-        }
-    )
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = {
+                if (it == SwipeToDismissBoxValue.EndToStart) {
+                    onRemove()
+                    true
+                } else {
+                    false
+                }
+            }
+        )
 
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
         backgroundContent = {
-            val color = when (dismissState.dismissDirection) {
-                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
-                else -> Color.Transparent
-            }
+            val color =
+                when (dismissState.dismissDirection) {
+                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
+                    else -> Color.Transparent
+                }
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(color, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
@@ -392,10 +448,18 @@ fun SettingsSection(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
                 action?.invoke()
             }
-            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
             content()
         }
     }
@@ -405,14 +469,23 @@ fun SettingsSection(
  * A simple label-value pair displayed in a single row within a settings section.
  */
 @Composable
-fun SettingsItem(label: String, value: String) {
+fun SettingsItem(
+    label: String,
+    value: String
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
-        Text(text = value, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Medium, fontSize = 14.sp)
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.Medium,
+            fontSize = 14.sp
+        )
     }
 }

@@ -12,7 +12,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
@@ -20,8 +19,8 @@ import androidx.compose.ui.unit.dp
 
 /**
  * A custom styled TextField with a squared shape and brand-consistent colors.
- * 
- * This component wraps the standard Material 3 [TextField] and applies the 
+ *
+ * This component wraps the standard Material 3 [TextField] and applies the
  * Fridgy theme's color scheme and a zero-radius rounded corner shape.
  */
 @Composable
@@ -48,15 +47,16 @@ fun SquaredInput(
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
     shape: Shape = RoundedCornerShape(0.dp),
-    colors: TextFieldColors = TextFieldDefaults.colors(
-        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
-        focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-        cursorColor = MaterialTheme.colorScheme.primary,
-        focusedLabelColor = MaterialTheme.colorScheme.primary,
-        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-    )
+    colors: TextFieldColors =
+        TextFieldDefaults.colors(
+            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
+            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
+            cursorColor = MaterialTheme.colorScheme.primary,
+            focusedLabelColor = MaterialTheme.colorScheme.primary,
+            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
+        )
 ) {
     TextField(
         value = value,

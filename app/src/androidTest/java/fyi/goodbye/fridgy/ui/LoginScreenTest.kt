@@ -11,12 +11,11 @@ import org.junit.runner.RunWith
 
 /**
  * UI tests for [LoginScreen] using Jetpack Compose Testing.
- * 
+ *
  * These tests verify user interactions, button states, and navigation callbacks.
  */
 @RunWith(AndroidJUnit4::class)
 class LoginScreenTest {
-
     @get:Rule
     val composeTestRule = createComposeRule()
 

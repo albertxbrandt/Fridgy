@@ -4,6 +4,18 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     id("com.google.gms.google-services")
     id("kotlin-parcelize")
+    alias(libs.plugins.ktlint)
+}
+
+ktlint {
+    android.set(true)
+    ignoreFailures.set(false)
+    disabledRules.set(
+        setOf(
+            "no-wildcard-imports",
+            "max-line-length"
+        )
+    )
 }
 
 android {
@@ -42,19 +54,22 @@ android {
     }
     packaging {
         resources {
-            excludes += setOf(
-                "META-INF/LICENSE.md",
-                "META-INF/LICENSE-notice.md",
-                "META-INF/NOTICE.md",
-                "META-INF/ASL2.0",
-                "META-INF/LGPL2.1"
-            )
+            excludes +=
+                setOf(
+                    "META-INF/LICENSE.md",
+                    "META-INF/LICENSE-notice.md",
+                    "META-INF/NOTICE.md",
+                    "META-INF/ASL2.0",
+                    "META-INF/LGPL2.1"
+                )
         }
     }
 }
 
 dependencies {
-    api("com.google.guava:guava:33.2.1-jre") { // Use latest stable-jre (Java Runtime Environment) version. Check Maven Central for updates.
+    api(
+        "com.google.guava:guava:33.2.1-jre"
+    ) { // Use latest stable-jre (Java Runtime Environment) version. Check Maven Central for updates.
         // Explicitly exclude potentially conflicting transitive dependencies
         exclude(group = "com.google.guava", module = "listenablefuture")
         exclude(group = "com.google.code.findbugs", module = "jsr305")
@@ -91,7 +106,7 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended) // Added Extended Icons
     implementation(libs.coil.compose) // Added Coil
     implementation(libs.androidx.exifinterface) // Added ExifInterface for image orientation
-    
+
     // Unit Testing
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlin:kotlin-test:2.2.21")
@@ -99,14 +114,14 @@ dependencies {
     testImplementation("app.cash.turbine:turbine:1.0.0") // For testing Flows
     testImplementation("io.mockk:mockk:1.13.8") // For mocking Firebase/dependencies
     testImplementation("androidx.arch.core:core-testing:2.2.0") // For InstantTaskExecutorRule
-    
+
     // UI Testing
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation("io.mockk:mockk-android:1.13.8")
-    
+
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

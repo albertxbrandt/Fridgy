@@ -48,7 +48,13 @@ fun ItemDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(stringResource(R.string.item_details), color = FridgyWhite, fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        stringResource(R.string.item_details),
+                        color = FridgyWhite,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
@@ -58,16 +64,18 @@ fun ItemDetailScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
             )
         }
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
         ) {
             when (val state = uiState) {
                 ItemDetailViewModel.ItemDetailUiState.Loading -> {
@@ -83,21 +91,23 @@ fun ItemDetailScreen(
                 is ItemDetailViewModel.ItemDetailUiState.Success -> {
                     val item = state.item
                     val product = state.product
-                    
+
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState())
+                                .padding(16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         // Item Image
                         Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(250.dp)
-                                .clip(RoundedCornerShape(16.dp))
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height(250.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
                             if (product.imageUrl != null) {
@@ -147,9 +157,10 @@ fun ItemDetailScreen(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Row(
-                                modifier = Modifier
-                                    .padding(horizontal = 12.dp, vertical = 8.dp)
-                                    .fillMaxWidth(),
+                                modifier =
+                                    Modifier
+                                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                                        .fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -170,34 +181,52 @@ fun ItemDetailScreen(
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     val isLastItem = item.quantity == 1
                                     FilledIconButton(
-                                        onClick = { 
+                                        onClick = {
                                             if (isLastItem) {
                                                 viewModel.updateQuantity(0)
                                             } else {
                                                 viewModel.updateQuantity(item.quantity - 1)
                                             }
                                         },
-                                        colors = IconButtonDefaults.filledIconButtonColors(
-                                            containerColor = if (isLastItem) Color(0xFFFF3B30) else MaterialTheme.colorScheme.primary
-                                        ),
+                                        colors =
+                                            IconButtonDefaults.filledIconButtonColors(
+                                                containerColor =
+                                                    if (isLastItem) {
+                                                        Color(
+                                                            0xFFFF3B30
+                                                        )
+                                                    } else {
+                                                        MaterialTheme.colorScheme.primary
+                                                    }
+                                            ),
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(
-                                            imageVector = if (isLastItem) Icons.Default.Delete else Icons.Default.Remove, 
-                                            contentDescription = if (isLastItem) stringResource(R.string.cd_delete) else stringResource(R.string.cd_decrease),
+                                            imageVector = if (isLastItem) Icons.Default.Delete else Icons.Default.Remove,
+                                            contentDescription =
+                                                if (isLastItem) {
+                                                    stringResource(
+                                                        R.string.cd_delete
+                                                    )
+                                                } else {
+                                                    stringResource(R.string.cd_decrease)
+                                                },
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
-                                    
+
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    
+
                                     FilledIconButton(
                                         onClick = { viewModel.updateQuantity(item.quantity + 1) },
-                                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                        colors =
+                                            IconButtonDefaults.filledIconButtonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary
+                                            ),
                                         modifier = Modifier.size(36.dp)
                                     ) {
                                         Icon(
-                                            Icons.Default.Add, 
+                                            Icons.Default.Add,
                                             contentDescription = stringResource(R.string.cd_increase),
                                             modifier = Modifier.size(18.dp)
                                         )
@@ -221,7 +250,7 @@ fun ItemDetailScreen(
                                     fontSize = 18.sp,
                                     modifier = Modifier.padding(bottom = 12.dp)
                                 )
-                                
+
                                 DetailRow(
                                     label = stringResource(R.string.added_by),
                                     value = userNames[item.addedBy] ?: stringResource(R.string.loading)
@@ -252,11 +281,15 @@ fun ItemDetailScreen(
 }
 
 @Composable
-fun DetailRow(label: String, value: String) {
+fun DetailRow(
+    label: String,
+    value: String
+) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)

@@ -8,10 +8,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -25,15 +25,19 @@ import fyi.goodbye.fridgy.ui.viewmodels.InventoryItem
  * Displays global product info (image, name, brand) and fridge-specific info (quantity).
  */
 @Composable
-fun InventoryItemCard(inventoryItem: InventoryItem, onClick: (String) -> Unit) {
+fun InventoryItemCard(
+    inventoryItem: InventoryItem,
+    onClick: (String) -> Unit
+) {
     val item = inventoryItem.item
     val product = inventoryItem.product
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp)
-            .clickable { onClick(item.id) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clickable { onClick(item.id) },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -50,9 +54,10 @@ fun InventoryItemCard(inventoryItem: InventoryItem, onClick: (String) -> Unit) {
             } else {
                 // Fallback for items without images
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(text = stringResource(R.string.cd_placeholder_icon), fontSize = 48.sp)
@@ -61,22 +66,24 @@ fun InventoryItemCard(inventoryItem: InventoryItem, onClick: (String) -> Unit) {
 
             // Enhanced Gradient Scrim
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0.4f to Color.Transparent,
-                            1.0f to Color.Black.copy(alpha = 0.85f)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0.4f to Color.Transparent,
+                                1.0f to Color.Black.copy(alpha = 0.85f)
+                            )
                         )
-                    )
             )
 
             // Item Information Overlaid
             Column(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .padding(12.dp)
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .padding(12.dp)
             ) {
                 if (product.brand.isNotBlank()) {
                     Text(

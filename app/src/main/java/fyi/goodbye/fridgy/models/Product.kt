@@ -4,7 +4,7 @@ import com.google.firebase.firestore.DocumentId
 
 /**
  * Data model representing a global product entry in the crowdsourced database.
- * 
+ *
  * @property upc The unique barcode/UPC for the product (used as Firestore Document ID).
  * @property name The display name of the product.
  * @property brand The brand of the product.

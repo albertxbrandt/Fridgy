@@ -5,7 +5,7 @@ import kotlinx.parcelize.Parcelize
 
 /**
  * A UI-optimized representation of a [Fridge].
- * 
+ *
  * Unlike the base [Fridge] model, this class contains additional display-friendly information
  * including resolved User objects for members and invites.
  *

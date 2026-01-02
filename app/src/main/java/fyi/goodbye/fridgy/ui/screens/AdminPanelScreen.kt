@@ -1,6 +1,5 @@
 package fyi.goodbye.fridgy.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,18 +11,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.User
-import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import fyi.goodbye.fridgy.ui.viewmodels.AdminPanelViewModel
+import fyi.goodbye.fridgy.ui.viewmodels.CategoryViewModel
 
 /**
  * Admin panel screen that displays system-wide statistics and data.
@@ -33,16 +32,21 @@ import fyi.goodbye.fridgy.ui.viewmodels.AdminPanelViewModel
 @Composable
 fun AdminPanelScreen(
     onNavigateBack: () -> Unit,
-    viewModel: AdminPanelViewModel = viewModel(factory = AdminPanelViewModel.provideFactory())
+    viewModel: AdminPanelViewModel = viewModel(factory = AdminPanelViewModel.provideFactory()),
+    categoryViewModel: CategoryViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    
+    val categoryState by categoryViewModel.uiState.collectAsState()
+
     // State for dialogs
     var userToEdit by remember { mutableStateOf<User?>(null) }
     var userToDelete by remember { mutableStateOf<User?>(null) }
     var productToEdit by remember { mutableStateOf<Product?>(null) }
     var productToDelete by remember { mutableStateOf<Product?>(null) }
-    
+    var categoryToEdit by remember { mutableStateOf<Category?>(null) }
+    var categoryToDelete by remember { mutableStateOf<Category?>(null) }
+    var showAddCategoryDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -57,19 +61,21 @@ fun AdminPanelScreen(
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = FridgyPrimary,
-                    titleContentColor = FridgyWhite,
-                    navigationIconContentColor = FridgyWhite,
-                    actionIconContentColor = FridgyWhite
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = FridgyPrimary,
+                        titleContentColor = FridgyWhite,
+                        navigationIconContentColor = FridgyWhite,
+                        actionIconContentColor = FridgyWhite
+                    )
             )
         }
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
         ) {
             when (val state = uiState) {
                 AdminPanelViewModel.AdminUiState.Loading -> {
@@ -80,7 +86,7 @@ fun AdminPanelScreen(
                         CircularProgressIndicator(color = FridgyPrimary)
                     }
                 }
-                
+
                 AdminPanelViewModel.AdminUiState.Unauthorized -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -107,7 +113,7 @@ fun AdminPanelScreen(
                         }
                     }
                 }
-                
+
                 is AdminPanelViewModel.AdminUiState.Error -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -134,12 +140,13 @@ fun AdminPanelScreen(
                         }
                     }
                 }
-                
+
                 is AdminPanelViewModel.AdminUiState.Success -> {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(16.dp),
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         // Statistics Cards
@@ -151,7 +158,7 @@ fun AdminPanelScreen(
                                 color = FridgyDarkBlue
                             )
                         }
-                        
+
                         item {
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -177,7 +184,7 @@ fun AdminPanelScreen(
                                 )
                             }
                         }
-                        
+
                         // Users Section
                         item {
                             Text(
@@ -188,7 +195,7 @@ fun AdminPanelScreen(
                                 modifier = Modifier.padding(top = 16.dp)
                             )
                         }
-                        
+
                         items(state.users.take(10)) { user ->
                             UserListItem(
                                 user = user,
@@ -196,7 +203,7 @@ fun AdminPanelScreen(
                                 onDelete = { userToDelete = user }
                             )
                         }
-                        
+
                         // Products Section
                         item {
                             Text(
@@ -207,7 +214,7 @@ fun AdminPanelScreen(
                                 modifier = Modifier.padding(top = 16.dp)
                             )
                         }
-                        
+
                         items(state.products.take(10)) { product ->
                             ProductListItem(
                                 product = product,
@@ -215,12 +222,62 @@ fun AdminPanelScreen(
                                 onDelete = { productToDelete = product }
                             )
                         }
+
+                        // Categories Section
+                        item {
+                            Row(
+                                modifier = Modifier.padding(top = 16.dp).fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Food Categories",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = FridgyDarkBlue
+                                )
+                                IconButton(onClick = { showAddCategoryDialog = true }) {
+                                    Icon(Icons.Default.Add, contentDescription = "Add Category")
+                                }
+                            }
+                        }
+
+                        when (val catState = categoryState) {
+                            is CategoryViewModel.CategoryUiState.Success -> {
+                                items(catState.categories) { category ->
+                                    CategoryListItem(
+                                        category = category,
+                                        onEdit = { categoryToEdit = category },
+                                        onDelete = { categoryToDelete = category }
+                                    )
+                                }
+                            }
+                            is CategoryViewModel.CategoryUiState.Loading -> {
+                                item {
+                                    Box(
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator()
+                                    }
+                                }
+                            }
+                            is CategoryViewModel.CategoryUiState.Error -> {
+                                item {
+                                    Text(
+                                        "Error loading categories: ${catState.message}",
+                                        color = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(8.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
-    
+
     // User Edit Dialog
     userToEdit?.let { user ->
         EditUserDialog(
@@ -232,7 +289,7 @@ fun AdminPanelScreen(
             }
         )
     }
-    
+
     // User Delete Confirmation Dialog
     userToDelete?.let { user ->
         DeleteConfirmationDialog(
@@ -245,7 +302,7 @@ fun AdminPanelScreen(
             }
         )
     }
-    
+
     // Product Edit Dialog
     productToEdit?.let { product ->
         EditProductDialog(
@@ -257,7 +314,7 @@ fun AdminPanelScreen(
             }
         )
     }
-    
+
     // Product Delete Confirmation Dialog
     productToDelete?.let { product ->
         DeleteConfirmationDialog(
@@ -267,6 +324,42 @@ fun AdminPanelScreen(
             onConfirm = {
                 viewModel.deleteProduct(product.upc)
                 productToDelete = null
+            }
+        )
+    }
+
+    // Add Category Dialog
+    if (showAddCategoryDialog) {
+        AddCategoryDialog(
+            onDismiss = { showAddCategoryDialog = false },
+            onConfirm = { name, order ->
+                categoryViewModel.createCategory(name, order)
+                showAddCategoryDialog = false
+            }
+        )
+    }
+
+    // Category Edit Dialog
+    categoryToEdit?.let { category ->
+        EditCategoryDialog(
+            category = category,
+            onDismiss = { categoryToEdit = null },
+            onConfirm = { name, order ->
+                categoryViewModel.updateCategory(category.id, name, order)
+                categoryToEdit = null
+            }
+        )
+    }
+
+    // Category Delete Confirmation Dialog
+    categoryToDelete?.let { category ->
+        DeleteConfirmationDialog(
+            title = "Delete Category",
+            message = "Are you sure you want to delete category \"${category.name}\"? Products using this category will still reference it.",
+            onDismiss = { categoryToDelete = null },
+            onConfirm = {
+                categoryViewModel.deleteCategory(category.id)
+                categoryToDelete = null
             }
         )
     }
@@ -286,9 +379,10 @@ fun StatCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Icon(
@@ -325,9 +419,10 @@ fun UserListItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -379,9 +474,10 @@ fun ProductListItem(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
@@ -435,9 +531,10 @@ fun DeleteConfirmationDialog(
         confirmButton = {
             TextButton(
                 onClick = onConfirm,
-                colors = ButtonDefaults.textButtonColors(
-                    contentColor = MaterialTheme.colorScheme.error
-                )
+                colors =
+                    ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.error
+                    )
             ) {
                 Text("Delete")
             }
@@ -458,7 +555,7 @@ fun EditUserDialog(
 ) {
     var username by remember { mutableStateOf(user.username) }
     var email by remember { mutableStateOf(user.email) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit User") },
@@ -505,7 +602,7 @@ fun EditProductDialog(
     var name by remember { mutableStateOf(product.name) }
     var brand by remember { mutableStateOf(product.brand) }
     var category by remember { mutableStateOf(product.category) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Edit Product") },
@@ -538,6 +635,170 @@ fun EditProductDialog(
             TextButton(
                 onClick = { onConfirm(name, brand, category) },
                 enabled = name.isNotBlank() && brand.isNotBlank() && category.isNotBlank()
+            ) {
+                Text("Save")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun CategoryListItem(
+    category: Category,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    Card(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = FridgyWhite
+            )
+    ) {
+        Row(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    category.name,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+                Text(
+                    "Order: ${category.order}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Edit Category",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete Category",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AddCategoryDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, order: Int) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var orderText by remember { mutableStateOf("999") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Category") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Category Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = orderText,
+                    onValueChange = { orderText = it },
+                    label = { Text("Sort Order") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    "Lower numbers appear first",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val order = orderText.toIntOrNull() ?: 999
+                    onConfirm(name, order)
+                },
+                enabled = name.isNotBlank()
+            ) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Composable
+fun EditCategoryDialog(
+    category: Category,
+    onDismiss: () -> Unit,
+    onConfirm: (name: String, order: Int) -> Unit
+) {
+    var name by remember { mutableStateOf(category.name) }
+    var orderText by remember { mutableStateOf(category.order.toString()) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Edit Category") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Category Name") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = orderText,
+                    onValueChange = { orderText = it },
+                    label = { Text("Sort Order") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Text(
+                    "Lower numbers appear first",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val order = orderText.toIntOrNull() ?: 999
+                    onConfirm(name, order)
+                },
+                enabled = name.isNotBlank()
             ) {
                 Text("Save")
             }

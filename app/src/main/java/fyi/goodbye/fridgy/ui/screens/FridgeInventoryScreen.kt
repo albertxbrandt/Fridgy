@@ -38,6 +38,7 @@ import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
+import fyi.goodbye.fridgy.ui.viewmodels.CategoryViewModel
 import fyi.goodbye.fridgy.ui.viewmodels.FridgeInventoryViewModel
 import kotlinx.coroutines.launch
 import java.io.File
@@ -73,7 +74,7 @@ fun FridgeInventoryScreen(
     val errorLoadingString = stringResource(R.string.error_loading_fridge)
     val loadingString = stringResource(R.string.loading_fridge)
 
-    // OPTIMIZATION: Use derivedStateOf to prevent re-calculating name on every recomposition 
+    // OPTIMIZATION: Use derivedStateOf to prevent re-calculating name on every recomposition
     // unless the underlying state object actually changes.
     val fridgeName by remember {
         derivedStateOf {
@@ -120,7 +121,7 @@ fun FridgeInventoryScreen(
         if (scannedUpc != null && targetFridgeId == fridgeId) {
             Log.d("Performance", "Processing scanned barcode: $scannedUpc")
             viewModel.onBarcodeScanned(scannedUpc)
-            
+
             // CRITICAL: Clear the result so it doesn't trigger again on recomposition
             savedStateHandle.remove<String>("scannedUpc")
             savedStateHandle.remove<String>("targetFridgeId")
@@ -161,9 +162,10 @@ fun FridgeInventoryScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
             )
         },
         floatingActionButton = {
@@ -193,9 +195,10 @@ fun FridgeInventoryScreen(
                     val items = state.items
                     if (items.isEmpty()) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 24.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -210,12 +213,13 @@ fun FridgeInventoryScreen(
                     } else {
                         // Log time taken for grid rendering start
                         val startTime = System.currentTimeMillis()
-                        
+
                         LazyVerticalGrid(
                             columns = GridCells.Adaptive(minSize = 140.dp),
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                             contentPadding = PaddingValues(bottom = 80.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -226,7 +230,7 @@ fun FridgeInventoryScreen(
                                 }
                             }
                         }
-                        
+
                         SideEffect {
                             Log.d("Performance", "Grid rendered in ${System.currentTimeMillis() - startTime}ms")
                         }
@@ -259,33 +263,34 @@ fun NewProductDialog(
 ) {
     var productName by remember { mutableStateOf("") }
     var productBrand by remember { mutableStateOf("") }
-    
-    val categoryDairy = stringResource(R.string.category_dairy)
-    val categoryMeat = stringResource(R.string.category_meat)
-    val categoryProduce = stringResource(R.string.category_produce)
-    val categoryBakery = stringResource(R.string.category_bakery)
-    val categoryFrozen = stringResource(R.string.category_frozen)
-    val categoryPantry = stringResource(R.string.category_pantry)
-    val categoryOther = stringResource(R.string.category_other)
-    
-    val categories = remember { 
-        listOf(categoryDairy, categoryMeat, categoryProduce, categoryBakery, categoryFrozen, categoryPantry, categoryOther)
-    }
-    var selectedCategory by remember { mutableStateOf(categoryOther) }
+
+    // Load categories from database
+    val categoryViewModel: CategoryViewModel = viewModel()
+    val categoryState by categoryViewModel.uiState.collectAsState()
+
+    val categories =
+        when (val state = categoryState) {
+            is CategoryViewModel.CategoryUiState.Success -> state.categories.map { it.name }
+            else -> listOf("Other") // Fallback if categories haven't loaded yet
+        }
+
+    var selectedCategory by remember { mutableStateOf(categories.firstOrNull() ?: "Other") }
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
-    
+
     val context = LocalContext.current
 
     // OPTIMIZATION: Memoize file paths to avoid file system calls on every recomposition
-    val (tempFile, tempUri) = remember {
-        val file = File(context.cacheDir, "temp_product_${System.currentTimeMillis()}.jpg")
-        val uri = FileProvider.getUriForFile(context, "fyi.goodbye.fridgy.fileprovider", file)
-        file to uri
-    }
-    
-    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-        if (success) capturedImageUri = tempUri
-    }
+    val (tempFile, tempUri) =
+        remember {
+            val file = File(context.cacheDir, "temp_product_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(context, "fyi.goodbye.fridgy.fileprovider", file)
+            file to uri
+        }
+
+    val cameraLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success) capturedImageUri = tempUri
+        }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -294,13 +299,14 @@ fun NewProductDialog(
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(stringResource(R.string.product_not_recognized, upc), fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                        .clickable { cameraLauncher.launch(tempUri) },
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                            .clickable { cameraLauncher.launch(tempUri) },
                     contentAlignment = Alignment.Center
                 ) {
                     if (capturedImageUri != null) {

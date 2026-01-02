@@ -44,7 +44,7 @@ import kotlinx.coroutines.flow.collectLatest
 
 /**
  * Composable screen that allows users to log in to their account.
- * 
+ *
  * It provides input fields for email and password, displays error messages,
  * and handles the transition to the [SignupScreen] or main application list.
  *
@@ -72,20 +72,22 @@ fun LoginScreen(
         containerColor = FridgyWhite
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp)
-                .background(FridgyWhite),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 24.dp)
+                    .background(FridgyWhite),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = stringResource(R.string.cd_fridge_logo),
-                modifier = Modifier
-                    .size(160.dp)
-                    .padding(bottom = 32.dp)
+                modifier =
+                    Modifier
+                        .size(160.dp)
+                        .padding(bottom = 32.dp)
             )
 
             Text(
@@ -108,10 +110,11 @@ fun LoginScreen(
                 label = { Text(stringResource(R.string.email)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .testTag("emailInput"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .testTag("emailInput"),
                 enabled = !viewModel.isLoading
             )
 
@@ -124,10 +127,11 @@ fun LoginScreen(
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-                    .testTag("passwordInput"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .testTag("passwordInput"),
                 enabled = !viewModel.isLoading
             )
 
@@ -143,10 +147,11 @@ fun LoginScreen(
 
             SquaredButton(
                 onClick = viewModel::login,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .testTag("loginButton"),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .testTag("loginButton"),
                 colors = ButtonDefaults.buttonColors(containerColor = FridgyDarkBlue, contentColor = FridgyWhite),
                 enabled = !viewModel.isLoading
             ) {

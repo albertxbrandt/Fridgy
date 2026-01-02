@@ -23,7 +23,6 @@ class ItemDetailViewModel(
     private val fridgeId: String,
     private val itemId: String
 ) : AndroidViewModel(application) {
-
     private val _uiState = MutableStateFlow<ItemDetailUiState>(ItemDetailUiState.Loading)
     val uiState: StateFlow<ItemDetailUiState> = _uiState.asStateFlow()
 
@@ -85,7 +84,9 @@ class ItemDetailViewModel(
 
     sealed interface ItemDetailUiState {
         data object Loading : ItemDetailUiState
+
         data class Success(val item: Item, val product: Product) : ItemDetailUiState
+
         data class Error(val message: String) : ItemDetailUiState
     }
 
@@ -95,12 +96,13 @@ class ItemDetailViewModel(
             itemId: String,
             fridgeRepository: FridgeRepository = FridgeRepository(),
             productRepository: ProductRepository? = null
-        ): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                val repo = productRepository ?: ProductRepository(app.applicationContext)
-                ItemDetailViewModel(app, fridgeRepository, repo, fridgeId, itemId)
+        ): ViewModelProvider.Factory =
+            viewModelFactory {
+                initializer {
+                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
+                    val repo = productRepository ?: ProductRepository(app.applicationContext)
+                    ItemDetailViewModel(app, fridgeRepository, repo, fridgeId, itemId)
+                }
             }
-        }
     }
 }

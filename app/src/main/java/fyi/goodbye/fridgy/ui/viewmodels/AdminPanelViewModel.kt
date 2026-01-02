@@ -3,9 +3,9 @@ package fyi.goodbye.fridgy.ui.viewmodels
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import androidx.lifecycle.viewModelScope
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.User
@@ -23,7 +23,6 @@ class AdminPanelViewModel(
     application: Application,
     private val adminRepository: AdminRepository = AdminRepository()
 ) : AndroidViewModel(application) {
-
     private val _uiState = MutableStateFlow<AdminUiState>(AdminUiState.Loading)
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
@@ -35,25 +34,26 @@ class AdminPanelViewModel(
         viewModelScope.launch {
             try {
                 _uiState.value = AdminUiState.Loading
-                
+
                 val isAdmin = adminRepository.isCurrentUserAdmin()
                 if (!isAdmin) {
                     _uiState.value = AdminUiState.Unauthorized
                     return@launch
                 }
-                
+
                 val users = adminRepository.getAllUsers()
                 val products = adminRepository.getAllProducts()
                 val fridges = adminRepository.getAllFridges()
-                
-                _uiState.value = AdminUiState.Success(
-                    totalUsers = users.size,
-                    totalProducts = products.size,
-                    totalFridges = fridges.size,
-                    users = users,
-                    products = products,
-                    fridges = fridges
-                )
+
+                _uiState.value =
+                    AdminUiState.Success(
+                        totalUsers = users.size,
+                        totalProducts = products.size,
+                        totalFridges = fridges.size,
+                        users = users,
+                        products = products,
+                        fridges = fridges
+                    )
             } catch (e: Exception) {
                 _uiState.value = AdminUiState.Error("Failed to load admin data: ${e.message}")
             }
@@ -63,7 +63,7 @@ class AdminPanelViewModel(
     fun refresh() {
         loadAdminData()
     }
-    
+
     /**
      * Deletes a user from the system.
      */
@@ -79,11 +79,15 @@ class AdminPanelViewModel(
             }
         }
     }
-    
+
     /**
      * Updates a user's information.
      */
-    fun updateUser(userId: String, username: String, email: String) {
+    fun updateUser(
+        userId: String,
+        username: String,
+        email: String
+    ) {
         viewModelScope.launch {
             try {
                 val success = adminRepository.updateUser(userId, username, email)
@@ -95,7 +99,7 @@ class AdminPanelViewModel(
             }
         }
     }
-    
+
     /**
      * Deletes a product from the database.
      */
@@ -111,11 +115,16 @@ class AdminPanelViewModel(
             }
         }
     }
-    
+
     /**
      * Updates a product's information.
      */
-    fun updateProduct(upc: String, name: String, brand: String, category: String) {
+    fun updateProduct(
+        upc: String,
+        name: String,
+        brand: String,
+        category: String
+    ) {
         viewModelScope.launch {
             try {
                 val success = adminRepository.updateProduct(upc, name, brand, category)
@@ -130,7 +139,9 @@ class AdminPanelViewModel(
 
     sealed interface AdminUiState {
         data object Loading : AdminUiState
+
         data object Unauthorized : AdminUiState
+
         data class Success(
             val totalUsers: Int,
             val totalProducts: Int,
@@ -139,15 +150,17 @@ class AdminPanelViewModel(
             val products: List<Product>,
             val fridges: List<Fridge>
         ) : AdminUiState
+
         data class Error(val message: String) : AdminUiState
     }
 
     companion object {
-        fun provideFactory(): ViewModelProvider.Factory = viewModelFactory {
-            initializer {
-                val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
-                AdminPanelViewModel(application)
+        fun provideFactory(): ViewModelProvider.Factory =
+            viewModelFactory {
+                initializer {
+                    val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+                    AdminPanelViewModel(application)
+                }
             }
-        }
     }
 }

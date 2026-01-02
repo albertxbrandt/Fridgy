@@ -39,7 +39,6 @@ class FridgeInventoryViewModel(
     private val productRepository: ProductRepository,
     private val fridgeId: String
 ) : AndroidViewModel(application) {
-
     private val _displayFridgeState = MutableStateFlow<FridgeDetailUiState>(FridgeDetailUiState.Loading)
     val displayFridgeState: StateFlow<FridgeDetailUiState> = _displayFridgeState.asStateFlow()
 
@@ -47,7 +46,7 @@ class FridgeInventoryViewModel(
     val itemsUiState: StateFlow<ItemsUiState> = _itemsUiState.asStateFlow()
 
     // Local list of optimistic items to be merged with remote data for instant UI
-    private val _optimisticItems = MutableStateFlow<List<InventoryItem>>(emptyList())
+    private val optimisticItems = MutableStateFlow<List<InventoryItem>>(emptyList())
 
     private val _isAddingItem = MutableStateFlow(false)
     val isAddingItem: StateFlow<Boolean> = _isAddingItem.asStateFlow()
@@ -82,29 +81,30 @@ class FridgeInventoryViewModel(
     private fun listenToInventoryUpdates() {
         viewModelScope.launch {
             _itemsUiState.value = ItemsUiState.Loading
-            
+
             // Combine remote items with our local optimistic items
             combine(
                 fridgeRepository.getItemsForFridge(fridgeId),
-                _optimisticItems
+                optimisticItems
             ) { remoteItems, optimistic ->
                 // Filter out optimistic items that have now been confirmed by remote data
                 val remoteUpcs = remoteItems.map { it.upc }.toSet()
                 val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
-                
+
                 // Map remote items to products (using cache for speed)
-                val mappedRemote = remoteItems.map { item ->
-                    val product = productRepository.getProductInfo(item.upc) ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
-                    InventoryItem(item, product)
-                }
-                
+                val mappedRemote =
+                    remoteItems.map { item ->
+                        val product = productRepository.getProductInfo(item.upc) ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
+                        InventoryItem(item, product)
+                    }
+
                 // Final display list: Remote items first, then any still-pending optimistic items
                 mappedRemote + pendingOptimistic
             }
-            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
-            .collectLatest { combinedList ->
-                _itemsUiState.value = ItemsUiState.Success(combinedList)
-            }
+                .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
+                .collectLatest { combinedList ->
+                    _itemsUiState.value = ItemsUiState.Success(combinedList)
+                }
         }
     }
 
@@ -130,44 +130,52 @@ class FridgeInventoryViewModel(
      * Saves a brand new product and adds it to the current fridge.
      * Uses a double-layered optimistic update for truly instant UI response.
      */
-    fun createAndAddProduct(upc: String, name: String, brand: String, category: String, imageUri: Uri?) {
+    fun createAndAddProduct(
+        upc: String,
+        name: String,
+        brand: String,
+        category: String,
+        imageUri: Uri?
+    ) {
         _pendingScannedUpc.value = null
         _isAddingItem.value = true
-        
+
         viewModelScope.launch {
-            val optimisticProduct = Product(
-                upc = upc,
-                name = name,
-                brand = brand,
-                category = category,
-                imageUrl = imageUri?.toString(),
-                lastUpdated = System.currentTimeMillis()
-            )
-            
-            val optimisticItem = Item(
-                id = "optimistic_$upc",
-                upc = upc,
-                quantity = 1,
-                addedAt = System.currentTimeMillis()
-            )
+            val optimisticProduct =
+                Product(
+                    upc = upc,
+                    name = name,
+                    brand = brand,
+                    category = category,
+                    imageUrl = imageUri?.toString(),
+                    lastUpdated = System.currentTimeMillis()
+                )
+
+            val optimisticItem =
+                Item(
+                    id = "optimistic_$upc",
+                    upc = upc,
+                    quantity = 1,
+                    addedAt = System.currentTimeMillis()
+                )
 
             // Layer 1: Inject into ViewModel's local state immediately
-            _optimisticItems.value = _optimisticItems.value + InventoryItem(optimisticItem, optimisticProduct)
-            
+            optimisticItems.value = optimisticItems.value + InventoryItem(optimisticItem, optimisticProduct)
+
             try {
                 // Layer 2: Push to Repository Cache
                 productRepository.injectToCache(optimisticProduct)
-                
+
                 // Background tasks
                 launch { productRepository.saveProductWithImage(optimisticProduct, imageUri) }
                 launch { fridgeRepository.addItemToFridge(fridgeId, upc) }
-                
+
                 Log.d("FridgeInventoryVM", "Optimistic add successful for: $name")
             } catch (e: Exception) {
                 Log.e("FridgeInventoryVM", "Failed to create product: ${e.message}")
                 _addItemError.value = getApplication<Application>().getString(R.string.error_failed_to_add_item, e.message ?: "")
                 // Rollback optimistic item on failure
-                _optimisticItems.value = _optimisticItems.value.filter { it.item.upc != upc }
+                optimisticItems.value = optimisticItems.value.filter { it.item.upc != upc }
             } finally {
                 _isAddingItem.value = false
             }
@@ -188,19 +196,23 @@ class FridgeInventoryViewModel(
 
     sealed interface FridgeDetailUiState {
         data object Loading : FridgeDetailUiState
+
         data class Success(val fridge: DisplayFridge) : FridgeDetailUiState
+
         data class Error(val message: String) : FridgeDetailUiState
     }
 
     sealed interface ItemsUiState {
         data object Loading : ItemsUiState
+
         data class Success(val items: List<InventoryItem>) : ItemsUiState
+
         data class Error(val message: String) : ItemsUiState
     }
 
     companion object {
         fun provideFactory(
-            fridgeId: String, 
+            fridgeId: String,
             fridgeRepository: FridgeRepository = FridgeRepository(),
             productRepository: ProductRepository? = null
         ): ViewModelProvider.Factory {

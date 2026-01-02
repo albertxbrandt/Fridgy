@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
-
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
@@ -28,17 +27,17 @@ class MainActivity : ComponentActivity() {
 
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
-        
+
         // Initialize App Check
         val firebaseAppCheck = FirebaseAppCheck.getInstance()
-        
+
         if (BuildConfig.DEBUG) {
             // Use Debug Provider for emulators/local development
             firebaseAppCheck.installAppCheckProviderFactory(
                 DebugAppCheckProviderFactory.getInstance()
             )
             Log.d("Fridgy_AppCheck", "Firebase App Check initialized with Debug Provider")
-            
+
             // Explicitly request a token to force the debug secret to be printed in logcat early
             firebaseAppCheck.getAppCheckToken(false).addOnSuccessListener { token ->
                 Log.d("Fridgy_AppCheck", "Initial token retrieved: ${token.token.take(10)}...")
@@ -98,7 +97,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onLogout = {
                                     navController.navigate("login") {
-                                        popUpTo(navController.graph.id) {inclusive = true}
+                                        popUpTo(navController.graph.id) { inclusive = true }
                                     }
                                 }
                             )
@@ -108,35 +107,37 @@ class MainActivity : ComponentActivity() {
                                 onNavigateBack = { navController.popBackStack() }
                             )
                         }
-                        composable (
+                        composable(
                             route = "fridgeInventory/{fridgeId}",
-                            arguments = listOf(
-                                navArgument("fridgeId") {type = NavType.StringType}
-                            )
+                            arguments =
+                                listOf(
+                                    navArgument("fridgeId") { type = NavType.StringType }
+                                )
                         ) { backStackEntry ->
                             val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
 
                             FridgeInventoryScreen(
                                 fridgeId = fridgeId,
-                                navController= navController,
+                                navController = navController,
                                 onBackClick = { navController.popBackStack() },
-                                onSettingsClick = { id -> 
+                                onSettingsClick = { id ->
                                     navController.navigate("fridgeSettings/$id")
                                 },
                                 onAddItemClick = { currentFridgeId ->
                                     navController.navigate("barcodeScanner/$currentFridgeId")
                                 },
-                                onItemClick = { fId, iId -> 
+                                onItemClick = { fId, iId ->
                                     navController.navigate("itemDetail/$fId/$iId")
                                 }
                             )
                         }
                         composable(
                             route = "itemDetail/{fridgeId}/{itemId}",
-                            arguments = listOf(
-                                navArgument("fridgeId") { type = NavType.StringType },
-                                navArgument("itemId") { type = NavType.StringType }
-                            )
+                            arguments =
+                                listOf(
+                                    navArgument("fridgeId") { type = NavType.StringType },
+                                    navArgument("itemId") { type = NavType.StringType }
+                                )
                         ) { backStackEntry ->
                             val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
                             val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
@@ -148,24 +149,26 @@ class MainActivity : ComponentActivity() {
                         }
                         composable(
                             route = "fridgeSettings/{fridgeId}",
-                            arguments = listOf(
-                                navArgument("fridgeId") { type = NavType.StringType }
-                            )
+                            arguments =
+                                listOf(
+                                    navArgument("fridgeId") { type = NavType.StringType }
+                                )
                         ) { backStackEntry ->
                             val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
                             FridgeSettingsScreen(
                                 fridgeId = fridgeId,
                                 onBackClick = { navController.popBackStack() },
-                                onDeleteSuccess = { 
+                                onDeleteSuccess = {
                                     navController.popBackStack("fridgeList", inclusive = false)
                                 }
                             )
                         }
                         composable(
                             route = "barcodeScanner/{fridgeId}",
-                            arguments = listOf(
-                                navArgument("fridgeId") { type = NavType.StringType }
-                            )
+                            arguments =
+                                listOf(
+                                    navArgument("fridgeId") { type = NavType.StringType }
+                                )
                         ) { backStackEntry ->
                             val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
 
@@ -173,7 +176,10 @@ class MainActivity : ComponentActivity() {
                                 onBarcodeScanned = { scannedUpc ->
                                     navController.popBackStack()
                                     navController.currentBackStackEntry?.savedStateHandle?.set("scannedUpc", scannedUpc)
-                                    navController.currentBackStackEntry?.savedStateHandle?.set("targetFridgeId", fridgeId)
+                                    navController.currentBackStackEntry?.savedStateHandle?.set(
+                                        "targetFridgeId",
+                                        fridgeId
+                                    )
                                 },
                                 onBackClick = { navController.popBackStack() }
                             )

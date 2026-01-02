@@ -17,7 +17,7 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * ViewModel responsible for managing the user signup process.
- * 
+ *
  * This class handles input validation, Firebase Authentication account creation,
  * and the subsequent creation of a user profile document in Firestore. It exposes
  * various UI states to the [SignupScreen] including loading status and error messages.
@@ -46,9 +46,10 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
     var isLoading by mutableStateOf(false)
         private set
 
-    private val _signupSucess = MutableSharedFlow<Boolean>()
+    private val signupSucess = MutableSharedFlow<Boolean>()
+
     /** A stream of success events used to trigger navigation after a successful signup. */
-    val signupSuccess = _signupSucess.asSharedFlow()
+    val signupSuccess = signupSucess.asSharedFlow()
 
     /** Updates the email state and clears any existing error message. */
     fun onEmailChange(newEmail: String) {
@@ -70,7 +71,7 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
 
     /**
      * Attempts to sign up a new user with the current email and password states.
-     * 
+     *
      * Performs basic validation, then creates a Firebase Auth user. If successful,
      * it creates a corresponding document in the 'users' collection in Firestore.
      */
@@ -94,14 +95,15 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
                 val uid = authResult.user?.uid
 
                 if (uid != null) {
-                    val userMap = hashMapOf(
-                        "email" to email,
-                        "username" to email.substringBefore("@"),
-                        "createdAt" to System.currentTimeMillis()
-                    )
+                    val userMap =
+                        hashMapOf(
+                            "email" to email,
+                            "username" to email.substringBefore("@"),
+                            "createdAt" to System.currentTimeMillis()
+                        )
 
                     firestore.collection("users").document(uid).set(userMap).await()
-                    _signupSucess.emit(true)
+                    signupSucess.emit(true)
                 }
             } catch (e: Exception) {
                 Log.w("SignupViewModel", "createUserWithEmail:failure", e)

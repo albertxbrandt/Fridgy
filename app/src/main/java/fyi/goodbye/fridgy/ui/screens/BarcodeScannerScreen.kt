@@ -33,8 +33,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -50,7 +50,6 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
-import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 /**
@@ -74,12 +73,14 @@ fun BarcodeScannerScreen(
 
     // OPTIMIZATION: Lifecycle-aware resource management
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
-    val barcodeScanner = remember {
-        val options = BarcodeScannerOptions.Builder()
-            .setBarcodeFormats(Barcode.FORMAT_UPC_A, Barcode.FORMAT_EAN_13)
-            .build()
-        BarcodeScanning.getClient(options)
-    }
+    val barcodeScanner =
+        remember {
+            val options =
+                BarcodeScannerOptions.Builder()
+                    .setBarcodeFormats(Barcode.FORMAT_UPC_A, Barcode.FORMAT_EAN_13)
+                    .build()
+            BarcodeScanning.getClient(options)
+        }
 
     // Flag to ensure we only process one barcode per session
     var isScanningActive by remember { mutableStateOf(true) }
@@ -111,44 +112,52 @@ fun BarcodeScannerScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = FridgyDarkBlue
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = FridgyDarkBlue
+                    )
             )
         },
         containerColor = Color.Black
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
         ) {
             AndroidView(
                 factory = { ctx ->
-                    val previewView = PreviewView(ctx).apply {
-                        this.scaleType = PreviewView.ScaleType.FILL_CENTER
-                    }
+                    val previewView =
+                        PreviewView(ctx).apply {
+                            this.scaleType = PreviewView.ScaleType.FILL_CENTER
+                        }
 
                     cameraProviderFuture.addListener({
                         val cameraProvider = cameraProviderFuture.get()
-                        val preview = Preview.Builder().build().also {
-                            it.setSurfaceProvider(previewView.surfaceProvider)
-                        }
+                        val preview =
+                            Preview.Builder().build().also {
+                                it.setSurfaceProvider(previewView.surfaceProvider)
+                            }
 
                         // OPTIMIZATION: STRATEGY_KEEP_ONLY_LATEST ensures the UI stays responsive
-                        val imageAnalyzer = ImageAnalysis.Builder()
-                            .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                            .build()
-                            .also {
-                                it.setAnalyzer(cameraExecutor, BarcodeAnalyzer(barcodeScanner) { barcodeValue ->
-                                    if (isScanningActive) {
-                                        // Set flag to false immediately to block further analysis
-                                        isScanningActive = false
-                                        Log.d("Performance", "Barcode successfully captured: $barcodeValue")
-                                        onBarcodeScanned(barcodeValue)
-                                    }
-                                })
-                            }
+                        val imageAnalyzer =
+                            ImageAnalysis.Builder()
+                                .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                                .build()
+                                .also {
+                                    it.setAnalyzer(
+                                        cameraExecutor,
+                                        BarcodeAnalyzer(barcodeScanner) { barcodeValue ->
+                                            if (isScanningActive) {
+                                                // Set flag to false immediately to block further analysis
+                                                isScanningActive = false
+                                                Log.d("Performance", "Barcode successfully captured: $barcodeValue")
+                                                onBarcodeScanned(barcodeValue)
+                                            }
+                                        }
+                                    )
+                                }
 
                         try {
                             cameraProvider.unbindAll()
@@ -169,17 +178,19 @@ fun BarcodeScannerScreen(
 
             // Scanning Overlay
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxWidth(0.8f)
-                        .height(200.dp)
-                        .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
-                        .wrapContentSize(Alignment.Center)
+                    modifier =
+                        Modifier
+                            .fillMaxWidth(0.8f)
+                            .height(200.dp)
+                            .background(Color.White.copy(alpha = 0.1f), RoundedCornerShape(16.dp))
+                            .wrapContentSize(Alignment.Center)
                 ) {
                     Text(
                         text = stringResource(R.string.align_barcode),
