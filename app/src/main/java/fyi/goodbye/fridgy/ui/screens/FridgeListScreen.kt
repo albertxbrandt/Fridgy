@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -55,6 +56,7 @@ fun FridgeListScreen(
     onAddFridgeClick: () -> Unit,
     onNotificationsClick: () -> Unit,
     onProfileClick: () -> Unit,
+    onNavigateToAdminPanel: () -> Unit,
     onLogout: () -> Unit,
     viewModel: FridgeListViewModel = viewModel(factory = FridgeListViewModel.provideFactory())
 ) {
@@ -64,6 +66,7 @@ fun FridgeListScreen(
 
     val fridgeUiState by viewModel.fridgesUiState.collectAsState()
     val invites by viewModel.invites.collectAsState()
+    val isAdmin by viewModel.isAdmin.collectAsState()
     val auth = remember { FirebaseAuth.getInstance() }
 
     Scaffold(
@@ -76,6 +79,18 @@ fun FridgeListScreen(
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
                     )
+                },
+                navigationIcon = {
+                    // Admin Panel Button (only visible to admins)
+                    if (isAdmin) {
+                        IconButton(onClick = onNavigateToAdminPanel) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Admin Panel",
+                                tint = FridgyWhite
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
                     containerColor = FridgyDarkBlue
@@ -117,6 +132,7 @@ fun FridgeListScreen(
                             tint = FridgyWhite
                         )
                     }
+                    
                     IconButton(onClick = {
                         auth.signOut()
                         onLogout()

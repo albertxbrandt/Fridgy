@@ -93,11 +93,19 @@ class MainActivity : ComponentActivity() {
                                 onAddFridgeClick = { },
                                 onNotificationsClick = { },
                                 onProfileClick = { },
+                                onNavigateToAdminPanel = {
+                                    navController.navigate("adminPanel")
+                                },
                                 onLogout = {
                                     navController.navigate("login") {
                                         popUpTo(navController.graph.id) {inclusive = true}
                                     }
                                 }
+                            )
+                        }
+                        composable("adminPanel") {
+                            AdminPanelScreen(
+                                onNavigateBack = { navController.popBackStack() }
                             )
                         }
                         composable (

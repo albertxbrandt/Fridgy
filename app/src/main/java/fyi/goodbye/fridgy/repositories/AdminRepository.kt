@@ -1,0 +1,187 @@
+package fyi.goodbye.fridgy.repositories
+
+import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.storage.FirebaseStorage
+import fyi.goodbye.fridgy.models.Admin
+import fyi.goodbye.fridgy.models.Fridge
+import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.User
+import kotlinx.coroutines.tasks.await
+
+/**
+ * Repository for managing admin user privileges.
+ */
+class AdminRepository {
+    private val firestore = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+    private val storage = FirebaseStorage.getInstance()
+    private val adminsCollection = firestore.collection("admins")
+    
+    /**
+     * Checks if the current user is an admin.
+     */
+    suspend fun isCurrentUserAdmin(): Boolean {
+        val currentUserId = auth.currentUser?.uid ?: return false
+        
+        return try {
+            val doc = adminsCollection.document(currentUserId).get().await()
+            doc.exists()
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error checking admin status: ${e.message}")
+            false
+        }
+    }
+    
+    /**
+     * Gets the admin document for the current user if they are an admin.
+     */
+    suspend fun getCurrentAdminInfo(): Admin? {
+        val currentUserId = auth.currentUser?.uid ?: return null
+        
+        return try {
+            val doc = adminsCollection.document(currentUserId).get().await()
+            if (doc.exists()) {
+                doc.toObject(Admin::class.java)?.copy(uid = doc.id)
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error fetching admin info: ${e.message}")
+            null
+        }
+    }
+    
+    /**
+     * Gets all users from the users collection.
+     */
+    suspend fun getAllUsers(): List<User> {
+        return try {
+            val snapshot = firestore.collection("users").get().await()
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(User::class.java)?.copy(uid = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error fetching users: ${e.message}")
+            emptyList()
+        }
+    }
+    
+    /**
+     * Gets all products from the products collection.
+     */
+    suspend fun getAllProducts(): List<Product> {
+        return try {
+            val snapshot = firestore.collection("products").get().await()
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Product::class.java)?.copy(upc = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error fetching products: ${e.message}")
+            emptyList()
+        }
+    }
+    
+    /**
+     * Gets all fridges from the fridges collection.
+     */
+    suspend fun getAllFridges(): List<Fridge> {
+        return try {
+            val snapshot = firestore.collection("fridges").get().await()
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(Fridge::class.java)?.copy(id = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error fetching fridges: ${e.message}")
+            emptyList()
+        }
+    }
+    
+    /**
+     * Deletes a user and all their associated data.
+     * WARNING: This is a destructive operation.
+     */
+    suspend fun deleteUser(userId: String): Boolean {
+        return try {
+            // Delete user document
+            firestore.collection("users").document(userId).delete().await()
+            
+            // Note: In a production app, you'd also want to:
+            // - Delete user's Firebase Auth account
+            // - Remove user from all fridge members
+            // - Handle orphaned data
+            
+            true
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error deleting user: ${e.message}")
+            false
+        }
+    }
+    
+    /**
+     * Updates a user's information.
+     */
+    suspend fun updateUser(userId: String, username: String, email: String): Boolean {
+        return try {
+            val updates = mapOf(
+                "username" to username,
+                "email" to email
+            )
+            firestore.collection("users").document(userId).update(updates).await()
+            true
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error updating user: ${e.message}")
+            false
+        }
+    }
+    
+    /**
+     * Also deletes the associated product image from Firebase Storage.
+     */
+    suspend fun deleteProduct(upc: String): Boolean {
+        return try {
+            // Delete product document from Firestore
+            firestore.collection("products").document(upc).delete().await()
+            
+            // Delete product image from Storage
+            try {
+                val imageRef = storage.reference.child("products/$upc.jpg")
+                imageRef.delete().await()
+            } catch (e: Exception) {
+                // Log but don't fail if image doesn't exist
+                Log.w("AdminRepo", "Could not delete product image: ${e.message}")
+            }
+            
+            firestore.collection("products").document(upc).delete().await()
+            true
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error deleting product: ${e.message}")
+            false
+        }
+    }
+    
+    /**
+     * Updates a product's information.
+     */
+    suspend fun updateProduct(
+        upc: String,
+        name: String,
+        brand: String,
+        category: String
+    ): Boolean {
+        return try {
+            val updates = mapOf(
+                "name" to name,
+                "brand" to brand,
+                "category" to category,
+                "lastUpdated" to System.currentTimeMillis()
+            )
+            firestore.collection("products").document(upc).update(updates).await()
+            true
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error updating product: ${e.message}")
+            false
+        }
+    }
+}

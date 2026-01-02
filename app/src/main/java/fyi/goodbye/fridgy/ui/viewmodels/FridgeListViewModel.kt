@@ -11,6 +11,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.models.Fridge
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,8 @@ import kotlinx.coroutines.launch
  */
 class FridgeListViewModel(
     application: Application,
-    private val fridgeRepository: FridgeRepository = FridgeRepository()
+    private val fridgeRepository: FridgeRepository = FridgeRepository(),
+    private val adminRepository: AdminRepository = AdminRepository()
 ) : AndroidViewModel(application) {
 
     private val _fridgesUiState = MutableStateFlow<FridgeUiState>(FridgeUiState.Loading)
@@ -39,6 +41,10 @@ class FridgeListViewModel(
     val invites: StateFlow<List<Fridge>> = _invites.asStateFlow()
 
     private val auth = FirebaseAuth.getInstance()
+    
+    private val _isAdmin = MutableStateFlow(false)
+    /** Indicates if the current user has admin privileges. */
+    val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
 
     private val _isCreatingFridge = MutableStateFlow(false)
     /** Indicates if a new fridge is currently being created. */
@@ -53,6 +59,11 @@ class FridgeListViewModel(
         if (currentUserId == null) {
             _fridgesUiState.value = FridgeUiState.Error(getApplication<Application>().getString(R.string.error_user_not_logged_in))
         } else {
+            // Check admin status
+            viewModelScope.launch {
+                _isAdmin.value = adminRepository.isCurrentUserAdmin()
+            }
+            
             // Collect real-time stream of fridges the user is a member of
             viewModelScope.launch {
                 fridgeRepository.getFridgesForCurrentUser().collectLatest { fridges ->
