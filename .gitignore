@@ -19,5 +19,7 @@ app/google-services.json
 hs_err_pid*
 replay_pid*
 
+# Internal Development Notes
+.dev-notes/
+
 .github/
-TESTING.md
