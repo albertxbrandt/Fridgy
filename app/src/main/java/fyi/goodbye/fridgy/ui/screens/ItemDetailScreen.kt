@@ -20,11 +20,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import fyi.goodbye.fridgy.ui.viewmodels.ItemDetailViewModel
 import java.text.SimpleDateFormat
@@ -46,12 +48,12 @@ fun ItemDetailScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Item Details", color = FridgyWhite, fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.item_details), color = FridgyWhite, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.cd_back),
                             tint = FridgyWhite
                         )
                     }
@@ -106,7 +108,7 @@ fun ItemDetailScreen(
                                     modifier = Modifier.fillMaxSize()
                                 )
                             } else {
-                                Text(text = "🍎", fontSize = 80.sp)
+                                Text(text = stringResource(R.string.cd_placeholder_icon), fontSize = 80.sp)
                             }
                         }
 
@@ -182,7 +184,7 @@ fun ItemDetailScreen(
                                     ) {
                                         Icon(
                                             imageVector = if (isLastItem) Icons.Default.Delete else Icons.Default.Remove, 
-                                            contentDescription = if (isLastItem) "Delete" else "Decrease",
+                                            contentDescription = if (isLastItem) stringResource(R.string.cd_delete) else stringResource(R.string.cd_decrease),
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -196,7 +198,7 @@ fun ItemDetailScreen(
                                     ) {
                                         Icon(
                                             Icons.Default.Add, 
-                                            contentDescription = "Increase",
+                                            contentDescription = stringResource(R.string.cd_increase),
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
@@ -214,18 +216,18 @@ fun ItemDetailScreen(
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(
-                                    text = "History",
+                                    text = stringResource(R.string.history),
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 18.sp,
                                     modifier = Modifier.padding(bottom = 12.dp)
                                 )
                                 
                                 DetailRow(
-                                    label = "Added by",
-                                    value = userNames[item.addedBy] ?: "Loading..."
+                                    label = stringResource(R.string.added_by),
+                                    value = userNames[item.addedBy] ?: stringResource(R.string.loading)
                                 )
                                 DetailRow(
-                                    label = "Added on",
+                                    label = stringResource(R.string.added_on),
                                     value = dateFormatter.format(Date(item.addedAt))
                                 )
                                 HorizontalDivider(
@@ -233,11 +235,11 @@ fun ItemDetailScreen(
                                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                 )
                                 DetailRow(
-                                    label = "Last updated by",
-                                    value = userNames[item.lastUpdatedBy] ?: "Loading..."
+                                    label = stringResource(R.string.last_updated_by),
+                                    value = userNames[item.lastUpdatedBy] ?: stringResource(R.string.loading)
                                 )
                                 DetailRow(
-                                    label = "Last updated on",
+                                    label = stringResource(R.string.last_updated_on),
                                     value = dateFormatter.format(Date(item.lastUpdatedAt))
                                 )
                             }

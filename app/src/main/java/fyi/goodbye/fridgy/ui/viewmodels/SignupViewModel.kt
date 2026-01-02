@@ -1,13 +1,15 @@
 package fyi.goodbye.fridgy.ui.viewmodels
 
+import android.app.Application
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
+import fyi.goodbye.fridgy.R
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
@@ -20,7 +22,7 @@ import kotlinx.coroutines.tasks.await
  * and the subsequent creation of a user profile document in Firestore. It exposes
  * various UI states to the [SignupScreen] including loading status and error messages.
  */
-class SignupViewModel : ViewModel() {
+class SignupViewModel(application: Application) : AndroidViewModel(application) {
     private val auth = FirebaseAuth.getInstance()
     private val firestore = FirebaseFirestore.getInstance()
 
@@ -75,12 +77,12 @@ class SignupViewModel : ViewModel() {
     fun signup() {
         errorMessage = null
         if (email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-            errorMessage = "Please fill in all fields."
+            errorMessage = getApplication<Application>().getString(R.string.error_please_fill_all_fields)
             return
         }
 
         if (password != confirmPassword) {
-            errorMessage = "Passwords do not match."
+            errorMessage = getApplication<Application>().getString(R.string.error_passwords_do_not_match)
             return
         }
 
@@ -103,7 +105,7 @@ class SignupViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.w("SignupViewModel", "createUserWithEmail:failure", e)
-                errorMessage = e.message ?: "Sign up failed. Please try again."
+                errorMessage = e.message ?: getApplication<Application>().getString(R.string.error_signup_failed)
             } finally {
                 isLoading = false
             }

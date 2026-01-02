@@ -1,12 +1,14 @@
 package fyi.goodbye.fridgy.ui.viewmodels
 
+import android.app.Application
 import android.net.Uri
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
 /**
@@ -31,10 +34,11 @@ data class InventoryItem(
  * ViewModel responsible for managing the inventory and basic details of a specific fridge.
  */
 class FridgeInventoryViewModel(
+    application: Application,
     private val fridgeRepository: FridgeRepository,
     private val productRepository: ProductRepository,
     private val fridgeId: String
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _displayFridgeState = MutableStateFlow<FridgeDetailUiState>(FridgeDetailUiState.Loading)
     val displayFridgeState: StateFlow<FridgeDetailUiState> = _displayFridgeState.asStateFlow()
@@ -67,10 +71,10 @@ class FridgeInventoryViewModel(
                 if (fridge != null) {
                     _displayFridgeState.value = FridgeDetailUiState.Success(fridge)
                 } else {
-                    _displayFridgeState.value = FridgeDetailUiState.Error("Fridge not found.")
+                    _displayFridgeState.value = FridgeDetailUiState.Error(getApplication<Application>().getString(R.string.error_fridge_not_found))
                 }
             } catch (e: Exception) {
-                _displayFridgeState.value = FridgeDetailUiState.Error(e.message ?: "Failed to load fridge details.")
+                _displayFridgeState.value = FridgeDetailUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_fridge))
             }
         }
     }
@@ -90,13 +94,15 @@ class FridgeInventoryViewModel(
                 
                 // Map remote items to products (using cache for speed)
                 val mappedRemote = remoteItems.map { item ->
-                    val product = productRepository.getProductInfo(item.upc) ?: Product(upc = item.upc, name = "Unknown Product")
+                    val product = productRepository.getProductInfo(item.upc) ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
                     InventoryItem(item, product)
                 }
                 
                 // Final display list: Remote items first, then any still-pending optimistic items
                 mappedRemote + pendingOptimistic
-            }.collectLatest { combinedList ->
+            }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
+            .collectLatest { combinedList ->
                 _itemsUiState.value = ItemsUiState.Success(combinedList)
             }
         }
@@ -159,7 +165,7 @@ class FridgeInventoryViewModel(
                 Log.d("FridgeInventoryVM", "Optimistic add successful for: $name")
             } catch (e: Exception) {
                 Log.e("FridgeInventoryVM", "Failed to create product: ${e.message}")
-                _addItemError.value = "Failed to create product: ${e.message}"
+                _addItemError.value = getApplication<Application>().getString(R.string.error_failed_to_add_item, e.message ?: "")
                 // Rollback optimistic item on failure
                 _optimisticItems.value = _optimisticItems.value.filter { it.item.upc != upc }
             } finally {
@@ -172,7 +178,7 @@ class FridgeInventoryViewModel(
         try {
             fridgeRepository.addItemToFridge(fridgeId, upc)
         } catch (e: Exception) {
-            _addItemError.value = "Failed to add item to fridge: ${e.message}"
+            _addItemError.value = getApplication<Application>().getString(R.string.error_failed_to_add_item, e.message ?: "")
         }
     }
 
@@ -200,7 +206,8 @@ class FridgeInventoryViewModel(
         ): ViewModelProvider.Factory {
             return viewModelFactory {
                 initializer {
-                    FridgeInventoryViewModel(fridgeRepository, productRepository, fridgeId)
+                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
+                    FridgeInventoryViewModel(app, fridgeRepository, productRepository, fridgeId)
                 }
             }
         }

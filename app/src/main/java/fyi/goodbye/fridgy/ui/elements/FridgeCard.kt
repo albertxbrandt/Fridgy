@@ -8,10 +8,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
@@ -59,17 +61,17 @@ fun FridgeCard(fridge: DisplayFridge, onClick: (DisplayFridge) -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Created by: ${fridge.creatorDisplayName}",
+                    text = stringResource(R.string.created_by_label, fridge.creatorDisplayName),
                     fontSize = 14.sp,
                     color = FridgyTextBlue.copy(alpha = 0.7f)
                 )
                 Text(
-                    text = "Members: ${fridge.members.size}",
+                    text = stringResource(R.string.members_count, fridge.members.size),
                     fontSize = 14.sp,
                     color = FridgyTextBlue.copy(alpha = 0.7f)
                 )
                 Text(
-                    text = "Added: ${dateFormatter.format(Date(fridge.createdAt))}",
+                    text = stringResource(R.string.added_date, dateFormatter.format(Date(fridge.createdAt))),
                     fontSize = 12.sp,
                     color = FridgyTextBlue.copy(alpha = 0.5f)
                 )

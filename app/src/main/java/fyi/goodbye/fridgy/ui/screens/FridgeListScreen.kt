@@ -14,12 +14,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.ui.elements.FridgeCard
@@ -54,7 +56,7 @@ fun FridgeListScreen(
     onNotificationsClick: () -> Unit,
     onProfileClick: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: FridgeListViewModel = viewModel()
+    viewModel: FridgeListViewModel = viewModel(factory = FridgeListViewModel.provideFactory())
 ) {
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var showAddFridgeDialog by remember { mutableStateOf(false) }
@@ -69,7 +71,7 @@ fun FridgeListScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "My Fridges",
+                        text = stringResource(R.string.my_fridges),
                         color = FridgyWhite,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
@@ -103,7 +105,7 @@ fun FridgeListScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
+                                contentDescription = stringResource(R.string.cd_notifications),
                                 tint = FridgyWhite
                             )
                         }
@@ -111,7 +113,7 @@ fun FridgeListScreen(
                     IconButton(onClick = onProfileClick) {
                         Icon(
                             imageVector = Icons.Default.Person,
-                            contentDescription = "Profile",
+                            contentDescription = stringResource(R.string.cd_profile),
                             tint = FridgyWhite
                         )
                     }
@@ -121,7 +123,7 @@ fun FridgeListScreen(
                     }) {
                         Icon(
                             imageVector = Icons.Default.ExitToApp,
-                            contentDescription = "Logout",
+                            contentDescription = stringResource(R.string.cd_logout),
                             tint = FridgyWhite
                         )
                     }
@@ -134,7 +136,7 @@ fun FridgeListScreen(
                 containerColor = FridgyDarkBlue,
                 contentColor = FridgyWhite
             ) {
-                Icon(Icons.Default.Add, "Add new fridge")
+                Icon(Icons.Default.Add, stringResource(R.string.cd_add_new_fridge))
             }
         },
         containerColor = FridgyLightBlue
@@ -166,7 +168,7 @@ fun FridgeListScreen(
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
                     Button(onClick = { /* Retry logic could be added to ViewModel */ }) {
-                        Text("Retry")
+                        Text(stringResource(R.string.retry))
                     }
                 }
             }
@@ -182,7 +184,7 @@ fun FridgeListScreen(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Text(
-                            text = "No fridges yet! Click the '+' button to create one.",
+                            text = stringResource(R.string.no_fridges_yet),
                             fontSize = 18.sp,
                             color = FridgyTextBlue.copy(alpha = 0.8f),
                             lineHeight = 24.sp,
@@ -198,10 +200,13 @@ fun FridgeListScreen(
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
-                        items(fridges) { fridge ->
-                            FridgeCard(fridge = fridge) { clickedFridge ->
-                                onNavigateToFridgeInventory(clickedFridge)
+                        // OPTIMIZATION: Add key for item identity
+                        items(fridges, key = { it.id }) { fridge ->
+                            // OPTIMIZATION: Stable callback reference prevents recomposition
+                            val onCardClick = remember(fridge.id) {
+                                { _: DisplayFridge -> onNavigateToFridgeInventory(fridge) }
                             }
+                            FridgeCard(fridge = fridge, onClick = onCardClick)
                         }
                     }
                 }
@@ -226,7 +231,7 @@ fun FridgeListScreen(
             },
             title = {
                 Text(
-                    text = "Create New Fridge",
+                    text = stringResource(R.string.create_new_fridge),
                     color = FridgyWhite,
                     fontWeight = FontWeight.Bold,
                     fontSize = 20.sp
@@ -236,7 +241,7 @@ fun FridgeListScreen(
                 OutlinedTextField(
                     value = newFridgeName,
                     onValueChange = { newFridgeName = it },
-                    label = { Text("Fridge Name", color = FridgyWhite.copy(alpha = 0.7f)) },
+                    label = { Text(stringResource(R.string.fridge_name), color = FridgyWhite.copy(alpha = 0.7f)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -260,7 +265,7 @@ fun FridgeListScreen(
                     },
                     enabled = newFridgeName.isNotBlank()
                 ) {
-                    Text("Create", color = FridgyWhite, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.create), color = FridgyWhite, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -268,7 +273,7 @@ fun FridgeListScreen(
                     showAddFridgeDialog = false
                     newFridgeName = ""
                 }) {
-                    Text("Cancel", color = FridgyWhite.copy(alpha = 0.7f))
+                    Text(stringResource(R.string.cancel), color = FridgyWhite.copy(alpha = 0.7f))
                 }
             },
             containerColor = FridgyDarkBlue,
@@ -298,7 +303,7 @@ fun NotificationsDialog(
         onDismissRequest = onDismissRequest,
         title = {
             Text(
-                text = "Invitations",
+                text = stringResource(R.string.invitations),
                 color = FridgyDarkBlue,
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
@@ -309,7 +314,7 @@ fun NotificationsDialog(
                 if (invites.isEmpty()) {
                     item {
                         Text(
-                            text = "No pending invitations.",
+                            text = stringResource(R.string.no_pending_invitations),
                             color = FridgyTextBlue.copy(alpha = 0.8f)
                         )
                     }
@@ -322,7 +327,7 @@ fun NotificationsDialog(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "Invite to join '${invite.name}'",
+                                text = stringResource(R.string.invite_to_join, invite.name),
                                 fontSize = 16.sp,
                                 color = FridgyTextBlue,
                                 fontWeight = FontWeight.Medium,
@@ -334,11 +339,11 @@ fun NotificationsDialog(
                                 horizontalArrangement = Arrangement.Center
                             ) {
                                 TextButton(onClick = { onDecline(invite) }) {
-                                    Text("Decline", color = Color.Red)
+                                    Text(stringResource(R.string.decline), color = Color.Red)
                                 }
                                 Spacer(modifier = Modifier.width(16.dp))
                                 TextButton(onClick = { onAccept(invite) }) {
-                                    Text("Accept", color = FridgyDarkBlue)
+                                    Text(stringResource(R.string.accept), color = FridgyDarkBlue)
                                 }
                             }
                             HorizontalDivider(
@@ -352,7 +357,7 @@ fun NotificationsDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismissRequest) {
-                Text("Close", color = FridgyDarkBlue)
+                Text(stringResource(R.string.close), color = FridgyDarkBlue)
             }
         },
         containerColor = FridgyWhite,

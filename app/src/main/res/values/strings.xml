@@ -1,3 +1,131 @@
 <resources>
     <string name="app_name">Fridgy</string>
+    
+    <!-- Auth Screens -->
+    <string name="welcome_to_fridgy">Welcome to Fridgy!</string>
+    <string name="manage_fridge_effortlessly">Manage your fridge, effortlessly.</string>
+    <string name="join_fridgy_today">Join Fridgy Today!</string>
+    <string name="unlock_effortless_management">Unlock effortless fridge management.</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="login">Login</string>
+    <string name="sign_up">Sign Up</string>
+    <string name="dont_have_account">Don\'t have an account? Sign Up</string>
+    <string name="already_have_account">Already have an account? Log In</string>
+    
+    <!-- Fridge List Screen -->
+    <string name="my_fridges">My Fridges</string>
+    <string name="no_fridges_yet">No fridges yet! Click the \'+\' button to create one.</string>
+    <string name="create_new_fridge">Create New Fridge</string>
+    <string name="fridge_name">Fridge Name</string>
+    <string name="create">Create</string>
+    <string name="cancel">Cancel</string>
+    <string name="retry">Retry</string>
+    <string name="invitations">Invitations</string>
+    <string name="no_pending_invitations">No pending invitations.</string>
+    <string name="invite_to_join">Invite to join \'%1$s\'</string>
+    <string name="decline">Decline</string>
+    <string name="accept">Accept</string>
+    <string name="close">Close</string>
+    
+    <!-- Fridge Inventory Screen -->
+    <string name="error_loading_fridge">Error Loading Fridge</string>
+    <string name="loading_fridge">Loading Fridge…</string>
+    <string name="no_items_in_fridge">No items in this fridge yet! Click the \'+\' button to add some.</string>
+    <string name="new_product_detected">New Product Detected</string>
+    <string name="product_not_recognized">We don\'t recognize barcode %1$s. Please add it to our database.</string>
+    <string name="take_product_photo">Take Product Photo</string>
+    <string name="product_name">Product Name</string>
+    <string name="brand_optional">Brand (Optional)</string>
+    <string name="category">Category</string>
+    <string name="save_and_add">Save &amp; Add</string>
+    
+    <!-- Categories -->
+    <string name="category_dairy">Dairy</string>
+    <string name="category_meat">Meat</string>
+    <string name="category_produce">Produce</string>
+    <string name="category_bakery">Bakery</string>
+    <string name="category_frozen">Frozen</string>
+    <string name="category_pantry">Pantry</string>
+    <string name="category_other">Other</string>
+    
+    <!-- Item Detail Screen -->
+    <string name="item_details">Item Details</string>
+    <string name="history">History</string>
+    <string name="added_by">Added by</string>
+    <string name="added_on">Added on</string>
+    <string name="last_updated_by">Last updated by</string>
+    <string name="last_updated_on">Last updated on</string>
+    <string name="loading">Loading…</string>
+    <string name="quantity_label">Qty: %1$d</string>
+    
+    <!-- Fridge Settings Screen -->
+    <string name="fridge_settings">Fridge Settings</string>
+    <string name="general_info">General Info</string>
+    <string name="name">Name</string>
+    <string name="owner">Owner</string>
+    <string name="location">Location</string>
+    <string name="location_kitchen">Kitchen</string>
+    <string name="members">Members</string>
+    <string name="member">Member</string>
+    <string name="invite_member">Invite Member</string>
+    <string name="email_address">Email Address</string>
+    <string name="send_invite">Send Invite</string>
+    <string name="invitation_sent">Invitation sent successfully!</string>
+    <string name="delete_fridge">Delete Fridge</string>
+    <string name="leave_fridge">Leave Fridge</string>
+    <string name="delete_confirmation_message">This action cannot be undone. All items and members will be removed.</string>
+    <string name="type_confirm">Type CONFIRM to confirm deletion:</string>
+    <string name="confirm_text">CONFIRM</string>
+    <string name="delete">Delete</string>
+    <string name="leave_fridge_message">Are you sure you want to leave this fridge? You will need an invite to join again.</string>
+    <string name="leave">Leave</string>
+    
+    <!-- Barcode Scanner Screen -->
+    <string name="scan_barcode">Scan Barcode</string>
+    <string name="align_barcode">Align barcode within the box</string>
+    
+    <!-- Content Descriptions -->
+    <string name="cd_back">Back</string>
+    <string name="cd_fridge_logo">Fridgy Logo</string>
+    <string name="cd_notifications">Notifications</string>
+    <string name="cd_profile">Profile</string>
+    <string name="cd_logout">Logout</string>
+    <string name="cd_add_new_fridge">Add new fridge</string>
+    <string name="cd_add_new_item">Add new item</string>
+    <string name="cd_fridge_settings">Fridge Settings</string>
+    <string name="cd_invite">Invite</string>
+    <string name="cd_remove">Remove</string>
+    <string name="cd_increase">Increase</string>
+    <string name="cd_decrease">Decrease</string>
+    <string name="cd_delete">Delete</string>
+    <string name="cd_captured_product">Captured Product</string>
+    <string name="cd_placeholder_icon">🍎</string>
+    
+    <!-- Error Messages -->
+    <string name="error_user_not_logged_in">User not logged in. Please log in again.</string>
+    <string name="error_failed_to_create_fridge">Failed to create fridge.</string>
+    <string name="error_fridge_not_found">Fridge not found.</string>
+    <string name="error_failed_to_load_fridge">Failed to load fridge details.</string>
+    <string name="error_product_not_found">Product information not found.</string>
+    <string name="error_item_not_found">Item not found in fridge.</string>
+    <string name="error_failed_to_load_details">Failed to load details.</string>
+    <string name="error_failed_to_send_invitation">Failed to send invitation.</string>
+    <string name="error_please_fill_all_fields">Please fill in all fields.</string>
+    <string name="error_passwords_do_not_match">Passwords do not match.</string>
+    <string name="error_signup_failed">Sign up failed. Please try again.</string>
+    <string name="error_please_enter_email_password">Please enter both email and password.</string>
+    <string name="error_login_failed">Login failed. Please try again.</string>
+    <string name="error_failed_to_add_item">Failed to add item to fridge: %1$s</string>
+    <string name="error_failed_to_create_product">Failed to create product: %1$s</string>
+    
+    <!-- Misc -->
+    <string name="dismiss">Dismiss</string>
+    <string name="unknown">Unknown</string>
+    <string name="unknown_user">Unknown User</string>
+    <string name="unknown_product">Unknown Product</string>
+    <string name="created_by_label">Created by: %1$s</string>
+    <string name="members_count">Members: %1$d</string>
+    <string name="added_date">Added: %1$s</string>
 </resources>

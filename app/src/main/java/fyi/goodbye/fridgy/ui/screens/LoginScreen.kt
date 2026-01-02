@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -81,21 +82,21 @@ fun LoginScreen(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Fridgy Logo",
+                contentDescription = stringResource(R.string.cd_fridge_logo),
                 modifier = Modifier
                     .size(160.dp)
                     .padding(bottom = 32.dp)
             )
 
             Text(
-                text = "Welcome to Fridgy!",
+                text = stringResource(R.string.welcome_to_fridgy),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = FridgyTextBlue,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                text = "Manage your fridge, effortlessly.",
+                text = stringResource(R.string.manage_fridge_effortlessly),
                 fontSize = 16.sp,
                 color = FridgyTextBlue.copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 48.dp)
@@ -104,7 +105,7 @@ fun LoginScreen(
             SquaredInput(
                 value = viewModel.email,
                 onValueChange = viewModel::onEmailChange,
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier
@@ -119,7 +120,7 @@ fun LoginScreen(
             SquaredInput(
                 value = viewModel.password,
                 onValueChange = viewModel::onPasswordChange,
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -152,7 +153,7 @@ fun LoginScreen(
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(color = FridgyWhite, modifier = Modifier.size(24.dp))
                 } else {
-                    Text("Login", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.login), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -164,7 +165,7 @@ fun LoginScreen(
                 enabled = !viewModel.isLoading
             ) {
                 Text(
-                    text = "Don't have an account? Sign Up",
+                    text = stringResource(R.string.dont_have_account),
                     color = FridgyTextBlue,
                     fontSize = 16.sp
                 )

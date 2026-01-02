@@ -14,10 +14,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.theme.*
 import fyi.goodbye.fridgy.ui.viewmodels.FridgeSettingsViewModel
 
@@ -67,10 +69,10 @@ fun FridgeSettingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Fridge Settings", color = FridgyWhite, fontWeight = FontWeight.Bold) },
+                title = { Text(stringResource(R.string.fridge_settings), color = FridgyWhite, fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = FridgyWhite)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back), tint = FridgyWhite)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -116,7 +118,7 @@ fun FridgeSettingsScreen(
                             action = if (isOwner) {
                                 {
                                     IconButton(onClick = { showInviteDialog = true }) {
-                                        Icon(Icons.Default.Add, contentDescription = "Invite", tint = MaterialTheme.colorScheme.primary)
+                                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_invite), tint = MaterialTheme.colorScheme.primary)
                                     }
                                 }
                             } else null
@@ -170,7 +172,7 @@ fun FridgeSettingsScreen(
     if (showInviteDialog) {
         AlertDialog(
             onDismissRequest = { if (!isInviting) showInviteDialog = false },
-            title = { Text("Invite Member", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.invite_member), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     OutlinedTextField(
@@ -241,12 +243,12 @@ fun FridgeSettingsScreen(
     if (showDeleteConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirmDialog = false },
-            title = { Text("Delete Fridge", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
+            title = { Text(stringResource(R.string.delete_fridge), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
-                    Text("This action cannot be undone. All items and members will be removed.")
+                    Text(stringResource(R.string.delete_confirmation_message))
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Type CONFIRM to confirm deletion:", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.type_confirm), fontWeight = FontWeight.SemiBold)
                     OutlinedTextField(
                         value = confirmText,
                         onValueChange = { confirmText = it },
@@ -289,8 +291,8 @@ fun FridgeSettingsScreen(
     if (showLeaveConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showLeaveConfirmDialog = false },
-            title = { Text("Leave Fridge", color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
-            text = { Text("Are you sure you want to leave this fridge? You will need an invite to join again.") },
+            title = { Text(stringResource(R.string.leave_fridge), color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.Bold) },
+            text = { Text(stringResource(R.string.leave_fridge_message)) },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.leaveFridge {
@@ -298,12 +300,12 @@ fun FridgeSettingsScreen(
                         onDeleteSuccess()
                     }
                 }) {
-                    Text("Leave", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.leave), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLeaveConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -353,7 +355,7 @@ fun SwipeToDismissMember(
             ) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "Remove",
+                    contentDescription = stringResource(R.string.cd_remove),
                     tint = MaterialTheme.colorScheme.onError
                 )
             }

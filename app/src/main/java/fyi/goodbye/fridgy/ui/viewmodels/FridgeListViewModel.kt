@@ -1,9 +1,15 @@
 package fyi.goodbye.fridgy.ui.viewmodels
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.models.Fridge
@@ -20,8 +26,9 @@ import kotlinx.coroutines.launch
  * the fridges the user belongs to and any pending invites they have received.
  */
 class FridgeListViewModel(
+    application: Application,
     private val fridgeRepository: FridgeRepository = FridgeRepository()
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _fridgesUiState = MutableStateFlow<FridgeUiState>(FridgeUiState.Loading)
     /** The current state of the fridges list (Loading, Success, or Error). */
@@ -44,7 +51,7 @@ class FridgeListViewModel(
     init {
         val currentUserId = auth.currentUser?.uid
         if (currentUserId == null) {
-            _fridgesUiState.value = FridgeUiState.Error("User not logged in. Please log in again.")
+            _fridgesUiState.value = FridgeUiState.Error(getApplication<Application>().getString(R.string.error_user_not_logged_in))
         } else {
             // Collect real-time stream of fridges the user is a member of
             viewModelScope.launch {
@@ -85,7 +92,7 @@ class FridgeListViewModel(
             try {
                 fridgeRepository.createFridge(name)
             } catch (e: Exception) {
-                _createdFridgeError.value = e.message ?: "Failed to create fridge."
+                _createdFridgeError.value = e.message ?: getApplication<Application>().getString(R.string.error_failed_to_create_fridge)
             } finally {
                 _isCreatingFridge.value = false
             }
@@ -127,5 +134,14 @@ class FridgeListViewModel(
         data object Loading : FridgeUiState
         data class Success(val fridges: List<DisplayFridge>) : FridgeUiState
         data class Error(val message: String) : FridgeUiState
+    }
+
+    companion object {
+        fun provideFactory(): ViewModelProvider.Factory = viewModelFactory {
+            initializer {
+                val app = this[APPLICATION_KEY]!!
+                FridgeListViewModel(app)
+            }
+        }
     }
 }

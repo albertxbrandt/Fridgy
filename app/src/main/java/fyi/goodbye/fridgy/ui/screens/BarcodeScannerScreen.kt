@@ -33,6 +33,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -45,6 +46,7 @@ import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
@@ -94,7 +96,7 @@ fun BarcodeScannerScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Scan Barcode",
+                        text = stringResource(R.string.scan_barcode),
                         color = FridgyWhite,
                         fontWeight = FontWeight.Bold,
                         fontSize = 22.sp
@@ -104,7 +106,7 @@ fun BarcodeScannerScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.cd_back),
                             tint = FridgyWhite
                         )
                     }
@@ -180,7 +182,7 @@ fun BarcodeScannerScreen(
                         .wrapContentSize(Alignment.Center)
                 ) {
                     Text(
-                        text = "Align barcode within the box",
+                        text = stringResource(R.string.align_barcode),
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium

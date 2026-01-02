@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -70,21 +71,21 @@ fun SignupScreen(
         ) {
             Image(
                 painter = painterResource(id = R.drawable.logo),
-                contentDescription = "Fridgy Logo",
+                contentDescription = stringResource(R.string.cd_fridge_logo),
                 modifier = Modifier
                     .size(160.dp)
                     .padding(bottom = 32.dp)
             )
 
             Text(
-                text = "Join Fridgy Today!",
+                text = stringResource(R.string.join_fridgy_today),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = FridgyTextBlue,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                text = "Unlock effortless fridge management.",
+                text = stringResource(R.string.unlock_effortless_management),
                 fontSize = 16.sp,
                 color = FridgyTextBlue.copy(alpha = 0.8f),
                 modifier = Modifier.padding(bottom = 48.dp)
@@ -93,7 +94,7 @@ fun SignupScreen(
             SquaredInput(
                 value = viewModel.email,
                 onValueChange = viewModel::onEmailChange,
-                label = { Text("Email") },
+                label = { Text(stringResource(R.string.email)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier
@@ -108,7 +109,7 @@ fun SignupScreen(
             SquaredInput(
                 value = viewModel.password,
                 onValueChange = viewModel::onPasswordChange,
-                label = { Text("Password") },
+                label = { Text(stringResource(R.string.password)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -124,7 +125,7 @@ fun SignupScreen(
             SquaredInput(
                 value = viewModel.confirmPassword,
                 onValueChange = viewModel::onConfirmPasswordChange,
-                label = { Text("Confirm Password") },
+                label = { Text(stringResource(R.string.confirm_password)) },
                 singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
@@ -156,7 +157,7 @@ fun SignupScreen(
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(color = FridgyWhite, modifier = Modifier.size(24.dp))
                 } else {
-                    Text("Sign Up", fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.sign_up), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
@@ -168,7 +169,7 @@ fun SignupScreen(
                 enabled = !viewModel.isLoading
             ) {
                 Text(
-                    text = "Already have an account? Log In",
+                    text = stringResource(R.string.already_have_account),
                     color = FridgyTextBlue,
                     fontSize = 16.sp
                 )

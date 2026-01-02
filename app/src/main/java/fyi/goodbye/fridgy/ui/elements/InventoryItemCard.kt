@@ -8,6 +8,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -16,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.viewmodels.InventoryItem
 
 /**
@@ -53,7 +55,7 @@ fun InventoryItemCard(inventoryItem: InventoryItem, onClick: (String) -> Unit) {
                         .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = "🍎", fontSize = 48.sp)
+                    Text(text = stringResource(R.string.cd_placeholder_icon), fontSize = 48.sp)
                 }
             }
 
@@ -95,7 +97,7 @@ fun InventoryItemCard(inventoryItem: InventoryItem, onClick: (String) -> Unit) {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = "Qty: ${item.quantity}",
+                    text = stringResource(R.string.quantity_label, item.quantity),
                     fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     color = Color.White.copy(alpha = 0.9f)

@@ -56,8 +56,18 @@ class FridgeRepository {
             cachedFridge
         } else {
             try {
-                val doc = firestore.collection("fridges").document(fridgeId).get(Source.DEFAULT).await()
-                doc.toObject(Fridge::class.java)?.copy(id = doc.id)
+                // OPTIMIZATION: Try cache first for instant response
+                val cacheDoc = try {
+                    firestore.collection("fridges").document(fridgeId).get(Source.CACHE).await()
+                } catch (e: Exception) { null }
+                
+                if (cacheDoc?.exists() == true) {
+                    cacheDoc.toObject(Fridge::class.java)?.copy(id = cacheDoc.id)
+                } else {
+                    // Fallback to network if cache miss
+                    val doc = firestore.collection("fridges").document(fridgeId).get(Source.DEFAULT).await()
+                    doc.toObject(Fridge::class.java)?.copy(id = doc.id)
+                }
             } catch (e: Exception) { null }
         } ?: return null
         

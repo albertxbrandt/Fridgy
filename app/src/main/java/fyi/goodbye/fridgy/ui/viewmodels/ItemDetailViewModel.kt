@@ -1,10 +1,12 @@
 package fyi.goodbye.fridgy.ui.viewmodels
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
@@ -15,11 +17,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class ItemDetailViewModel(
+    application: Application,
     private val fridgeRepository: FridgeRepository,
     private val productRepository: ProductRepository,
     private val fridgeId: String,
     private val itemId: String
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<ItemDetailUiState>(ItemDetailUiState.Loading)
     val uiState: StateFlow<ItemDetailUiState> = _uiState.asStateFlow()
@@ -43,14 +46,14 @@ class ItemDetailViewModel(
                             _uiState.value = ItemDetailUiState.Success(item, product)
                             loadUserNames(item)
                         } else {
-                            _uiState.value = ItemDetailUiState.Error("Product information not found.")
+                            _uiState.value = ItemDetailUiState.Error(getApplication<Application>().getString(R.string.error_product_not_found))
                         }
                     } else {
-                        _uiState.value = ItemDetailUiState.Error("Item not found in fridge.")
+                        _uiState.value = ItemDetailUiState.Error(getApplication<Application>().getString(R.string.error_item_not_found))
                     }
                 }
             } catch (e: Exception) {
-                _uiState.value = ItemDetailUiState.Error(e.message ?: "Failed to load details.")
+                _uiState.value = ItemDetailUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_details))
             }
         }
     }
@@ -62,7 +65,7 @@ class ItemDetailViewModel(
             uids.forEach { uid ->
                 if (!names.containsKey(uid)) {
                     val user = fridgeRepository.getUserById(uid)
-                    names[uid] = user?.username ?: "Unknown User"
+                    names[uid] = user?.username ?: getApplication<Application>().getString(R.string.unknown_user)
                 }
             }
             _userNames.value = names
@@ -94,7 +97,8 @@ class ItemDetailViewModel(
             productRepository: ProductRepository = ProductRepository()
         ): ViewModelProvider.Factory = viewModelFactory {
             initializer {
-                ItemDetailViewModel(fridgeRepository, productRepository, fridgeId, itemId)
+                val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
+                ItemDetailViewModel(app, fridgeRepository, productRepository, fridgeId, itemId)
             }
         }
     }

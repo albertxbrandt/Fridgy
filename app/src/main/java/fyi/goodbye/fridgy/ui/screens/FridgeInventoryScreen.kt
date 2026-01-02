@@ -23,6 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +35,7 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import fyi.goodbye.fridgy.ui.viewmodels.FridgeInventoryViewModel
@@ -68,14 +70,17 @@ fun FridgeInventoryScreen(
     val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
+    val errorLoadingString = stringResource(R.string.error_loading_fridge)
+    val loadingString = stringResource(R.string.loading_fridge)
+
     // OPTIMIZATION: Use derivedStateOf to prevent re-calculating name on every recomposition 
     // unless the underlying state object actually changes.
     val fridgeName by remember {
         derivedStateOf {
             when (val state = fridgeDetailUiState) {
                 is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.name
-                is FridgeInventoryViewModel.FridgeDetailUiState.Error -> "Error Loading Fridge"
-                FridgeInventoryViewModel.FridgeDetailUiState.Loading -> "Loading Fridge..."
+                is FridgeInventoryViewModel.FridgeDetailUiState.Error -> errorLoadingString
+                FridgeInventoryViewModel.FridgeDetailUiState.Loading -> loadingString
             }
         }
     }
@@ -92,13 +97,14 @@ fun FridgeInventoryScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val dismissLabel = stringResource(R.string.dismiss)
 
     LaunchedEffect(addItemError) {
         addItemError?.let { message ->
             scope.launch {
                 snackbarHostState.showSnackbar(
                     message = message,
-                    actionLabel = "Dismiss",
+                    actionLabel = dismissLabel,
                     duration = SnackbarDuration.Long
                 )
             }
@@ -139,7 +145,7 @@ fun FridgeInventoryScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.cd_back),
                             tint = FridgyWhite
                         )
                     }
@@ -149,7 +155,7 @@ fun FridgeInventoryScreen(
                         IconButton(onClick = { onSettingsClick(fridgeId) }) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Fridge Settings",
+                                contentDescription = stringResource(R.string.cd_fridge_settings),
                                 tint = FridgyWhite
                             )
                         }
@@ -166,7 +172,7 @@ fun FridgeInventoryScreen(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                Icon(Icons.Default.Add, "Add new item")
+                Icon(Icons.Default.Add, stringResource(R.string.cd_add_new_item))
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -194,7 +200,7 @@ fun FridgeInventoryScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = "No items in this fridge yet! Click the '+' button to add some.",
+                                text = stringResource(R.string.no_items_in_fridge),
                                 fontSize = 18.sp,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                 lineHeight = 24.sp,
@@ -253,11 +259,22 @@ fun NewProductDialog(
 ) {
     var productName by remember { mutableStateOf("") }
     var productBrand by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf("Other") }
+    
+    val categoryDairy = stringResource(R.string.category_dairy)
+    val categoryMeat = stringResource(R.string.category_meat)
+    val categoryProduce = stringResource(R.string.category_produce)
+    val categoryBakery = stringResource(R.string.category_bakery)
+    val categoryFrozen = stringResource(R.string.category_frozen)
+    val categoryPantry = stringResource(R.string.category_pantry)
+    val categoryOther = stringResource(R.string.category_other)
+    
+    val categories = remember { 
+        listOf(categoryDairy, categoryMeat, categoryProduce, categoryBakery, categoryFrozen, categoryPantry, categoryOther)
+    }
+    var selectedCategory by remember { mutableStateOf(categoryOther) }
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
     
     val context = LocalContext.current
-    val categories = remember { listOf("Dairy", "Meat", "Produce", "Bakery", "Frozen", "Pantry", "Other") }
 
     // OPTIMIZATION: Memoize file paths to avoid file system calls on every recomposition
     val (tempFile, tempUri) = remember {
@@ -272,10 +289,10 @@ fun NewProductDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("New Product Detected", fontWeight = FontWeight.Bold) },
+        title = { Text(stringResource(R.string.new_product_detected), fontWeight = FontWeight.Bold) },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text("We don't recognize barcode $upc. Please add it to our database.", fontSize = 14.sp)
+                Text(stringResource(R.string.product_not_recognized, upc), fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Box(
@@ -289,13 +306,13 @@ fun NewProductDialog(
                     if (capturedImageUri != null) {
                         AsyncImage(
                             model = capturedImageUri,
-                            contentDescription = "Captured Product",
+                            contentDescription = stringResource(R.string.cd_captured_product),
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(Icons.Default.PhotoCamera, contentDescription = null)
-                            Text("Take Product Photo", fontSize = 12.sp)
+                            Text(stringResource(R.string.take_product_photo), fontSize = 12.sp)
                         }
                     }
                 }
@@ -304,18 +321,18 @@ fun NewProductDialog(
                 OutlinedTextField(
                     value = productName,
                     onValueChange = { productName = it },
-                    label = { Text("Product Name") },
+                    label = { Text(stringResource(R.string.product_name)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = productBrand,
                     onValueChange = { productBrand = it },
-                    label = { Text("Brand (Optional)") },
+                    label = { Text(stringResource(R.string.brand_optional)) },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Category", fontWeight = FontWeight.Medium)
+                Text(stringResource(R.string.category), fontWeight = FontWeight.Medium)
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -335,12 +352,12 @@ fun NewProductDialog(
                 onClick = { onConfirm(productName, productBrand, selectedCategory, capturedImageUri) },
                 enabled = productName.isNotBlank()
             ) {
-                Text("Save & Add")
+                Text(stringResource(R.string.save_and_add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

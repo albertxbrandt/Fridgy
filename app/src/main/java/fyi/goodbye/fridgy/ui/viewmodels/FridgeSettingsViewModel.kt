@@ -1,12 +1,14 @@
 package fyi.goodbye.fridgy.ui.viewmodels
 
+import android.app.Application
 import android.util.Log
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,9 +26,10 @@ import kotlinx.coroutines.launch
  * @property fridgeId The unique ID of the fridge being managed.
  */
 class FridgeSettingsViewModel(
+    application: Application,
     private val fridgeRepository: FridgeRepository = FridgeRepository(),
     private val fridgeId: String
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow<FridgeSettingsUiState>(FridgeSettingsUiState.Loading)
     /** The current UI state of the fridge settings (Loading, Success, or Error). */
@@ -67,10 +70,10 @@ class FridgeSettingsViewModel(
                 if (fridge != null) {
                     _uiState.value = FridgeSettingsUiState.Success(fridge)
                 } else {
-                    _uiState.value = FridgeSettingsUiState.Error("Fridge not found.")
+                    _uiState.value = FridgeSettingsUiState.Error(getApplication<Application>().getString(R.string.error_fridge_not_found))
                 }
             } catch (e: Exception) {
-                _uiState.value = FridgeSettingsUiState.Error(e.message ?: "Failed to load fridge details.")
+                _uiState.value = FridgeSettingsUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_fridge))
                 Log.e("FridgeSettingsVM", "Error fetching fridge details for $fridgeId: ${e.message}", e)
             }
         }
@@ -95,7 +98,7 @@ class FridgeSettingsViewModel(
                 _isInviting.value = false
                 loadFridgeDetails() // Refresh list to show pending
             } catch (e: Exception) {
-                _inviteError.value = e.message ?: "Failed to send invitation."
+                _inviteError.value = e.message ?: getApplication<Application>().getString(R.string.error_failed_to_send_invitation)
                 _isInviting.value = false
             }
         }
@@ -193,7 +196,8 @@ class FridgeSettingsViewModel(
         fun provideFactory(fridgeId: String, fridgeRepository: FridgeRepository = FridgeRepository()): ViewModelProvider.Factory {
             return viewModelFactory {
                 initializer {
-                    FridgeSettingsViewModel(fridgeRepository, fridgeId)
+                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
+                    FridgeSettingsViewModel(app, fridgeRepository, fridgeId)
                 }
             }
         }
