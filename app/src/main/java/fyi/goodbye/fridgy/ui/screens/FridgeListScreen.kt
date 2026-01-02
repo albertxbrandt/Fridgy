@@ -310,16 +310,16 @@ fun FridgeListScreen(
  *
  * Users can accept or decline invitations directly from this dialog.
  *
- * @param invites The list of pending [Fridge] invitations.
+ * @param invites The list of pending [DisplayFridge] invitations.
  * @param onAccept Callback when an invitation is accepted.
  * @param onDecline Callback when an invitation is declined.
  * @param onDismissRequest Callback to close the dialog.
  */
 @Composable
 fun NotificationsDialog(
-    invites: List<Fridge>,
-    onAccept: (Fridge) -> Unit,
-    onDecline: (Fridge) -> Unit,
+    invites: List<DisplayFridge>,
+    onAccept: (DisplayFridge) -> Unit,
+    onDecline: (DisplayFridge) -> Unit,
     onDismissRequest: () -> Unit
 ) {
     AlertDialog(

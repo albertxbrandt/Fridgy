@@ -3,6 +3,7 @@ package fyi.goodbye.fridgy.repositories
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
@@ -378,7 +379,7 @@ class FridgeRepository {
             userIds.chunked(10).forEach { chunk ->
                 val snapshot =
                     firestore.collection("users")
-                        .whereIn("__name__", chunk)
+                        .whereIn(FieldPath.documentId(), chunk)
                         .get()
                         .await()
 
@@ -388,9 +389,10 @@ class FridgeRepository {
                     }
                 }
             }
+            Log.d("FridgeRepo", "Fetched ${result.size} users out of ${userIds.size} requested")
             result
         } catch (e: Exception) {
-            Log.e("FridgeRepo", "Error fetching users by IDs: ${e.message}")
+            Log.e("FridgeRepo", "Error fetching users by IDs: ${e.message}", e)
             emptyMap()
         }
     }

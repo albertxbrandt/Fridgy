@@ -36,10 +36,10 @@ class FridgeListViewModel(
     /** The current state of the fridges list (Loading, Success, or Error). */
     val fridgesUiState: StateFlow<FridgeUiState> = _fridgesUiState.asStateFlow()
 
-    private val _invites = MutableStateFlow<List<Fridge>>(emptyList())
+    private val _invites = MutableStateFlow<List<DisplayFridge>>(emptyList())
 
     /** A list of pending fridge invitations received by the current user. */
-    val invites: StateFlow<List<Fridge>> = _invites.asStateFlow()
+    val invites: StateFlow<List<DisplayFridge>> = _invites.asStateFlow()
 
     private val auth = FirebaseAuth.getInstance()
 
@@ -98,7 +98,27 @@ class FridgeListViewModel(
             // Collect real-time stream of pending invites for the current user
             viewModelScope.launch {
                 fridgeRepository.getInvitesForCurrentUser().collectLatest { pendingInvites ->
-                    _invites.value = pendingInvites
+                    // Fetch all user data for invites
+                    val allUserIds = pendingInvites.flatMap { it.members + it.pendingInvites + listOf(it.createdBy) }.distinct()
+                    val usersMap = fridgeRepository.getUsersByIds(allUserIds)
+
+                    val displayInvites =
+                        pendingInvites.map { fridge ->
+                            val memberUsers = fridge.members.mapNotNull { usersMap[it] }
+                            val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
+                            val creatorName = usersMap[fridge.createdBy]?.username ?: "Unknown"
+
+                            DisplayFridge(
+                                id = fridge.id,
+                                name = fridge.name,
+                                createdByUid = fridge.createdBy,
+                                creatorDisplayName = creatorName,
+                                memberUsers = memberUsers,
+                                pendingInviteUsers = inviteUsers,
+                                createdAt = fridge.createdAt
+                            )
+                        }
+                    _invites.value = displayInvites
                 }
             }
         }
