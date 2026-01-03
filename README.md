@@ -13,6 +13,33 @@ Fridgy is your **family’s fridge buddy** 🥕🥛🍕. It helps everyone know 
 
 ---
 
+## 🛠️ Tech Stack
+
+### Core Technologies
+* **Kotlin** - Modern Android development language
+* **Jetpack Compose** - Declarative UI framework for native Android
+* **MVVM Architecture** - Clean separation between UI and business logic
+
+### Backend & Data
+* **Firebase Authentication** - Secure email/password authentication
+* **Cloud Firestore** - Real-time NoSQL database with offline support
+* **Firebase Storage** - Product image storage and retrieval
+* **Firebase App Check** - App integrity verification
+
+### Key Libraries
+* **CameraX** - Camera API for barcode scanning
+* **ML Kit Barcode Scanning** - On-device barcode recognition (UPC-A, EAN-13)
+* **Coil** - Async image loading with caching
+* **Kotlin Coroutines & Flow** - Asynchronous programming and reactive state management
+* **Material 3** - Modern Material Design components
+
+### Development Tools
+* **Gradle with Version Catalog** - Dependency management
+* **JVM Target 11** - Java compatibility
+* **Min SDK 25** | **Target SDK 36**
+
+---
+
 ## ⚡ How It Works
 
 Fridgy is powered by **Firebase** 🚀. That means:
