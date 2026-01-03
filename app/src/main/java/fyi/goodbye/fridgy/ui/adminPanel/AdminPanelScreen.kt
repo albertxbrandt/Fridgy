@@ -271,8 +271,8 @@ fun AdminPanelScreen(
     // User Delete Confirmation Dialog
     userToDelete?.let { user ->
         DeleteConfirmationDialog(
-            title = "Delete User",
-            message = "Are you sure you want to delete user \"${user.username}\"? This action cannot be undone.",
+            title = stringResource(R.string.delete_user),
+            message = stringResource(R.string.delete_user_confirmation, user.username),
             onDismiss = { userToDelete = null },
             onConfirm = {
                 viewModel.deleteUser(user.uid)
@@ -296,8 +296,8 @@ fun AdminPanelScreen(
     // Product Delete Confirmation Dialog
     productToDelete?.let { product ->
         DeleteConfirmationDialog(
-            title = "Delete Product",
-            message = "Are you sure you want to delete product \"${product.name}\"? This action cannot be undone.",
+            title = stringResource(R.string.delete_product),
+            message = stringResource(R.string.delete_product_confirmation, product.name),
             onDismiss = { productToDelete = null },
             onConfirm = {
                 viewModel.deleteProduct(product.upc)
@@ -332,8 +332,8 @@ fun AdminPanelScreen(
     // Category Delete Confirmation Dialog
     categoryToDelete?.let { category ->
         DeleteConfirmationDialog(
-            title = "Delete Category",
-            message = "Are you sure you want to delete category \"${category.name}\"? Products using this category will still reference it.",
+            title = stringResource(R.string.delete_category),
+            message = stringResource(R.string.delete_category_confirmation, category.name),
             onDismiss = { categoryToDelete = null },
             onConfirm = {
                 categoryViewModel.deleteCategory(category.id)

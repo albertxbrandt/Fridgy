@@ -113,18 +113,18 @@ fun FridgeSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
-                        SettingsSection(title = "General Info") {
+                        SettingsSection(title = stringResource(R.string.general_info)) {
                             Column {
-                                SettingsItem(label = "Name", value = fridge.name)
-                                SettingsItem(label = "Owner", value = fridge.creatorDisplayName)
-                                SettingsItem(label = "Location", value = "Kitchen")
+                                SettingsItem(label = stringResource(R.string.name), value = fridge.name)
+                                SettingsItem(label = stringResource(R.string.owner), value = fridge.creatorDisplayName)
+                                SettingsItem(label = stringResource(R.string.location), value = stringResource(R.string.location_kitchen))
                             }
                         }
                     }
 
                     item {
                         SettingsSection(
-                            title = "Members",
+                            title = stringResource(R.string.members),
                             action =
                                 if (isOwner) {
                                     {
@@ -376,7 +376,7 @@ fun SwipeToDismissMember(
     onRemove: () -> Unit
 ) {
     if (!isOwner) {
-        SettingsItem(label = "Member", value = name)
+        SettingsItem(label = stringResource(R.string.member), value = name)
         return
     }
 
@@ -421,7 +421,7 @@ fun SwipeToDismissMember(
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.surface
             ) {
-                SettingsItem(label = "Member", value = name)
+                SettingsItem(label = stringResource(R.string.member), value = name)
             }
         }
     )
