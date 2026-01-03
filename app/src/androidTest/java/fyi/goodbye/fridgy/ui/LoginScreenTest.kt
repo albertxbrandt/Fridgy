@@ -3,7 +3,7 @@ package fyi.goodbye.fridgy.ui
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import fyi.goodbye.fridgy.ui.screens.LoginScreen
+import fyi.goodbye.fridgy.ui.auth.LoginScreen
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 import org.junit.Rule
 import org.junit.Test

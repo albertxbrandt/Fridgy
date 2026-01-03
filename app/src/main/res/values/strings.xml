@@ -196,4 +196,5 @@
     
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
+    <string name="product_brand_category">%1$s • %2$s</string>
 </resources>

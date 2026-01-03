@@ -29,7 +29,6 @@ import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import java.text.SimpleDateFormat
 import java.util.Date

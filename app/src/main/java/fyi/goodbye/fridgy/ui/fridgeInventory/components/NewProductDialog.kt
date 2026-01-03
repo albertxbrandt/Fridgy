@@ -61,7 +61,7 @@ fun NewProductDialog(
     var productBrand by remember { mutableStateOf("") }
 
     // Load categories from database
-    val categoryViewModel: CategoryViewModel = viewModel()
+    val categoryViewModel: CategoryViewModel = viewModel(factory = CategoryViewModel.provideFactory())
     val categoryState by categoryViewModel.uiState.collectAsState()
 
     // Get the fallback category from string resources

@@ -36,7 +36,7 @@ import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 fun AdminPanelScreen(
     onNavigateBack: () -> Unit,
     viewModel: AdminPanelViewModel = viewModel(factory = AdminPanelViewModel.provideFactory()),
-    categoryViewModel: CategoryViewModel = viewModel()
+    categoryViewModel: CategoryViewModel = viewModel(factory = CategoryViewModel.provideFactory())
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val categoryState by categoryViewModel.uiState.collectAsState()

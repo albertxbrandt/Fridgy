@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
@@ -50,7 +51,7 @@ fun ProductListItem(
                     fontSize = 16.sp
                 )
                 Text(
-                    "${product.brand} • ${product.category}",
+                    stringResource(R.string.product_brand_category, product.brand, product.category),
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -71,4 +72,21 @@ fun ProductListItem(
             }
         }
     }
+}
+
+@Preview
+@Composable
+fun PreviewProductListItem() {
+    ProductListItem(
+        product = Product(
+            upc = "1",
+            name = "Milk",
+            brand = "DairyBest",
+            imageUrl = "www.google.com",
+            category = "Dairy",
+            lastUpdated = 12302130981
+        ),
+        onEdit = {},
+        onDelete = {}
+    )
 }

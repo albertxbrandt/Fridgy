@@ -130,7 +130,7 @@ class AdminPanelViewModel(
             try {
                 val success = adminRepository.updateProduct(upc, name, brand, category)
                 if (success) {
-                    refresh() // Reload data after update
+                    refresh()
                 }
             } catch (e: Exception) {
                 _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_update_product, e.message ?: ""))

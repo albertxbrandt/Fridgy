@@ -119,7 +119,10 @@ fun FridgeSettingsScreen(
                             Column {
                                 SettingsItem(label = stringResource(R.string.name), value = fridge.name)
                                 SettingsItem(label = stringResource(R.string.owner), value = fridge.creatorDisplayName)
-                                SettingsItem(label = stringResource(R.string.location), value = stringResource(R.string.location_kitchen))
+                                SettingsItem(
+                                    label = stringResource(R.string.location),
+                                    value = stringResource(R.string.location_kitchen)
+                                )
                             }
                         }
                     }
@@ -187,7 +190,13 @@ fun FridgeSettingsScreen(
                                 )
                             } else {
                                 Text(
-                                    if (isOwner) stringResource(R.string.delete_fridge) else stringResource(R.string.leave_fridge),
+                                    if (isOwner) {
+                                        stringResource(
+                                            R.string.delete_fridge
+                                        )
+                                    } else {
+                                        stringResource(R.string.leave_fridge)
+                                    },
                                     color = MaterialTheme.colorScheme.onError
                                 )
                             }
@@ -247,7 +256,11 @@ fun FridgeSettingsScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text(stringResource(R.string.send_invite), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(
+                            stringResource(R.string.send_invite),
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
             },
@@ -315,7 +328,11 @@ fun FridgeSettingsScreen(
                     },
                     enabled = confirmText == "CONFIRM"
                 ) {
-                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(
+                        stringResource(R.string.delete),
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             },
             dismissButton = {

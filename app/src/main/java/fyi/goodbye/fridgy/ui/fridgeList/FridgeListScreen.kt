@@ -192,7 +192,6 @@ fun FridgeListScreen(
                         message = stringResource(R.string.no_fridges_yet),
                         modifier = Modifier.padding(paddingValues)
                     )
-
                 } else {
                     LazyColumn(
                         modifier =

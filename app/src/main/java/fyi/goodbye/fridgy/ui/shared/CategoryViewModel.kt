@@ -2,7 +2,9 @@ package fyi.goodbye.fridgy.ui.shared
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.repositories.CategoryRepository
@@ -20,6 +22,18 @@ class CategoryViewModel(
     application: Application,
     private val categoryRepository: CategoryRepository = CategoryRepository()
 ) : AndroidViewModel(application) {
+    companion object {
+        fun provideFactory(): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : androidx.lifecycle.ViewModel> create(
+                modelClass: Class<T>,
+                extras: CreationExtras
+            ): T {
+                val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
+                return CategoryViewModel(application) as T
+            }
+        }
+    }
     sealed interface CategoryUiState {
         data object Loading : CategoryUiState
 
