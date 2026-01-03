@@ -99,12 +99,12 @@ fun AdminPanelScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
-                                "Unauthorized Access",
+                                stringResource(R.string.unauthorized_access),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
-                                "You don't have admin privileges",
+                                stringResource(R.string.no_admin_privileges),
                                 fontSize = 14.sp,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -114,7 +114,7 @@ fun AdminPanelScreen(
 
                 is AdminPanelViewModel.AdminUiState.Error -> {
                     ErrorState(
-                        message = "Error Loading Data\n${state.message}",
+                        message = stringResource(R.string.error_loading_data_prefix, state.message),
                         showIcon = true
                     )
                 }
@@ -243,7 +243,7 @@ fun AdminPanelScreen(
                             is CategoryViewModel.CategoryUiState.Error -> {
                                 item {
                                     Text(
-                                        "Error loading categories: ${catState.message}",
+                                        stringResource(R.string.error_loading_categories, catState.message),
                                         color = MaterialTheme.colorScheme.error,
                                         modifier = Modifier.padding(8.dp)
                                     )

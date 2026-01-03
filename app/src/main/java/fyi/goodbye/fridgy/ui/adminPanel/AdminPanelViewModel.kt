@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
@@ -55,7 +56,7 @@ class AdminPanelViewModel(
                         fridges = fridges
                     )
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error("Failed to load admin data: ${e.message}")
+                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_load_admin_data, e.message ?: ""))
             }
         }
     }
@@ -75,7 +76,7 @@ class AdminPanelViewModel(
                     refresh() // Reload data after deletion
                 }
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error("Failed to delete user: ${e.message}")
+                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_delete_user, e.message ?: ""))
             }
         }
     }
@@ -95,7 +96,7 @@ class AdminPanelViewModel(
                     refresh() // Reload data after update
                 }
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error("Failed to update user: ${e.message}")
+                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_update_user, e.message ?: ""))
             }
         }
     }
@@ -111,7 +112,7 @@ class AdminPanelViewModel(
                     refresh() // Reload data after deletion
                 }
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error("Failed to delete product: ${e.message}")
+                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_delete_product, e.message ?: ""))
             }
         }
     }
@@ -132,7 +133,7 @@ class AdminPanelViewModel(
                     refresh() // Reload data after update
                 }
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error("Failed to update product: ${e.message}")
+                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_update_product, e.message ?: ""))
             }
         }
     }

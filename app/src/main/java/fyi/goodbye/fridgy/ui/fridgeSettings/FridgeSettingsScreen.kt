@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -57,10 +58,11 @@ fun FridgeSettingsScreen(
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     LaunchedEffect(inviteSuccess) {
         if (inviteSuccess) {
-            snackbarHostState.showSnackbar("Invitation sent successfully!")
+            snackbarHostState.showSnackbar(context.getString(R.string.invitation_sent))
             viewModel.clearInviteStatus()
         }
     }

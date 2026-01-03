@@ -1,7 +1,9 @@
 package fyi.goodbye.fridgy.ui.shared
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.repositories.CategoryRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,8 +17,9 @@ import kotlinx.coroutines.launch
  * Provides a reactive stream of categories and handles CRUD operations.
  */
 class CategoryViewModel(
+    application: Application,
     private val categoryRepository: CategoryRepository = CategoryRepository()
-) : ViewModel() {
+) : AndroidViewModel(application) {
     sealed interface CategoryUiState {
         data object Loading : CategoryUiState
 
@@ -39,7 +42,7 @@ class CategoryViewModel(
                     _uiState.value = CategoryUiState.Success(categories)
                 }
             } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: "Failed to load categories")
+                _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_categories))
             }
         }
     }
@@ -55,7 +58,7 @@ class CategoryViewModel(
             try {
                 categoryRepository.createCategory(name, order)
             } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: "Failed to create category")
+                _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_create_category))
             }
         }
     }
@@ -72,7 +75,7 @@ class CategoryViewModel(
             try {
                 categoryRepository.updateCategory(categoryId, name, order)
             } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: "Failed to update category")
+                _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_update_category))
             }
         }
     }
@@ -85,7 +88,7 @@ class CategoryViewModel(
             try {
                 categoryRepository.deleteCategory(categoryId)
             } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: "Failed to delete category")
+                _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_delete_category))
             }
         }
     }

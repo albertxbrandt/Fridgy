@@ -95,18 +95,18 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
         // Validate username format: letters, numbers, underscore, period only
         val trimmedUsername = username.trim()
         if (!trimmedUsername.matches(Regex("^[a-zA-Z0-9_.]+$"))) {
-            errorMessage = "Username can only contain letters, numbers, underscores, and periods"
+            errorMessage = getApplication<Application>().getString(R.string.error_username_invalid_chars)
             return
         }
 
         // Validate username length
         if (trimmedUsername.length < 3) {
-            errorMessage = "Username must be at least 3 characters"
+            errorMessage = getApplication<Application>().getString(R.string.error_username_too_short)
             return
         }
 
         if (trimmedUsername.length > 16) {
-            errorMessage = "Username must be 16 characters or less"
+            errorMessage = getApplication<Application>().getString(R.string.error_username_too_long)
             return
         }
 
@@ -127,7 +127,7 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
                         .await()
 
                 if (!existingProfiles.isEmpty) {
-                    errorMessage = "Username '$trimmedUsername' is already taken. Please choose a different username."
+                    errorMessage = getApplication<Application>().getString(R.string.error_username_taken, trimmedUsername)
                     isLoading = false
                     return@launch
                 }

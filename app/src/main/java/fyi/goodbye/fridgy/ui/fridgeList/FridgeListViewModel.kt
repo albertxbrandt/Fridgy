@@ -78,7 +78,7 @@ class FridgeListViewModel(
                         fridges.map { fridge ->
                             val memberUsers = fridge.members.mapNotNull { usersMap[it] }
                             val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
-                            val creatorName = usersMap[fridge.createdBy]?.username ?: "Unknown"
+                            val creatorName = usersMap[fridge.createdBy]?.username ?: getApplication<Application>().getString(R.string.unknown)
 
                             DisplayFridge(
                                 id = fridge.id,
@@ -105,7 +105,7 @@ class FridgeListViewModel(
                         pendingInvites.map { fridge ->
                             val memberUsers = fridge.members.mapNotNull { usersMap[it] }
                             val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
-                            val creatorName = usersMap[fridge.createdBy]?.username ?: "Unknown"
+                            val creatorName = usersMap[fridge.createdBy]?.username ?: getApplication<Application>().getString(R.string.unknown)
 
                             DisplayFridge(
                                 id = fridge.id,

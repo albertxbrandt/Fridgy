@@ -130,6 +130,12 @@
     <string name="error_login_failed">Login failed. Please try again.</string>
     <string name="error_failed_to_add_item">Failed to add item to fridge: %1$s</string>
     <string name="error_failed_to_create_product">Failed to create product: %1$s</string>
+    <string name="error_loading_data_prefix">Error Loading Data\\n%1$s</string>
+    <string name="error_username_invalid_chars">Username can only contain letters, numbers, underscores, and periods</string>
+    <string name="error_username_too_short">Username must be at least 3 characters</string>
+    <string name="error_username_too_long">Username must be 16 characters or less</string>
+    <string name="error_username_taken">Username \'%1$s\' is already taken. Please choose a different username.</string>
+    <string name="cd_scan_barcode">Scan barcode</string>
     
     <!-- Misc -->
     <string name="dismiss">Dismiss</string>
@@ -152,6 +158,16 @@
     <string name="order_label">Order: %1$d</string>
     <string name="unauthorized_access">Unauthorized Access</string>
     <string name="no_admin_privileges">You don\'t have admin privileges</string>
+    <string name="error_failed_to_load_categories">Failed to load categories</string>
+    <string name="error_failed_to_create_category">Failed to create category</string>
+    <string name="error_failed_to_update_category">Failed to update category</string>
+    <string name="error_failed_to_delete_category">Failed to delete category</string>
+    <string name="error_loading_categories">Error loading categories: %1$s</string>
+    <string name="error_failed_to_load_admin_data">Failed to load admin data: %1$s</string>
+    <string name="error_failed_to_delete_user">Failed to delete user: %1$s</string>
+    <string name="error_failed_to_update_user">Failed to update user: %1$s</string>
+    <string name="error_failed_to_delete_product">Failed to delete product: %1$s</string>
+    <string name="error_failed_to_update_product">Failed to update product: %1$s</string>
     <string name="error_loading_data">Error Loading Data</string>
     <string name="edit_user">Edit User</string>
     <string name="edit_product">Edit Product</string>

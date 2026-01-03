@@ -219,7 +219,7 @@ fun FridgeInventoryScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.QrCodeScanner,
-                                contentDescription = "Scan barcode",
+                                contentDescription = stringResource(R.string.cd_scan_barcode),
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }

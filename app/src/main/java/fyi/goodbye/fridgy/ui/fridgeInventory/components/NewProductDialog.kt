@@ -64,13 +64,16 @@ fun NewProductDialog(
     val categoryViewModel: CategoryViewModel = viewModel()
     val categoryState by categoryViewModel.uiState.collectAsState()
 
+    // Get the fallback category from string resources
+    val fallbackCategory = stringResource(R.string.category_other)
+
     val categories =
         when (val state = categoryState) {
             is CategoryViewModel.CategoryUiState.Success -> state.categories.map { it.name }
-            else -> listOf("Other") // Fallback if categories haven't loaded yet
+            else -> listOf(fallbackCategory) // Fallback if categories haven't loaded yet
         }
 
-    var selectedCategory by remember { mutableStateOf(categories.firstOrNull() ?: "Other") }
+    var selectedCategory by remember { mutableStateOf(categories.firstOrNull() ?: fallbackCategory) }
     var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val context = LocalContext.current
