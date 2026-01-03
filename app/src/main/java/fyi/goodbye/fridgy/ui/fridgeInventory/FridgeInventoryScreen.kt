@@ -1,23 +1,15 @@
 package fyi.goodbye.fridgy.ui.fridgeInventory
 
-import android.net.Uri
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -25,25 +17,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
-import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
+import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import kotlinx.coroutines.launch
-import java.io.File
 
 /**
  * Screen displaying the inventory of items for a specific fridge.
@@ -307,133 +295,15 @@ fun FridgeInventoryScreen(
                 }
             }
         }
-
-        if (pendingUpc != null) {
-            NewProductDialog(
-                upc = pendingUpc!!,
-                onConfirm = { name, brand, category, imageUri ->
-                    viewModel.createAndAddProduct(pendingUpc!!, name, brand, category, imageUri)
-                },
-                onDismiss = { viewModel.cancelPendingProduct() }
-            )
-        }
     }
-}
 
-/**
- * Dialog for entering details for a new, unknown product.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun NewProductDialog(
-    upc: String,
-    onConfirm: (String, String, String, Uri?) -> Unit,
-    onDismiss: () -> Unit
-) {
-    var productName by remember { mutableStateOf("") }
-    var productBrand by remember { mutableStateOf("") }
-
-    // Load categories from database
-    val categoryViewModel: CategoryViewModel = viewModel()
-    val categoryState by categoryViewModel.uiState.collectAsState()
-
-    val categories =
-        when (val state = categoryState) {
-            is CategoryViewModel.CategoryUiState.Success -> state.categories.map { it.name }
-            else -> listOf("Other") // Fallback if categories haven't loaded yet
-        }
-
-    var selectedCategory by remember { mutableStateOf(categories.firstOrNull() ?: "Other") }
-    var capturedImageUri by remember { mutableStateOf<Uri?>(null) }
-
-    val context = LocalContext.current
-
-    // OPTIMIZATION: Memoize file paths to avoid file system calls on every recomposition
-    val (tempFile, tempUri) =
-        remember {
-            val file = File(context.cacheDir, "temp_product_${System.currentTimeMillis()}.jpg")
-            val uri = FileProvider.getUriForFile(context, "fyi.goodbye.fridgy.fileprovider", file)
-            file to uri
-        }
-
-    val cameraLauncher =
-        rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-            if (success) capturedImageUri = tempUri
-        }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.new_product_detected), fontWeight = FontWeight.Bold) },
-        text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(stringResource(R.string.product_not_recognized, upc), fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                            .clickable { cameraLauncher.launch(tempUri) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (capturedImageUri != null) {
-                        AsyncImage(
-                            model = capturedImageUri,
-                            contentDescription = stringResource(R.string.cd_captured_product),
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = null)
-                            Text(stringResource(R.string.take_product_photo), fontSize = 12.sp)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-                OutlinedTextField(
-                    value = productName,
-                    onValueChange = { productName = it },
-                    label = { Text(stringResource(R.string.product_name)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = productBrand,
-                    onValueChange = { productBrand = it },
-                    label = { Text(stringResource(R.string.brand_optional)) },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(stringResource(R.string.category), fontWeight = FontWeight.Medium)
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    categories.forEach { cat ->
-                        FilterChip(
-                            selected = selectedCategory == cat,
-                            onClick = { selectedCategory = cat },
-                            label = { Text(cat) }
-                        )
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(productName, productBrand, selectedCategory, capturedImageUri) },
-                enabled = productName.isNotBlank()
-            ) {
-                Text(stringResource(R.string.save_and_add))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(stringResource(R.string.cancel))
-            }
-        }
-    )
+    if (pendingUpc != null) {
+        NewProductDialog(
+            upc = pendingUpc!!,
+            onConfirm = { name, brand, category, imageUri ->
+                viewModel.createAndAddProduct(pendingUpc!!, name, brand, category, imageUri)
+            },
+            onDismiss = { viewModel.cancelPendingProduct() }
+        )
+    }
 }
