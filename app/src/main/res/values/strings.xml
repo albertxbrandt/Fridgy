@@ -128,4 +128,44 @@
     <string name="created_by_label">Created by: %1$s</string>
     <string name="members_count">Members: %1$d</string>
     <string name="added_date">Added: %1$s</string>
+    
+    <!-- Admin Panel -->
+    <string name="admin_panel">Admin Panel</string>
+    <string name="system_statistics">System Statistics</string>
+    <string name="users">Users</string>
+    <string name="products">Products</string>
+    <string name="fridges">Fridges</string>
+    <string name="recent_users">Recent Users</string>
+    <string name="recent_products">Recent Products</string>
+    <string name="food_categories">Food Categories</string>
+    <string name="unauthorized_access">Unauthorized Access</string>
+    <string name="no_admin_privileges">You don\'t have admin privileges</string>
+    <string name="error_loading_data">Error Loading Data</string>
+    <string name="edit_user">Edit User</string>
+    <string name="edit_product">Edit Product</string>
+    <string name="add_category">Add Category</string>
+    <string name="edit_category">Edit Category</string>
+    <string name="delete_user">Delete User</string>
+    <string name="delete_product">Delete Product</string>
+    <string name="delete_category">Delete Category</string>
+    <string name="username">Username</string>
+    <string name="sort_order">Sort Order</string>
+    <string name="lower_numbers_first">Lower numbers appear first</string>
+    <string name="add">Add</string>
+    <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="delete_user_confirmation">Are you sure you want to delete user \"%1$s\"? This action cannot be undone.</string>
+    <string name="delete_product_confirmation">Are you sure you want to delete product \"%1$s\"? This action cannot be undone.</string>
+    <string name="delete_category_confirmation">Are you sure you want to delete category \"%1$s\"? Products using this category will still reference it.</string>
+    
+    <!-- Search and Filter -->
+    <string name="search_by_name_or_upc">Search by name or UPC</string>
+    <string name="no_items_match">No items match \"%1$s\"</string>
+    
+    <!-- Item Detail -->
+    <string name="upc_label">UPC: %1$s</string>
+    <string name="qty">Qty</string>
+    
+    <!-- Other -->
+    <string name="error_prefix">Error: %1$s</string>
 </resources>

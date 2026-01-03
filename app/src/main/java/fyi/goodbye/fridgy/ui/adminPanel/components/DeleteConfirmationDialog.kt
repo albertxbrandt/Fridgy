@@ -2,6 +2,8 @@ package fyi.goodbye.fridgy.ui.adminPanel.components
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import fyi.goodbye.fridgy.R
 
 @Composable
 fun DeleteConfirmationDialog(
@@ -22,12 +24,12 @@ fun DeleteConfirmationDialog(
                         contentColor = MaterialTheme.colorScheme.error
                     )
             ) {
-                Text("Delete")
+                Text(stringResource(R.string.delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

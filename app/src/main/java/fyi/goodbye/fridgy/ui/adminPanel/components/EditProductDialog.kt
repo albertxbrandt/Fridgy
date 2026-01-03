@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
 
 @Composable
@@ -19,27 +21,27 @@ fun EditProductDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Edit Product") },
+        title = { Text(stringResource(R.string.edit_product)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Product Name") },
+                    label = { Text(stringResource(R.string.product_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = brand,
                     onValueChange = { brand = it },
-                    label = { Text("Brand") },
+                    label = { Text(stringResource(R.string.brand_optional)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
                     value = category,
                     onValueChange = { category = it },
-                    label = { Text("Category") },
+                    label = { Text(stringResource(R.string.category)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -50,12 +52,12 @@ fun EditProductDialog(
                 onClick = { onConfirm(name, brand, category) },
                 enabled = name.isNotBlank() && brand.isNotBlank() && category.isNotBlank()
             ) {
-                Text("Save")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )
