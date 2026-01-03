@@ -96,7 +96,7 @@ fun FridgeSettingsScreen(
             }
             is FridgeSettingsViewModel.FridgeSettingsUiState.Error -> {
                 SimpleErrorState(
-                    message = "Error: ${state.message}",
+                    message = stringResource(R.string.error_prefix, state.message),
                     modifier = Modifier.padding(paddingValues)
                 )
             }

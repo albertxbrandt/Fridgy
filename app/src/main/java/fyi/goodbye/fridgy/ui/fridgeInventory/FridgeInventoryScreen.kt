@@ -247,7 +247,7 @@ fun FridgeInventoryScreen(
                         if (items.isEmpty()) {
                             EmptyState(
                                 message = if (searchQuery.isNotEmpty()) {
-                                    "No items match \"$searchQuery\""
+                                    stringResource(R.string.no_items_match, searchQuery)
                                 } else {
                                     stringResource(R.string.no_items_in_fridge)
                                 }
