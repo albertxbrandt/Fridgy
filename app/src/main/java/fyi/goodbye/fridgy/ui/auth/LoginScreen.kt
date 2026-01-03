@@ -33,8 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.ui.elements.SquaredButton
-import fyi.goodbye.fridgy.ui.elements.SquaredInput
+import fyi.goodbye.fridgy.ui.shared.SquaredButton
+import fyi.goodbye.fridgy.ui.shared.SquaredInput
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme

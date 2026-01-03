@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.elements
+package fyi.goodbye.fridgy.ui.shared
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.interaction.MutableInteractionSource
