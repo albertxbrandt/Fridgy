@@ -18,7 +18,14 @@ import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.auth.FirebaseAuth
-import fyi.goodbye.fridgy.ui.screens.*
+import fyi.goodbye.fridgy.ui.adminPanel.AdminPanelScreen
+import fyi.goodbye.fridgy.ui.auth.LoginScreen
+import fyi.goodbye.fridgy.ui.auth.SignupScreen
+import fyi.goodbye.fridgy.ui.fridgeInventory.BarcodeScannerScreen
+import fyi.goodbye.fridgy.ui.fridgeInventory.FridgeInventoryScreen
+import fyi.goodbye.fridgy.ui.fridgeList.FridgeListScreen
+import fyi.goodbye.fridgy.ui.fridgeSettings.FridgeSettingsScreen
+import fyi.goodbye.fridgy.ui.itemDetail.ItemDetailScreen
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 
 class MainActivity : ComponentActivity() {

@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.viewmodels
+package fyi.goodbye.fridgy.ui.auth
 
 import android.app.Application
 import android.util.Log
@@ -104,7 +104,7 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
             errorMessage = "Username must be at least 3 characters"
             return
         }
-        
+
         if (trimmedUsername.length > 16) {
             errorMessage = "Username must be 16 characters or less"
             return
@@ -120,11 +120,12 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             try {
                 // Check if username already exists
-                val existingProfiles = firestore.collection("userProfiles")
-                    .whereEqualTo("username", trimmedUsername)
-                    .get()
-                    .await()
-                
+                val existingProfiles =
+                    firestore.collection("userProfiles")
+                        .whereEqualTo("username", trimmedUsername)
+                        .get()
+                        .await()
+
                 if (!existingProfiles.isEmpty) {
                     errorMessage = "Username '$trimmedUsername' is already taken. Please choose a different username."
                     isLoading = false

@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.screens
+package fyi.goodbye.fridgy.ui.fridgeSettings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -20,7 +20,6 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.theme.*
-import fyi.goodbye.fridgy.ui.viewmodels.FridgeSettingsViewModel
 
 /**
  * Screen displaying the settings and management options for a specific fridge.

@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.viewmodels
+package fyi.goodbye.fridgy.ui.itemDetail
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel

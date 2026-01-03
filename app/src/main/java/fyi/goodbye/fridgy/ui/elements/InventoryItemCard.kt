@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.ui.viewmodels.InventoryItem
+import fyi.goodbye.fridgy.ui.fridgeInventory.InventoryItem
 
 /**
  * A card representing a single inventory item in the grid.

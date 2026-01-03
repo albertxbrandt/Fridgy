@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.screens
+package fyi.goodbye.fridgy.ui.adminPanel
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,11 +18,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
-import fyi.goodbye.fridgy.ui.viewmodels.AdminPanelViewModel
-import fyi.goodbye.fridgy.ui.viewmodels.CategoryViewModel
 
 /**
  * Admin panel screen that displays system-wide statistics and data.

@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.viewmodels
+package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.app.Application
 import android.net.Uri
@@ -104,13 +104,13 @@ class FridgeInventoryViewModel(
 
                 // Final display list: Remote items first, then any still-pending optimistic items
                 val combinedList = mappedRemote + pendingOptimistic
-                
+
                 // Apply search filter if query is not empty
                 if (query.isNotBlank()) {
                     combinedList.filter { inventoryItem ->
                         inventoryItem.product.name.contains(query, ignoreCase = true) ||
-                        inventoryItem.product.brand.contains(query, ignoreCase = true) ||
-                        inventoryItem.item.upc.contains(query, ignoreCase = true)
+                            inventoryItem.product.brand.contains(query, ignoreCase = true) ||
+                            inventoryItem.item.upc.contains(query, ignoreCase = true)
                     }
                 } else {
                     combinedList

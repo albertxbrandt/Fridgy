@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.screens
+package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.util.Log
 import androidx.camera.core.CameraSelector

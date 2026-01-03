@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.screens
+package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.net.Uri
 import android.util.Log
@@ -40,9 +40,8 @@ import coil.compose.AsyncImage
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
+import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
-import fyi.goodbye.fridgy.ui.viewmodels.CategoryViewModel
-import fyi.goodbye.fridgy.ui.viewmodels.FridgeInventoryViewModel
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -125,7 +124,7 @@ fun FridgeInventoryScreen(
 
         if (scannedUpc != null && targetFridgeId == fridgeId) {
             Log.d("Performance", "Processing scanned barcode: $scannedUpc")
-            
+
             if (isSearchScan) {
                 // Use barcode as search query
                 viewModel.updateSearchQuery(scannedUpc)
@@ -197,9 +196,10 @@ fun FridgeInventoryScreen(
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { viewModel.updateSearchQuery(it) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                 placeholder = { Text("Search by name or UPC") },
                 leadingIcon = {
                     Icon(
@@ -220,7 +220,7 @@ fun FridgeInventoryScreen(
                             }
                         }
                         IconButton(
-                            onClick = { 
+                            onClick = {
                                 navController.currentBackStackEntry?.savedStateHandle?.set("isSearchScan", true)
                                 navController.navigate("barcodeScanner/$fridgeId")
                             }
@@ -235,76 +235,78 @@ fun FridgeInventoryScreen(
                 },
                 singleLine = true,
                 shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                )
+                colors =
+                    OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                    )
             )
 
             Box(modifier = Modifier.fillMaxSize()) {
                 when (val state = itemsUiState) {
-                FridgeInventoryViewModel.ItemsUiState.Loading -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                is FridgeInventoryViewModel.ItemsUiState.Error -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(text = state.message, color = MaterialTheme.colorScheme.error)
-                    }
-                }
-                is FridgeInventoryViewModel.ItemsUiState.Success -> {
-                    val items = state.items
-                    if (items.isEmpty()) {
-                        Column(
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 24.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                text = if (searchQuery.isNotEmpty()) {
-                                    "No items match \"$searchQuery\""
-                                } else {
-                                    stringResource(R.string.no_items_in_fridge)
-                                },
-                                fontSize = 18.sp,
-                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                                lineHeight = 24.sp,
-                                textAlign = TextAlign.Center
-                            )
+                    FridgeInventoryViewModel.ItemsUiState.Loading -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                         }
-                    } else {
-                        // Log time taken for grid rendering start
-                        val startTime = System.currentTimeMillis()
+                    }
+                    is FridgeInventoryViewModel.ItemsUiState.Error -> {
+                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(text = state.message, color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    is FridgeInventoryViewModel.ItemsUiState.Success -> {
+                        val items = state.items
+                        if (items.isEmpty()) {
+                            Column(
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    text =
+                                        if (searchQuery.isNotEmpty()) {
+                                            "No items match \"$searchQuery\""
+                                        } else {
+                                            stringResource(R.string.no_items_in_fridge)
+                                        },
+                                    fontSize = 18.sp,
+                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                    lineHeight = 24.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        } else {
+                            // Log time taken for grid rendering start
+                            val startTime = System.currentTimeMillis()
 
-                        LazyVerticalGrid(
-                            columns = GridCells.Adaptive(minSize = 140.dp),
-                            modifier =
-                                Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                            contentPadding = PaddingValues(bottom = 80.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(items, key = { it.item.id }) { inventoryItem ->
-                                InventoryItemCard(inventoryItem = inventoryItem) { clickedItemId ->
-                                    onItemClick(fridgeId, clickedItemId)
+                            LazyVerticalGrid(
+                                columns = GridCells.Adaptive(minSize = 140.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxSize()
+                                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                                contentPadding = PaddingValues(bottom = 80.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(items, key = { it.item.id }) { inventoryItem ->
+                                    InventoryItemCard(inventoryItem = inventoryItem) { clickedItemId ->
+                                        onItemClick(fridgeId, clickedItemId)
+                                    }
                                 }
                             }
-                        }
 
-                        SideEffect {
-                            Log.d("Performance", "Grid rendered in ${System.currentTimeMillis() - startTime}ms")
+                            SideEffect {
+                                Log.d("Performance", "Grid rendered in ${System.currentTimeMillis() - startTime}ms")
+                            }
                         }
                     }
                 }
             }
         }
-    }
 
         if (pendingUpc != null) {
             NewProductDialog(

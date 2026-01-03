@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.screens
+package fyi.goodbye.fridgy.ui.fridgeList
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -29,7 +29,6 @@ import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyLightBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
-import fyi.goodbye.fridgy.ui.viewmodels.FridgeListViewModel
 
 /**
  * The main dashboard screen displaying a list of the user's fridges.

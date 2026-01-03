@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.viewmodels
+package fyi.goodbye.fridgy.ui.fridgeSettings
 
 import android.app.Application
 import android.util.Log

@@ -1,25 +1,11 @@
-package fyi.goodbye.fridgy.ui.screens
+package fyi.goodbye.fridgy.ui.auth
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -39,31 +25,30 @@ import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
-import fyi.goodbye.fridgy.ui.viewmodels.LoginViewModel
 import kotlinx.coroutines.flow.collectLatest
 
 /**
- * Composable screen that allows users to log in to their account.
+ * Composable screen that allows new users to register for an account.
  *
- * It provides input fields for email and password, displays error messages,
- * and handles the transition to the [SignupScreen] or main application list.
+ * It provides input fields for email, password, and password confirmation.
+ * It handles validation feedback and navigation back to the login screen.
  *
- * @param onLoginSuccess Callback triggered when the user successfully authenticates.
- * @param onNavigateToSignup Callback triggered when the user clicks the "Sign Up" button.
- * @param viewModel The state holder for login logic.
+ * @param onSignupSuccess Callback triggered when the account is successfully created.
+ * @param onNavigateToLogin Callback triggered when the user wants to return to the login screen.
+ * @param viewModel The state holder for signup logic.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
-    onLoginSuccess: () -> Unit,
-    onNavigateToSignup: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+fun SignupScreen(
+    onSignupSuccess: () -> Unit,
+    onNavigateToLogin: () -> Unit,
+    viewModel: SignupViewModel = viewModel()
 ) {
-    // Navigate to the next screen when the loginSuccess event is received
+    // Navigate to the next screen when the signupSuccess event is received
     LaunchedEffect(Unit) {
-        viewModel.loginSuccess.collectLatest { success ->
+        viewModel.signupSuccess.collectLatest { success ->
             if (success) {
-                onLoginSuccess()
+                onSignupSuccess()
             }
         }
     }
@@ -91,16 +76,16 @@ fun LoginScreen(
             )
 
             Text(
-                text = stringResource(R.string.welcome_to_fridgy),
+                text = stringResource(R.string.join_fridgy_today),
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = FridgyTextBlue,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
             Text(
-                text = stringResource(R.string.manage_fridge_effortlessly),
+                text = stringResource(R.string.unlock_effortless_management),
                 fontSize = 16.sp,
-                color = FridgyTextBlue.copy(alpha = 0.7f),
+                color = FridgyTextBlue.copy(alpha = 0.8f),
                 modifier = Modifier.padding(bottom = 48.dp)
             )
 
@@ -114,7 +99,23 @@ fun LoginScreen(
                     Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
-                        .testTag("emailInput"),
+                        .testTag("signupEmailInput"),
+                enabled = !viewModel.isLoading
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SquaredInput(
+                value = viewModel.username,
+                onValueChange = viewModel::onUsernameChange,
+                label = { Text("Username") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .testTag("signupUsernameInput"),
                 enabled = !viewModel.isLoading
             )
 
@@ -131,7 +132,24 @@ fun LoginScreen(
                     Modifier
                         .fillMaxWidth()
                         .padding(vertical = 8.dp)
-                        .testTag("passwordInput"),
+                        .testTag("signupPasswordInput"),
+                enabled = !viewModel.isLoading
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SquaredInput(
+                value = viewModel.confirmPassword,
+                onValueChange = viewModel::onConfirmPasswordChange,
+                label = { Text(stringResource(R.string.confirm_password)) },
+                singleLine = true,
+                visualTransformation = PasswordVisualTransformation(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .testTag("signupConfirmPasswordInput"),
                 enabled = !viewModel.isLoading
             )
 
@@ -146,31 +164,30 @@ fun LoginScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             SquaredButton(
-                onClick = viewModel::login,
+                onClick = viewModel::signup,
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(56.dp)
-                        .testTag("loginButton"),
+                        .height(56.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = FridgyDarkBlue, contentColor = FridgyWhite),
                 enabled = !viewModel.isLoading
             ) {
                 if (viewModel.isLoading) {
                     CircularProgressIndicator(color = FridgyWhite, modifier = Modifier.size(24.dp))
                 } else {
-                    Text(stringResource(R.string.login), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.sign_up), fontSize = 18.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
             TextButton(
-                onClick = onNavigateToSignup,
+                onClick = onNavigateToLogin,
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 enabled = !viewModel.isLoading
             ) {
                 Text(
-                    text = stringResource(R.string.dont_have_account),
+                    text = stringResource(R.string.already_have_account),
                     color = FridgyTextBlue,
                     fontSize = 16.sp
                 )
@@ -181,11 +198,11 @@ fun LoginScreen(
 
 @Preview(showBackground = true, widthDp = 360, heightDp = 640)
 @Composable
-fun PreviewLoginScreen() {
+fun PreviewSignupScreen() {
     FridgyTheme {
-        LoginScreen(
-            onLoginSuccess = {},
-            onNavigateToSignup = {}
+        SignupScreen(
+            onSignupSuccess = {},
+            onNavigateToLogin = {}
         )
     }
 }
