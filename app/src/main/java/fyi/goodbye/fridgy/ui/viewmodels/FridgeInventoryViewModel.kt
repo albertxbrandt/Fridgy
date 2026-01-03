@@ -57,6 +57,9 @@ class FridgeInventoryViewModel(
     private val _pendingScannedUpc = MutableStateFlow<String?>(null)
     val pendingScannedUpc: StateFlow<String?> = _pendingScannedUpc.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
     init {
         loadFridgeDetails()
         listenToInventoryUpdates()
@@ -82,11 +85,12 @@ class FridgeInventoryViewModel(
         viewModelScope.launch {
             _itemsUiState.value = ItemsUiState.Loading
 
-            // Combine remote items with our local optimistic items
+            // Combine remote items with our local optimistic items and search query
             combine(
                 fridgeRepository.getItemsForFridge(fridgeId),
-                optimisticItems
-            ) { remoteItems, optimistic ->
+                optimisticItems,
+                _searchQuery
+            ) { remoteItems, optimistic, query ->
                 // Filter out optimistic items that have now been confirmed by remote data
                 val remoteUpcs = remoteItems.map { it.upc }.toSet()
                 val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
@@ -99,7 +103,18 @@ class FridgeInventoryViewModel(
                     }
 
                 // Final display list: Remote items first, then any still-pending optimistic items
-                mappedRemote + pendingOptimistic
+                val combinedList = mappedRemote + pendingOptimistic
+                
+                // Apply search filter if query is not empty
+                if (query.isNotBlank()) {
+                    combinedList.filter { inventoryItem ->
+                        inventoryItem.product.name.contains(query, ignoreCase = true) ||
+                        inventoryItem.product.brand.contains(query, ignoreCase = true) ||
+                        inventoryItem.item.upc.contains(query, ignoreCase = true)
+                    }
+                } else {
+                    combinedList
+                }
             }
                 .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
                 .collectLatest { combinedList ->
@@ -192,6 +207,14 @@ class FridgeInventoryViewModel(
 
     fun cancelPendingProduct() {
         _pendingScannedUpc.value = null
+    }
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    fun clearSearch() {
+        _searchQuery.value = ""
     }
 
     sealed interface FridgeDetailUiState {

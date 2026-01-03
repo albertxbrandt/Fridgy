@@ -16,7 +16,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -67,6 +70,7 @@ fun FridgeInventoryScreen(
     val itemsUiState by viewModel.itemsUiState.collectAsState()
     val addItemError by viewModel.addItemError.collectAsState()
     val pendingUpc by viewModel.pendingScannedUpc.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
 
     val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -117,14 +121,23 @@ fun FridgeInventoryScreen(
         val savedStateHandle = navBackStackEntry?.savedStateHandle ?: return@LaunchedEffect
         val scannedUpc = savedStateHandle.get<String>("scannedUpc")
         val targetFridgeId = savedStateHandle.get<String>("targetFridgeId")
+        val isSearchScan = savedStateHandle.get<Boolean>("isSearchScan") ?: false
 
         if (scannedUpc != null && targetFridgeId == fridgeId) {
             Log.d("Performance", "Processing scanned barcode: $scannedUpc")
-            viewModel.onBarcodeScanned(scannedUpc)
+            
+            if (isSearchScan) {
+                // Use barcode as search query
+                viewModel.updateSearchQuery(scannedUpc)
+            } else {
+                // Add item to fridge
+                viewModel.onBarcodeScanned(scannedUpc)
+            }
 
             // CRITICAL: Clear the result so it doesn't trigger again on recomposition
             savedStateHandle.remove<String>("scannedUpc")
             savedStateHandle.remove<String>("targetFridgeId")
+            savedStateHandle.remove<Boolean>("isSearchScan")
         }
     }
 
@@ -179,8 +192,57 @@ fun FridgeInventoryScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            when (val state = itemsUiState) {
+        Column(modifier = Modifier.padding(paddingValues)) {
+            // Search Bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { viewModel.updateSearchQuery(it) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                placeholder = { Text("Search by name or UPC") },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingIcon = {
+                    Row {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { viewModel.clearSearch() }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear search",
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        IconButton(
+                            onClick = { 
+                                navController.currentBackStackEntry?.savedStateHandle?.set("isSearchScan", true)
+                                navController.navigate("barcodeScanner/$fridgeId")
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.QrCodeScanner,
+                                contentDescription = "Scan barcode",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+                )
+            )
+
+            Box(modifier = Modifier.fillMaxSize()) {
+                when (val state = itemsUiState) {
                 FridgeInventoryViewModel.ItemsUiState.Loading -> {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
@@ -203,7 +265,11 @@ fun FridgeInventoryScreen(
                             verticalArrangement = Arrangement.Center
                         ) {
                             Text(
-                                text = stringResource(R.string.no_items_in_fridge),
+                                text = if (searchQuery.isNotEmpty()) {
+                                    "No items match \"$searchQuery\""
+                                } else {
+                                    stringResource(R.string.no_items_in_fridge)
+                                },
                                 fontSize = 18.sp,
                                 color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                                 lineHeight = 24.sp,
@@ -240,14 +306,15 @@ fun FridgeInventoryScreen(
         }
     }
 
-    if (pendingUpc != null) {
-        NewProductDialog(
-            upc = pendingUpc!!,
-            onConfirm = { name, brand, category, imageUri ->
-                viewModel.createAndAddProduct(pendingUpc!!, name, brand, category, imageUri)
-            },
-            onDismiss = { viewModel.cancelPendingProduct() }
-        )
+        if (pendingUpc != null) {
+            NewProductDialog(
+                upc = pendingUpc!!,
+                onConfirm = { name, brand, category, imageUri ->
+                    viewModel.createAndAddProduct(pendingUpc!!, name, brand, category, imageUri)
+                },
+                onDismiss = { viewModel.cancelPendingProduct() }
+            )
+        }
     }
 }
 
