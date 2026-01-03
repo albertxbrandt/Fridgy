@@ -30,6 +30,10 @@ import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
 import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
+import fyi.goodbye.fridgy.ui.shared.components.EmptyState
+import fyi.goodbye.fridgy.ui.shared.components.LoadingState
+import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
+import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import kotlinx.coroutines.launch
 
@@ -233,39 +237,21 @@ fun FridgeInventoryScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 when (val state = itemsUiState) {
                     FridgeInventoryViewModel.ItemsUiState.Loading -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                        }
+                        LoadingState()
                     }
                     is FridgeInventoryViewModel.ItemsUiState.Error -> {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(text = state.message, color = MaterialTheme.colorScheme.error)
-                        }
+                        SimpleErrorState(message = state.message)
                     }
                     is FridgeInventoryViewModel.ItemsUiState.Success -> {
                         val items = state.items
                         if (items.isEmpty()) {
-                            Column(
-                                modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                Text(
-                                    text =
-                                        if (searchQuery.isNotEmpty()) {
-                                            "No items match \"$searchQuery\""
-                                        } else {
-                                            stringResource(R.string.no_items_in_fridge)
-                                        },
-                                    fontSize = 18.sp,
-                                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
-                                    lineHeight = 24.sp,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
+                            EmptyState(
+                                message = if (searchQuery.isNotEmpty()) {
+                                    "No items match \"$searchQuery\""
+                                } else {
+                                    stringResource(R.string.no_items_in_fridge)
+                                }
+                            )
                         } else {
                             // Log time taken for grid rendering start
                             val startTime = System.currentTimeMillis()

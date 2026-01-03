@@ -19,6 +19,8 @@ import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.ui.adminPanel.components.*
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
+import fyi.goodbye.fridgy.ui.shared.components.ErrorState
+import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
@@ -78,12 +80,7 @@ fun AdminPanelScreen(
         ) {
             when (val state = uiState) {
                 AdminPanelViewModel.AdminUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = FridgyPrimary)
-                    }
+                    LoadingState(color = FridgyPrimary)
                 }
 
                 AdminPanelViewModel.AdminUiState.Unauthorized -> {
@@ -114,30 +111,10 @@ fun AdminPanelScreen(
                 }
 
                 is AdminPanelViewModel.AdminUiState.Error -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                Icons.Default.Warning,
-                                contentDescription = null,
-                                modifier = Modifier.size(64.dp),
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                "Error Loading Data",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                state.message,
-                                fontSize = 14.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
+                    ErrorState(
+                        message = "Error Loading Data\n${state.message}",
+                        showIcon = true
+                    )
                 }
 
                 is AdminPanelViewModel.AdminUiState.Success -> {

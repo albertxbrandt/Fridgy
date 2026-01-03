@@ -25,6 +25,9 @@ import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.elements.FridgeCard
+import fyi.goodbye.fridgy.ui.shared.components.EmptyState
+import fyi.goodbye.fridgy.ui.shared.components.ErrorState
+import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyLightBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
@@ -158,15 +161,10 @@ fun FridgeListScreen(
     ) { paddingValues ->
         when (val state = fridgeUiState) {
             FridgeListViewModel.FridgeUiState.Loading -> {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = FridgyDarkBlue)
-                }
+                LoadingState(
+                    modifier = Modifier.padding(paddingValues),
+                    color = FridgyDarkBlue
+                )
             }
             is FridgeListViewModel.FridgeUiState.Error -> {
                 Column(
@@ -178,11 +176,9 @@ fun FridgeListScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
-                    Text(
-                        text = "Error: ${state.message}",
-                        color = MaterialTheme.colorScheme.error,
-                        fontSize = 16.sp,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                    ErrorState(
+                        message = state.message,
+                        modifier = Modifier.weight(1f)
                     )
                     Button(onClick = { /* Retry logic could be added to ViewModel */ }) {
                         Text(stringResource(R.string.retry))
@@ -192,23 +188,11 @@ fun FridgeListScreen(
             is FridgeListViewModel.FridgeUiState.Success -> {
                 val fridges = state.fridges
                 if (fridges.isEmpty()) {
-                    Column(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(paddingValues)
-                                .padding(horizontal = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.no_fridges_yet),
-                            fontSize = 18.sp,
-                            color = FridgyTextBlue.copy(alpha = 0.8f),
-                            lineHeight = 24.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    EmptyState(
+                        message = stringResource(R.string.no_fridges_yet),
+                        modifier = Modifier.padding(paddingValues)
+                    )
+
                 } else {
                     LazyColumn(
                         modifier =

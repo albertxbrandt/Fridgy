@@ -19,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.ui.shared.components.LoadingState
+import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
 import fyi.goodbye.fridgy.ui.theme.*
 
 /**
@@ -90,14 +92,13 @@ fun FridgeSettingsScreen(
     ) { paddingValues ->
         when (val state = uiState) {
             is FridgeSettingsViewModel.FridgeSettingsUiState.Loading -> {
-                Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+                LoadingState(modifier = Modifier.padding(paddingValues))
             }
             is FridgeSettingsViewModel.FridgeSettingsUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
-                    Text("Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-                }
+                SimpleErrorState(
+                    message = "Error: ${state.message}",
+                    modifier = Modifier.padding(paddingValues)
+                )
             }
             is FridgeSettingsViewModel.FridgeSettingsUiState.Success -> {
                 val fridge = state.fridge

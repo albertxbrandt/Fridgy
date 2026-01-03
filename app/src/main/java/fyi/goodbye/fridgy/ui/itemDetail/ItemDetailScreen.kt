@@ -27,6 +27,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.ui.shared.components.LoadingState
+import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
+import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -78,14 +81,10 @@ fun ItemDetailScreen(
         ) {
             when (val state = uiState) {
                 ItemDetailViewModel.ItemDetailUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                    LoadingState()
                 }
                 is ItemDetailViewModel.ItemDetailUiState.Error -> {
-                    Text(
-                        text = state.message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
+                    SimpleErrorState(message = state.message)
                 }
                 is ItemDetailViewModel.ItemDetailUiState.Success -> {
                     val item = state.item
