@@ -5,9 +5,11 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.models.Admin
+import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.User
+import fyi.goodbye.fridgy.models.UserProfile
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -54,13 +56,31 @@ class AdminRepository {
     }
 
     /**
-     * Gets all users from the users collection.
+     * Gets all users from the users and userProfiles collections.
+     * Combines data for admin panel display.
      */
-    suspend fun getAllUsers(): List<User> {
+    suspend fun getAllUsers(): List<AdminUserDisplay> {
         return try {
-            val snapshot = firestore.collection("users").get().await()
-            snapshot.documents.mapNotNull { doc ->
+            val usersSnapshot = firestore.collection("users").get().await()
+            val profilesSnapshot = firestore.collection("userProfiles").get().await()
+            
+            // Create maps for easy lookup
+            val users = usersSnapshot.documents.mapNotNull { doc ->
                 doc.toObject(User::class.java)?.copy(uid = doc.id)
+            }.associateBy { it.uid }
+            
+            val profiles = profilesSnapshot.documents.mapNotNull { doc ->
+                doc.toObject(UserProfile::class.java)?.copy(uid = doc.id)
+            }.associateBy { it.uid }
+            
+            // Combine data
+            users.map { (uid, user) ->
+                AdminUserDisplay(
+                    uid = uid,
+                    username = profiles[uid]?.username ?: "Unknown",
+                    email = user.email,
+                    createdAt = user.createdAt
+                )
             }
         } catch (e: Exception) {
             Log.e("AdminRepo", "Error fetching users: ${e.message}")
@@ -104,8 +124,11 @@ class AdminRepository {
      */
     suspend fun deleteUser(userId: String): Boolean {
         return try {
-            // Delete user document
+            // Delete user document (private data)
             firestore.collection("users").document(userId).delete().await()
+            
+            // Delete user profile (public data)
+            firestore.collection("userProfiles").document(userId).delete().await()
 
             // Note: In a production app, you'd also want to:
             // - Delete user's Firebase Auth account
@@ -128,12 +151,14 @@ class AdminRepository {
         email: String
     ): Boolean {
         return try {
-            val updates =
-                mapOf(
-                    "username" to username,
-                    "email" to email
-                )
-            firestore.collection("users").document(userId).update(updates).await()
+            // Update private data (email)
+            val userUpdates = mapOf("email" to email)
+            firestore.collection("users").document(userId).update(userUpdates).await()
+            
+            // Update public data (username)
+            val profileUpdates = mapOf("username" to username)
+            firestore.collection("userProfiles").document(userId).update(profileUpdates).await()
+            
             true
         } catch (e: Exception) {
             Log.e("AdminRepo", "Error updating user: ${e.message}")

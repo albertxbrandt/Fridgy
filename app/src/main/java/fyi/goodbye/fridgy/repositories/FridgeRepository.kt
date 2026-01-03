@@ -11,6 +11,7 @@ import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.User
+import fyi.goodbye.fridgy.models.UserProfile
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -180,7 +181,9 @@ class FridgeRepository {
         fridgeId: String,
         email: String
     ) {
-        val snapshot = firestore.collection("users").whereEqualTo("email", email).get().await()
+        // Changed to invite by username since emails should remain private
+        // This method name is kept for compatibility but now searches by username
+        val snapshot = firestore.collection("userProfiles").whereEqualTo("username", email).get().await()
         val userDoc = snapshot.documents.firstOrNull() ?: throw Exception("User not found.")
         val userUid = userDoc.id
 
@@ -366,33 +369,43 @@ class FridgeRepository {
         }
     }
 
+    suspend fun getUserProfileById(userId: String): UserProfile? {
+        return try {
+            val doc = firestore.collection("userProfiles").document(userId).get().await()
+            doc.toObject(UserProfile::class.java)?.copy(uid = doc.id)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /**
-     * Fetches multiple users by their IDs.
-     * Returns a map of userId to User for easy lookup.
+     * Fetches multiple users' public profiles by their IDs.
+     * Returns a map of userId to UserProfile for easy lookup.
+     * This queries the userProfiles collection which contains only public data (username).
      */
-    suspend fun getUsersByIds(userIds: List<String>): Map<String, User> {
+    suspend fun getUsersByIds(userIds: List<String>): Map<String, UserProfile> {
         if (userIds.isEmpty()) return emptyMap()
 
         return try {
             // Firestore 'in' queries are limited to 10 items, so batch if needed
-            val result = mutableMapOf<String, User>()
+            val result = mutableMapOf<String, UserProfile>()
             userIds.chunked(10).forEach { chunk ->
                 val snapshot =
-                    firestore.collection("users")
+                    firestore.collection("userProfiles")
                         .whereIn(FieldPath.documentId(), chunk)
                         .get()
                         .await()
 
                 snapshot.documents.forEach { doc ->
-                    doc.toObject(User::class.java)?.let { user ->
-                        result[doc.id] = user.copy(uid = doc.id)
+                    doc.toObject(UserProfile::class.java)?.let { profile ->
+                        result[doc.id] = profile.copy(uid = doc.id)
                     }
                 }
             }
-            Log.d("FridgeRepo", "Fetched ${result.size} users out of ${userIds.size} requested")
+            Log.d("FridgeRepo", "Fetched ${result.size} user profiles out of ${userIds.size} requested")
             result
         } catch (e: Exception) {
-            Log.e("FridgeRepo", "Error fetching users by IDs: ${e.message}", e)
+            Log.e("FridgeRepo", "Error fetching user profiles by IDs: ${e.message}", e)
             emptyMap()
         }
     }

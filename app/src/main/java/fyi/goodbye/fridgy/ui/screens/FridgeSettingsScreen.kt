@@ -211,7 +211,7 @@ fun FridgeSettingsScreen(
                     OutlinedTextField(
                         value = inviteEmail,
                         onValueChange = { inviteEmail = it },
-                        label = { Text("Email Address") },
+                        label = { Text("Username") },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isInviting,
                         singleLine = true,

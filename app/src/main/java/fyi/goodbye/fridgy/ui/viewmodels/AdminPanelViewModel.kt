@@ -8,7 +8,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.models.User
+import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.repositories.AdminRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -146,7 +146,7 @@ class AdminPanelViewModel(
             val totalUsers: Int,
             val totalProducts: Int,
             val totalFridges: Int,
-            val users: List<User>,
+            val users: List<AdminUserDisplay>,
             val products: List<Product>,
             val fridges: List<Fridge>
         ) : AdminUiState

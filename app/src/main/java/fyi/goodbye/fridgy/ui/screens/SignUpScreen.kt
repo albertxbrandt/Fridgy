@@ -107,6 +107,22 @@ fun SignupScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             SquaredInput(
+                value = viewModel.username,
+                onValueChange = viewModel::onUsernameChange,
+                label = { Text("Username") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp)
+                        .testTag("signupUsernameInput"),
+                enabled = !viewModel.isLoading
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            SquaredInput(
                 value = viewModel.password,
                 onValueChange = viewModel::onPasswordChange,
                 label = { Text(stringResource(R.string.password)) },

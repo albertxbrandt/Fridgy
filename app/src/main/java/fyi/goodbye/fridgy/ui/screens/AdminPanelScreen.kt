@@ -15,9 +15,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
@@ -39,8 +39,8 @@ fun AdminPanelScreen(
     val categoryState by categoryViewModel.uiState.collectAsState()
 
     // State for dialogs
-    var userToEdit by remember { mutableStateOf<User?>(null) }
-    var userToDelete by remember { mutableStateOf<User?>(null) }
+    var userToEdit by remember { mutableStateOf<AdminUserDisplay?>(null) }
+    var userToDelete by remember { mutableStateOf<AdminUserDisplay?>(null) }
     var productToEdit by remember { mutableStateOf<Product?>(null) }
     var productToDelete by remember { mutableStateOf<Product?>(null) }
     var categoryToEdit by remember { mutableStateOf<Category?>(null) }
@@ -409,7 +409,7 @@ fun StatCard(
 
 @Composable
 fun UserListItem(
-    user: User,
+    user: AdminUserDisplay,
     onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -549,7 +549,7 @@ fun DeleteConfirmationDialog(
 
 @Composable
 fun EditUserDialog(
-    user: User,
+    user: AdminUserDisplay,
     onDismiss: () -> Unit,
     onConfirm: (username: String, email: String) -> Unit
 ) {

@@ -30,6 +30,10 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
     var email by mutableStateOf("")
         private set
 
+    /** The username entered by the user. */
+    var username by mutableStateOf("")
+        private set
+
     /** The password entered by the user. */
     var password by mutableStateOf("")
         private set
@@ -57,6 +61,12 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
         errorMessage = null
     }
 
+    /** Updates the username state and clears any existing error message. */
+    fun onUsernameChange(newUsername: String) {
+        username = newUsername
+        errorMessage = null
+    }
+
     /** Updates the password state and clears any existing error message. */
     fun onPasswordChange(newPassword: String) {
         password = newPassword
@@ -73,12 +83,30 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
      * Attempts to sign up a new user with the current email and password states.
      *
      * Performs basic validation, then creates a Firebase Auth user. If successful,
-     * it creates a corresponding document in the 'users' collection in Firestore.
+     * it creates corresponding documents in both 'users' and 'userProfiles' collections.
      */
     fun signup() {
         errorMessage = null
-        if (email.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
+        if (email.isBlank() || username.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
             errorMessage = getApplication<Application>().getString(R.string.error_please_fill_all_fields)
+            return
+        }
+
+        // Validate username format: letters, numbers, underscore, period only
+        val trimmedUsername = username.trim()
+        if (!trimmedUsername.matches(Regex("^[a-zA-Z0-9_.]+$"))) {
+            errorMessage = "Username can only contain letters, numbers, underscores, and periods"
+            return
+        }
+
+        // Validate username length
+        if (trimmedUsername.length < 3) {
+            errorMessage = "Username must be at least 3 characters"
+            return
+        }
+        
+        if (trimmedUsername.length > 16) {
+            errorMessage = "Username must be 16 characters or less"
             return
         }
 
@@ -91,18 +119,40 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
 
         viewModelScope.launch {
             try {
+                // Check if username already exists
+                val existingProfiles = firestore.collection("userProfiles")
+                    .whereEqualTo("username", trimmedUsername)
+                    .get()
+                    .await()
+                
+                if (!existingProfiles.isEmpty) {
+                    errorMessage = "Username '$trimmedUsername' is already taken. Please choose a different username."
+                    isLoading = false
+                    return@launch
+                }
+
                 val authResult = auth.createUserWithEmailAndPassword(email, password).await()
                 val uid = authResult.user?.uid
 
                 if (uid != null) {
+                    val timestamp = System.currentTimeMillis()
+
+                    // Create private user data (email, createdAt)
                     val userMap =
                         hashMapOf(
                             "email" to email,
-                            "username" to email.substringBefore("@"),
-                            "createdAt" to System.currentTimeMillis()
+                            "createdAt" to timestamp
                         )
 
+                    // Create public profile data (username only)
+                    val profileMap =
+                        hashMapOf(
+                            "username" to trimmedUsername
+                        )
+                    // Write both documents
                     firestore.collection("users").document(uid).set(userMap).await()
+                    firestore.collection("userProfiles").document(uid).set(profileMap).await()
+
                     signupSucess.emit(true)
                 }
             } catch (e: Exception) {

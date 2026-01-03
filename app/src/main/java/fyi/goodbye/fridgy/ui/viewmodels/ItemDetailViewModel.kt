@@ -63,8 +63,8 @@ class ItemDetailViewModel(
             val names = _userNames.value.toMutableMap()
             uids.forEach { uid ->
                 if (!names.containsKey(uid)) {
-                    val user = fridgeRepository.getUserById(uid)
-                    names[uid] = user?.username ?: getApplication<Application>().getString(R.string.unknown_user)
+                    val userProfile = fridgeRepository.getUserProfileById(uid)
+                    names[uid] = userProfile?.username ?: getApplication<Application>().getString(R.string.unknown_user)
                 }
             }
             _userNames.value = names
