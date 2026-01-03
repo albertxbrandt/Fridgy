@@ -192,11 +192,11 @@ fun FridgeInventoryScreen(
                     Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 8.dp),
-                placeholder = { Text("Search by name or UPC") },
+                placeholder = { Text(stringResource(R.string.search_by_name_or_upc)) },
                 leadingIcon = {
                     Icon(
                         imageVector = Icons.Default.Search,
-                        contentDescription = "Search",
+                        contentDescription = stringResource(R.string.cd_search),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
@@ -206,7 +206,7 @@ fun FridgeInventoryScreen(
                             IconButton(onClick = { viewModel.clearSearch() }) {
                                 Icon(
                                     imageVector = Icons.Default.Clear,
-                                    contentDescription = "Clear search",
+                                    contentDescription = stringResource(R.string.cd_clear_search),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }

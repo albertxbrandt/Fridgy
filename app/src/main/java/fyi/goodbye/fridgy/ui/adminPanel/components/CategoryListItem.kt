@@ -8,9 +8,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
@@ -45,7 +47,7 @@ fun CategoryListItem(
                     fontSize = 16.sp
                 )
                 Text(
-                    "Order: ${category.order}",
+                    stringResource(R.string.order_label, category.order),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -55,14 +57,14 @@ fun CategoryListItem(
                 IconButton(onClick = onEdit) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = "Edit Category",
+                        contentDescription = stringResource(R.string.cd_edit_category),
                         tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 IconButton(onClick = onDelete) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "Delete Category",
+                        contentDescription = stringResource(R.string.cd_delete_category),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }

@@ -13,7 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.models.Product
@@ -51,15 +53,15 @@ fun AdminPanelScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Admin Panel") },
+                title = { Text(stringResource(R.string.admin_panel)) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cd_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { viewModel.refresh() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
+                        Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                 },
                 colors =
@@ -128,7 +130,7 @@ fun AdminPanelScreen(
                         // Statistics Cards
                         item {
                             Text(
-                                "System Statistics",
+                                stringResource(R.string.system_statistics),
                                 fontSize = 24.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = FridgyDarkBlue
@@ -141,19 +143,19 @@ fun AdminPanelScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 StatCard(
-                                    title = "Users",
+                                    title = stringResource(R.string.users),
                                     value = state.totalUsers.toString(),
                                     icon = Icons.Default.Person,
                                     modifier = Modifier.weight(1f)
                                 )
                                 StatCard(
-                                    title = "Products",
+                                    title = stringResource(R.string.products),
                                     value = state.totalProducts.toString(),
                                     icon = Icons.Default.ShoppingCart,
                                     modifier = Modifier.weight(1f)
                                 )
                                 StatCard(
-                                    title = "Fridges",
+                                    title = stringResource(R.string.fridges),
                                     value = state.totalFridges.toString(),
                                     icon = Icons.Default.Home,
                                     modifier = Modifier.weight(1f)
@@ -164,7 +166,7 @@ fun AdminPanelScreen(
                         // Users Section
                         item {
                             Text(
-                                "Recent Users",
+                                stringResource(R.string.recent_users),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = FridgyDarkBlue,
@@ -183,7 +185,7 @@ fun AdminPanelScreen(
                         // Products Section
                         item {
                             Text(
-                                "Recent Products",
+                                stringResource(R.string.recent_products),
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = FridgyDarkBlue,
@@ -207,13 +209,13 @@ fun AdminPanelScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    "Food Categories",
+                                    stringResource(R.string.food_categories),
                                     fontSize = 20.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = FridgyDarkBlue
                                 )
                                 IconButton(onClick = { showAddCategoryDialog = true }) {
-                                    Icon(Icons.Default.Add, contentDescription = "Add Category")
+                                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_add_category))
                                 }
                             }
                         }

@@ -140,7 +140,7 @@ fun ItemDetailScreen(
                         }
 
                         Text(
-                            text = "UPC: ${item.upc}",
+                            text = stringResource(R.string.upc_label, item.upc),
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -164,7 +164,7 @@ fun ItemDetailScreen(
                             ) {
                                 Column {
                                     Text(
-                                        text = "Qty",
+                                        text = stringResource(R.string.qty),
                                         fontSize = 12.sp,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )

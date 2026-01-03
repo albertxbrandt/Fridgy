@@ -87,7 +87,7 @@ fun FridgeListScreen(
                         IconButton(onClick = onNavigateToAdminPanel) {
                             Icon(
                                 imageVector = Icons.Default.Settings,
-                                contentDescription = "Admin Panel",
+                                contentDescription = stringResource(R.string.cd_admin_panel),
                                 tint = FridgyWhite
                             )
                         }

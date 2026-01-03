@@ -10,9 +10,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 
@@ -56,14 +58,14 @@ fun ProductListItem(
             IconButton(onClick = onEdit) {
                 Icon(
                     Icons.Default.Edit,
-                    contentDescription = "Edit product",
+                    contentDescription = stringResource(R.string.cd_edit_product),
                     tint = FridgyPrimary
                 )
             }
             IconButton(onClick = onDelete) {
                 Icon(
                     Icons.Default.Delete,
-                    contentDescription = "Delete product",
+                    contentDescription = stringResource(R.string.cd_delete_product),
                     tint = MaterialTheme.colorScheme.error
                 )
             }

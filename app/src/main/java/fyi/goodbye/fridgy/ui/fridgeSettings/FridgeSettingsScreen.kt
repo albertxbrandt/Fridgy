@@ -185,7 +185,7 @@ fun FridgeSettingsScreen(
                                 )
                             } else {
                                 Text(
-                                    if (isOwner) "Delete Fridge" else "Leave Fridge",
+                                    if (isOwner) stringResource(R.string.delete_fridge) else stringResource(R.string.leave_fridge),
                                     color = MaterialTheme.colorScheme.onError
                                 )
                             }
@@ -211,7 +211,7 @@ fun FridgeSettingsScreen(
                     OutlinedTextField(
                         value = inviteEmail,
                         onValueChange = { inviteEmail = it },
-                        label = { Text("Username") },
+                        label = { Text(stringResource(R.string.username)) },
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isInviting,
                         singleLine = true,
@@ -245,7 +245,7 @@ fun FridgeSettingsScreen(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Send Invite", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                        Text(stringResource(R.string.send_invite), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
                 }
             },
@@ -258,7 +258,7 @@ fun FridgeSettingsScreen(
                     },
                     enabled = !isInviting
                 ) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -294,7 +294,7 @@ fun FridgeSettingsScreen(
                         onValueChange = { confirmText = it },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        placeholder = { Text("CONFIRM") },
+                        placeholder = { Text(stringResource(R.string.confirm_text)) },
                         colors =
                             OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = MaterialTheme.colorScheme.error,
@@ -313,7 +313,7 @@ fun FridgeSettingsScreen(
                     },
                     enabled = confirmText == "CONFIRM"
                 ) {
-                    Text("Delete", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -321,7 +321,7 @@ fun FridgeSettingsScreen(
                     showDeleteConfirmDialog = false
                     confirmText = ""
                 }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,

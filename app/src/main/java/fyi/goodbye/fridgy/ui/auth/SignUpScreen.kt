@@ -108,7 +108,7 @@ fun SignupScreen(
             SquaredInput(
                 value = viewModel.username,
                 onValueChange = viewModel::onUsernameChange,
-                label = { Text("Username") },
+                label = { Text(stringResource(R.string.username)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 modifier =

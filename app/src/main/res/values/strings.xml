@@ -102,6 +102,17 @@
     <string name="cd_delete">Delete</string>
     <string name="cd_captured_product">Captured Product</string>
     <string name="cd_placeholder_icon">🍎</string>
+    <string name="cd_search">Search</string>
+    <string name="cd_clear_search">Clear search</string>
+    <string name="cd_admin_panel">Admin Panel</string>
+    <string name="cd_add_category">Add Category</string>
+    <string name="cd_edit_user">Edit user</string>
+    <string name="cd_delete_user">Delete user</string>
+    <string name="cd_edit_product">Edit product</string>
+    <string name="cd_delete_product">Delete product</string>
+    <string name="cd_edit_category">Edit Category</string>
+    <string name="cd_delete_category">Delete Category</string>
+    <string name="refresh">Refresh</string>
     
     <!-- Error Messages -->
     <string name="error_user_not_logged_in">User not logged in. Please log in again.</string>
@@ -138,6 +149,7 @@
     <string name="recent_users">Recent Users</string>
     <string name="recent_products">Recent Products</string>
     <string name="food_categories">Food Categories</string>
+    <string name="order_label">Order: %1$d</string>
     <string name="unauthorized_access">Unauthorized Access</string>
     <string name="no_admin_privileges">You don\'t have admin privileges</string>
     <string name="error_loading_data">Error Loading Data</string>
