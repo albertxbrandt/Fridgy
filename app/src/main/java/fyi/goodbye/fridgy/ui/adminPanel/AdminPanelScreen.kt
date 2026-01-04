@@ -1,5 +1,6 @@
 package fyi.goodbye.fridgy.ui.adminPanel
 
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -37,6 +38,8 @@ fun AdminPanelScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val categoryState by categoryViewModel.uiState.collectAsState()
+    
+    Log.d("AdminPanelScreen", "Current UI state: ${uiState::class.simpleName}")
 
     // State for dialogs
     var userToEdit by remember { mutableStateOf<AdminUserDisplay?>(null) }
@@ -46,6 +49,8 @@ fun AdminPanelScreen(
     var categoryToEdit by remember { mutableStateOf<Category?>(null) }
     var categoryToDelete by remember { mutableStateOf<Category?>(null) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
+    
+    Log.d("AdminPanelScreen", "Dialog states - userToEdit: ${userToEdit != null}, productToEdit: ${productToEdit != null}, userToDelete: ${userToDelete != null}")
 
     AdminPanelScreenContent(
         uiState = uiState,
@@ -200,14 +205,17 @@ fun AdminPanelScreenContent(
         ) {
             when (val state = uiState) {
                 AdminPanelViewModel.AdminUiState.Loading -> {
+                    Log.d("AdminPanelScreen", "Rendering Loading state")
                     LoadingState(color = FridgyPrimary)
                 }
 
                 AdminPanelViewModel.AdminUiState.Unauthorized -> {
+                    Log.d("AdminPanelScreen", "Rendering Unauthorized state")
                     UnauthorizedAccessContent()
                 }
 
                 is AdminPanelViewModel.AdminUiState.Error -> {
+                    Log.d("AdminPanelScreen", "Rendering Error state: ${state.message}")
                     ErrorState(
                         message = stringResource(R.string.error_loading_data_prefix, state.message),
                         showIcon = true
@@ -215,6 +223,10 @@ fun AdminPanelScreenContent(
                 }
 
                 is AdminPanelViewModel.AdminUiState.Success -> {
+                    Log.d("AdminPanelScreen", "Rendering Success state - users: ${state.users.size}, products: ${state.products.size}")
+                    Log.d("AdminPanelScreen", "categoryState type: ${categoryState::class.simpleName}")
+                    Log.d("AdminPanelScreen", "totalUsers: ${state.totalUsers}, totalProducts: ${state.totalProducts}, totalFridges: ${state.totalFridges}")
+                    
                     AdminSuccessContent(
                         totalUsers = state.totalUsers,
                         totalProducts = state.totalProducts,

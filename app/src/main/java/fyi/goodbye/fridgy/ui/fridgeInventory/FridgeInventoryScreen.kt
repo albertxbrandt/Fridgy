@@ -47,12 +47,13 @@ import kotlinx.coroutines.launch
 @Composable
 fun FridgeInventoryScreen(
     fridgeId: String,
+    initialFridgeName: String = "",
     navController: NavController,
     onBackClick: () -> Unit,
     onSettingsClick: (String) -> Unit,
     onAddItemClick: (String) -> Unit,
     onItemClick: (String, String) -> Unit,
-    viewModel: FridgeInventoryViewModel = viewModel(factory = FridgeInventoryViewModel.provideFactory(fridgeId))
+    viewModel: FridgeInventoryViewModel = viewModel(factory = FridgeInventoryViewModel.provideFactory(fridgeId, initialFridgeName))
 ) {
     val fridgeDetailUiState by viewModel.displayFridgeState.collectAsState()
     val itemsUiState by viewModel.itemsUiState.collectAsState()

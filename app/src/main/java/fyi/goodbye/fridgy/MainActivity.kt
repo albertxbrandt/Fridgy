@@ -1,9 +1,12 @@
 package fyi.goodbye.fridgy
 
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -93,7 +96,14 @@ class MainActivity : ComponentActivity() {
 
                     val startDestination = if (auth.currentUser != null) "fridgeList" else "login"
 
-                    NavHost(navController = navController, startDestination = startDestination) {
+                    NavHost(
+                        navController = navController,
+                        startDestination = startDestination,
+                        enterTransition = { EnterTransition.None },
+                        exitTransition = { ExitTransition.None },
+                        popEnterTransition = { EnterTransition.None },
+                        popExitTransition = { ExitTransition.None }
+                    ) {
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
@@ -101,7 +111,11 @@ class MainActivity : ComponentActivity() {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
-                                onNavigateToSignup = { navController.navigate("signup") }
+                                onNavigateToSignup = {
+                                    navController.navigate("signup") {
+                                        launchSingleTop = true
+                                    }
+                                }
                             )
                         }
                         composable("signup") {
@@ -117,13 +131,17 @@ class MainActivity : ComponentActivity() {
                         composable("fridgeList") {
                             FridgeListScreen(
                                 onNavigateToFridgeInventory = { displayFridge ->
-                                    navController.navigate("fridgeInventory/${displayFridge.id}")
+                                    navController.navigate("fridgeInventory/${displayFridge.id}/${Uri.encode(displayFridge.name)}") {
+                                        launchSingleTop = true
+                                    }
                                 },
                                 onAddFridgeClick = { },
                                 onNotificationsClick = { },
                                 onProfileClick = { },
                                 onNavigateToAdminPanel = {
-                                    navController.navigate("adminPanel")
+                                    navController.navigate("adminPanel") {
+                                        launchSingleTop = true
+                                    }
                                 },
                                 onLogout = {
                                     navController.navigate("login") {
@@ -138,26 +156,35 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(
-                            route = "fridgeInventory/{fridgeId}",
+                            "fridgeInventory/{fridgeId}/{fridgeName}",
                             arguments =
                                 listOf(
-                                    navArgument("fridgeId") { type = NavType.StringType }
+                                    navArgument("fridgeId") { type = NavType.StringType },
+                                    navArgument("fridgeName") { type = NavType.StringType }
                                 )
                         ) { backStackEntry ->
                             val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
+                            val fridgeName = backStackEntry.arguments?.getString("fridgeName") ?: ""
 
                             FridgeInventoryScreen(
                                 fridgeId = fridgeId,
+                                initialFridgeName = fridgeName,
                                 navController = navController,
                                 onBackClick = { navController.popBackStack() },
                                 onSettingsClick = { id ->
-                                    navController.navigate("fridgeSettings/$id")
+                                    navController.navigate("fridgeSettings/$id") {
+                                        launchSingleTop = true
+                                    }
                                 },
                                 onAddItemClick = { currentFridgeId ->
-                                    navController.navigate("barcodeScanner/$currentFridgeId")
+                                    navController.navigate("barcodeScanner/$currentFridgeId") {
+                                        launchSingleTop = true
+                                    }
                                 },
                                 onItemClick = { fId, iId ->
-                                    navController.navigate("itemDetail/$fId/$iId")
+                                    navController.navigate("itemDetail/$fId/$iId") {
+                                        launchSingleTop = true
+                                    }
                                 }
                             )
                         }

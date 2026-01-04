@@ -25,6 +25,9 @@ class FridgeRepository {
     private val auth = FirebaseAuth.getInstance()
 
     private var fridgeCache: List<Fridge> = emptyList()
+    
+    // OPTIMIZATION: Cache user profiles to avoid re-fetching
+    private val userProfileCache = mutableMapOf<String, UserProfile>()
 
     /**
      * Converts a Firestore document to a Fridge, handling both old Map and new List formats.
@@ -112,7 +115,7 @@ class FridgeRepository {
             awaitClose { invitesListener.remove() }
         }
 
-    suspend fun getFridgeById(fridgeId: String): DisplayFridge? {
+    suspend fun getFridgeById(fridgeId: String, fetchUserDetails: Boolean = true): DisplayFridge? {
         val cachedFridge = fridgeCache.find { it.id == fridgeId }
         val fridge =
             if (cachedFridge != null) {
@@ -138,6 +141,19 @@ class FridgeRepository {
                     null
                 }
             } ?: return null
+
+        // OPTIMIZATION: Skip expensive user fetching if not needed (e.g., inventory screen)
+        if (!fetchUserDetails) {
+            return DisplayFridge(
+                id = fridge.id,
+                name = fridge.name,
+                createdByUid = fridge.createdBy,
+                creatorDisplayName = "",
+                memberUsers = emptyList(),
+                pendingInviteUsers = emptyList(),
+                createdAt = fridge.createdAt
+            )
+        }
 
         // Fetch all user data for members and invites
         val allUserIds = (fridge.members + fridge.pendingInvites + listOf(fridge.createdBy)).distinct()
@@ -385,22 +401,41 @@ class FridgeRepository {
         if (userIds.isEmpty()) return emptyMap()
 
         return try {
-            // Firestore 'in' queries are limited to 10 items, so batch if needed
+            // OPTIMIZATION: Check cache first, only fetch missing users
             val result = mutableMapOf<String, UserProfile>()
-            userIds.chunked(10).forEach { chunk ->
-                val snapshot =
-                    firestore.collection("userProfiles")
-                        .whereIn(FieldPath.documentId(), chunk)
-                        .get()
-                        .await()
+            val missingIds = mutableListOf<String>()
+            
+            userIds.forEach { userId ->
+                val cached = userProfileCache[userId]
+                if (cached != null) {
+                    result[userId] = cached
+                } else {
+                    missingIds.add(userId)
+                }
+            }
+            
+            // Only fetch users not in cache
+            if (missingIds.isNotEmpty()) {
+                // Firestore 'in' queries are limited to 10 items, so batch if needed
+                missingIds.chunked(10).forEach { chunk ->
+                    val snapshot =
+                        firestore.collection("userProfiles")
+                            .whereIn(FieldPath.documentId(), chunk)
+                            .get()
+                            .await()
 
-                snapshot.documents.forEach { doc ->
-                    doc.toObject(UserProfile::class.java)?.let { profile ->
-                        result[doc.id] = profile.copy(uid = doc.id)
+                    snapshot.documents.forEach { doc ->
+                        doc.toObject(UserProfile::class.java)?.let { profile ->
+                            val profileWithUid = profile.copy(uid = doc.id)
+                            result[doc.id] = profileWithUid
+                            // Cache for future use
+                            userProfileCache[doc.id] = profileWithUid
+                        }
                     }
                 }
             }
-            Log.d("FridgeRepo", "Fetched ${result.size} user profiles out of ${userIds.size} requested")
+            
+            Log.d("FridgeRepo", "Fetched ${result.size} user profiles (${result.size - missingIds.size} from cache, ${missingIds.size} from network)")
             result
         } catch (e: Exception) {
             Log.e("FridgeRepo", "Error fetching user profiles by IDs: ${e.message}", e)

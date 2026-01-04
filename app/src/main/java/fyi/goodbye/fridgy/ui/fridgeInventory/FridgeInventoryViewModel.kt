@@ -37,9 +37,16 @@ class FridgeInventoryViewModel(
     application: Application,
     private val fridgeRepository: FridgeRepository,
     private val productRepository: ProductRepository,
-    private val fridgeId: String
+    private val fridgeId: String,
+    initialFridgeName: String = ""
 ) : AndroidViewModel(application) {
-    private val _displayFridgeState = MutableStateFlow<FridgeDetailUiState>(FridgeDetailUiState.Loading)
+    private val _displayFridgeState = MutableStateFlow<FridgeDetailUiState>(
+        if (initialFridgeName.isNotBlank()) {
+            FridgeDetailUiState.Success(DisplayFridge(id = fridgeId, name = initialFridgeName, createdByUid = "", creatorDisplayName = "", memberUsers = emptyList(), pendingInviteUsers = emptyList(), createdAt = 0L))
+        } else {
+            FridgeDetailUiState.Loading
+        }
+    )
     val displayFridgeState: StateFlow<FridgeDetailUiState> = _displayFridgeState.asStateFlow()
 
     private val _itemsUiState = MutableStateFlow<ItemsUiState>(ItemsUiState.Loading)
@@ -67,9 +74,10 @@ class FridgeInventoryViewModel(
 
     private fun loadFridgeDetails() {
         viewModelScope.launch {
-            _displayFridgeState.value = FridgeDetailUiState.Loading
+            // OPTIMIZATION: Don't show loading state, repository will use cache first
+            // Skip fetching user details (fetchUserDetails = false) since inventory screen doesn't need member list
             try {
-                val fridge = fridgeRepository.getFridgeById(fridgeId)
+                val fridge = fridgeRepository.getFridgeById(fridgeId, fetchUserDetails = false)
                 if (fridge != null) {
                     _displayFridgeState.value = FridgeDetailUiState.Success(fridge)
                 } else {
@@ -235,6 +243,7 @@ class FridgeInventoryViewModel(
     companion object {
         fun provideFactory(
             fridgeId: String,
+            initialName: String = "",
             fridgeRepository: FridgeRepository = FridgeRepository(),
             productRepository: ProductRepository? = null
         ): ViewModelProvider.Factory {
@@ -242,7 +251,7 @@ class FridgeInventoryViewModel(
                 initializer {
                     val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
                     val repo = productRepository ?: ProductRepository(app.applicationContext)
-                    FridgeInventoryViewModel(app, fridgeRepository, repo, fridgeId)
+                    FridgeInventoryViewModel(app, fridgeRepository, repo, fridgeId, initialName)
                 }
             }
         }

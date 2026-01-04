@@ -1,6 +1,7 @@
 package fyi.goodbye.fridgy.ui.adminPanel
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -34,18 +35,37 @@ class AdminPanelViewModel(
     private fun loadAdminData() {
         viewModelScope.launch {
             try {
+                Log.d("AdminPanelViewModel", "Starting to load admin data")
                 _uiState.value = AdminUiState.Loading
 
                 val isAdmin = adminRepository.isCurrentUserAdmin()
+                Log.d("AdminPanelViewModel", "User admin status: $isAdmin")
                 if (!isAdmin) {
                     _uiState.value = AdminUiState.Unauthorized
                     return@launch
                 }
 
+                Log.d("AdminPanelViewModel", "Fetching users...")
                 val users = adminRepository.getAllUsers()
+                Log.d("AdminPanelViewModel", "Fetched ${users.size} users")
+                
+                Log.d("AdminPanelViewModel", "Fetching products...")
                 val products = adminRepository.getAllProducts()
+                Log.d("AdminPanelViewModel", "Fetched ${products.size} products")
+                
+                Log.d("AdminPanelViewModel", "Fetching fridges...")
                 val fridges = adminRepository.getAllFridges()
+                Log.d("AdminPanelViewModel", "Fetched ${fridges.size} fridges")
 
+                // Ensure we're not setting success state with all empty data
+                // which could indicate a loading failure
+                if (users.isEmpty() && products.isEmpty() && fridges.isEmpty()) {
+                    Log.w("AdminPanelViewModel", "All collections returned empty - possible loading error")
+                    _uiState.value = AdminUiState.Error("No data available. The system may be empty or there was a loading error.")
+                    return@launch
+                }
+
+                Log.d("AdminPanelViewModel", "Successfully loaded admin data")
                 _uiState.value =
                     AdminUiState.Success(
                         totalUsers = users.size,
@@ -56,6 +76,7 @@ class AdminPanelViewModel(
                         fridges = fridges
                     )
             } catch (e: Exception) {
+                Log.e("AdminPanelViewModel", "Error loading admin data", e)
                 _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_load_admin_data, e.message ?: ""))
             }
         }
