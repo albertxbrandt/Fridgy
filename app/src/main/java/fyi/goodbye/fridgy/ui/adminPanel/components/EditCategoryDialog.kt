@@ -68,11 +68,12 @@ fun EditCategoryDialog(
 @Preview
 @Composable
 fun EditCategoryDialogPreview() {
-    val sampleCategory = Category(
-        id = "1",
-        name = "Fruits",
-        order = 1
-    )
+    val sampleCategory =
+        Category(
+            id = "1",
+            name = "Fruits",
+            order = 1
+        )
     EditCategoryDialog(
         category = sampleCategory,
         onDismiss = {},

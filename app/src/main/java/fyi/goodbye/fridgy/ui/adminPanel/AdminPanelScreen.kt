@@ -10,10 +10,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
@@ -25,6 +26,7 @@ import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
+import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
 /**
@@ -50,6 +52,119 @@ fun AdminPanelScreen(
     var categoryToDelete by remember { mutableStateOf<Category?>(null) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
 
+    AdminPanelScreenContent(
+        uiState = uiState,
+        categoryState = categoryState,
+        onNavigateBack = onNavigateBack,
+        onRefresh = { viewModel.refresh() },
+        onEditUser = { userToEdit = it },
+        onDeleteUser = { userToDelete = it },
+        onEditProduct = { productToEdit = it },
+        onDeleteProduct = { productToDelete = it },
+        onAddCategory = { showAddCategoryDialog = true },
+        onEditCategory = { categoryToEdit = it },
+        onDeleteCategory = { categoryToDelete = it }
+    )
+
+    // Dialogs
+    userToEdit?.let { user ->
+        EditUserDialog(
+            user = user,
+            onDismiss = { userToEdit = null },
+            onConfirm = { username, email ->
+                viewModel.updateUser(user.uid, username, email)
+                userToEdit = null
+            }
+        )
+    }
+
+    userToDelete?.let { user ->
+        DeleteConfirmationDialog(
+            title = stringResource(R.string.delete_user),
+            message = stringResource(R.string.delete_user_confirmation, user.username),
+            onDismiss = { userToDelete = null },
+            onConfirm = {
+                viewModel.deleteUser(user.uid)
+                userToDelete = null
+            }
+        )
+    }
+
+    productToEdit?.let { product ->
+        EditProductDialog(
+            product = product,
+            onDismiss = { productToEdit = null },
+            onConfirm = { name, brand, category ->
+                viewModel.updateProduct(product.upc, name, brand, category)
+                productToEdit = null
+            }
+        )
+    }
+
+    productToDelete?.let { product ->
+        DeleteConfirmationDialog(
+            title = stringResource(R.string.delete_product),
+            message = stringResource(R.string.delete_product_confirmation, product.name),
+            onDismiss = { productToDelete = null },
+            onConfirm = {
+                viewModel.deleteProduct(product.upc)
+                productToDelete = null
+            }
+        )
+    }
+
+    if (showAddCategoryDialog) {
+        AddCategoryDialog(
+            onDismiss = { showAddCategoryDialog = false },
+            onConfirm = { name, order ->
+                categoryViewModel.createCategory(name, order)
+                showAddCategoryDialog = false
+            }
+        )
+    }
+
+    categoryToEdit?.let { category ->
+        EditCategoryDialog(
+            category = category,
+            onDismiss = { categoryToEdit = null },
+            onConfirm = { name, order ->
+                categoryViewModel.updateCategory(category.id, name, order)
+                categoryToEdit = null
+            }
+        )
+    }
+
+    categoryToDelete?.let { category ->
+        DeleteConfirmationDialog(
+            title = stringResource(R.string.delete_category),
+            message = stringResource(R.string.delete_category_confirmation, category.name),
+            onDismiss = { categoryToDelete = null },
+            onConfirm = {
+                categoryViewModel.deleteCategory(category.id)
+                categoryToDelete = null
+            }
+        )
+    }
+}
+
+/**
+ * Stateless content composable for preview support
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminPanelScreenContent(
+    uiState: AdminPanelViewModel.AdminUiState,
+    categoryState: CategoryViewModel.CategoryUiState,
+    onNavigateBack: () -> Unit,
+    onRefresh: () -> Unit,
+    onEditUser: (AdminUserDisplay) -> Unit,
+    onDeleteUser: (AdminUserDisplay) -> Unit,
+    onEditProduct: (Product) -> Unit,
+    onDeleteProduct: (Product) -> Unit,
+    onAddCategory: () -> Unit,
+    onEditCategory: (Category) -> Unit,
+    onDeleteCategory: (Category) -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -60,7 +175,7 @@ fun AdminPanelScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { viewModel.refresh() }) {
+                    IconButton(onClick = onRefresh) {
                         Icon(Icons.Default.Refresh, contentDescription = stringResource(R.string.refresh))
                     }
                 },
@@ -177,8 +292,8 @@ fun AdminPanelScreen(
                         items(state.users.take(10)) { user ->
                             UserListItem(
                                 user = user,
-                                onEdit = { userToEdit = user },
-                                onDelete = { userToDelete = user }
+                                onEdit = { onEditUser(user) },
+                                onDelete = { onDeleteUser(user) }
                             )
                         }
 
@@ -196,8 +311,8 @@ fun AdminPanelScreen(
                         items(state.products.take(10)) { product ->
                             ProductListItem(
                                 product = product,
-                                onEdit = { productToEdit = product },
-                                onDelete = { productToDelete = product }
+                                onEdit = { onEditProduct(product) },
+                                onDelete = { onDeleteProduct(product) }
                             )
                         }
 
@@ -214,8 +329,11 @@ fun AdminPanelScreen(
                                     fontWeight = FontWeight.Bold,
                                     color = FridgyDarkBlue
                                 )
-                                IconButton(onClick = { showAddCategoryDialog = true }) {
-                                    Icon(Icons.Default.Add, contentDescription = stringResource(R.string.cd_add_category))
+                                IconButton(onClick = onAddCategory) {
+                                    Icon(
+                                        Icons.Default.Add,
+                                        contentDescription = stringResource(R.string.cd_add_category)
+                                    )
                                 }
                             }
                         }
@@ -225,8 +343,8 @@ fun AdminPanelScreen(
                                 items(catState.categories) { category ->
                                     CategoryListItem(
                                         category = category,
-                                        onEdit = { categoryToEdit = category },
-                                        onDelete = { categoryToDelete = category }
+                                        onEdit = { onEditCategory(category) },
+                                        onDelete = { onDeleteCategory(category) }
                                     )
                                 }
                             }
@@ -255,90 +373,132 @@ fun AdminPanelScreen(
             }
         }
     }
+}
 
-    // User Edit Dialog
-    userToEdit?.let { user ->
-        EditUserDialog(
-            user = user,
-            onDismiss = { userToEdit = null },
-            onConfirm = { username, email ->
-                viewModel.updateUser(user.uid, username, email)
-                userToEdit = null
-            }
+@Preview(showBackground = true, name="Success State")
+@Composable
+fun AdminPanelScreenPreview() {
+    FridgyTheme {
+        AdminPanelScreenContent(
+            uiState =
+                AdminPanelViewModel.AdminUiState.Success(
+                    totalUsers = 156,
+                    totalProducts = 327,
+                    totalFridges = 48,
+                    users =
+                        listOf(
+                            AdminUserDisplay(
+                                uid = "user1",
+                                username = "johndoe",
+                                email = "john@example.com",
+                                createdAt = System.currentTimeMillis()
+                            ),
+                            AdminUserDisplay(
+                                uid = "user2",
+                                username = "janedoe",
+                                email = "jane@example.com",
+                                createdAt = System.currentTimeMillis()
+                            )
+                        ),
+                    products =
+                        listOf(
+                            Product(
+                                upc = "123456789",
+                                name = "Organic Milk",
+                                brand = "Organic Valley",
+                                category = "Dairy",
+                                imageUrl = "",
+                                lastUpdated = System.currentTimeMillis()
+                            ),
+                            Product(
+                                upc = "987654321",
+                                name = "Whole Wheat Bread",
+                                brand = "Nature's Own",
+                                category = "Bakery",
+                                imageUrl = "",
+                                lastUpdated = System.currentTimeMillis()
+                            )
+                        ),
+                    fridges = emptyList()
+                ),
+            categoryState =
+                CategoryViewModel.CategoryUiState.Success(
+                    categories =
+                        listOf(
+                            Category(id = "1", name = "Dairy", order = 1),
+                            Category(id = "2", name = "Bakery", order = 2),
+                            Category(id = "3", name = "Produce", order = 3)
+                        )
+                ),
+            onNavigateBack = {},
+            onRefresh = {},
+            onEditUser = {},
+            onDeleteUser = {},
+            onEditProduct = {},
+            onDeleteProduct = {},
+            onAddCategory = {},
+            onEditCategory = {},
+            onDeleteCategory = {}
         )
     }
+}
 
-    // User Delete Confirmation Dialog
-    userToDelete?.let { user ->
-        DeleteConfirmationDialog(
-            title = stringResource(R.string.delete_user),
-            message = stringResource(R.string.delete_user_confirmation, user.username),
-            onDismiss = { userToDelete = null },
-            onConfirm = {
-                viewModel.deleteUser(user.uid)
-                userToDelete = null
-            }
+@Preview(showBackground = true, name = "Loading State")
+@Composable
+fun AdminPanelScreenLoadingPreview() {
+    FridgyTheme {
+        AdminPanelScreenContent(
+            uiState = AdminPanelViewModel.AdminUiState.Loading,
+            categoryState = CategoryViewModel.CategoryUiState.Loading,
+            onNavigateBack = {},
+            onRefresh = {},
+            onEditUser = {},
+            onDeleteUser = {},
+            onEditProduct = {},
+            onDeleteProduct = {},
+            onAddCategory = {},
+            onEditCategory = {},
+            onDeleteCategory = {}
         )
     }
+}
 
-    // Product Edit Dialog
-    productToEdit?.let { product ->
-        EditProductDialog(
-            product = product,
-            onDismiss = { productToEdit = null },
-            onConfirm = { name, brand, category ->
-                viewModel.updateProduct(product.upc, name, brand, category)
-                productToEdit = null
-            }
+@Preview(showBackground = true, name = "Unauthorized State")
+@Composable
+fun AdminPanelScreenUnauthorizedPreview() {
+    FridgyTheme {
+        AdminPanelScreenContent(
+            uiState = AdminPanelViewModel.AdminUiState.Unauthorized,
+            categoryState = CategoryViewModel.CategoryUiState.Loading,
+            onNavigateBack = {},
+            onRefresh = {},
+            onEditUser = {},
+            onDeleteUser = {},
+            onEditProduct = {},
+            onDeleteProduct = {},
+            onAddCategory = {},
+            onEditCategory = {},
+            onDeleteCategory = {}
         )
     }
+}
 
-    // Product Delete Confirmation Dialog
-    productToDelete?.let { product ->
-        DeleteConfirmationDialog(
-            title = stringResource(R.string.delete_product),
-            message = stringResource(R.string.delete_product_confirmation, product.name),
-            onDismiss = { productToDelete = null },
-            onConfirm = {
-                viewModel.deleteProduct(product.upc)
-                productToDelete = null
-            }
-        )
-    }
-
-    // Add Category Dialog
-    if (showAddCategoryDialog) {
-        AddCategoryDialog(
-            onDismiss = { showAddCategoryDialog = false },
-            onConfirm = { name, order ->
-                categoryViewModel.createCategory(name, order)
-                showAddCategoryDialog = false
-            }
-        )
-    }
-
-    // Category Edit Dialog
-    categoryToEdit?.let { category ->
-        EditCategoryDialog(
-            category = category,
-            onDismiss = { categoryToEdit = null },
-            onConfirm = { name, order ->
-                categoryViewModel.updateCategory(category.id, name, order)
-                categoryToEdit = null
-            }
-        )
-    }
-
-    // Category Delete Confirmation Dialog
-    categoryToDelete?.let { category ->
-        DeleteConfirmationDialog(
-            title = stringResource(R.string.delete_category),
-            message = stringResource(R.string.delete_category_confirmation, category.name),
-            onDismiss = { categoryToDelete = null },
-            onConfirm = {
-                categoryViewModel.deleteCategory(category.id)
-                categoryToDelete = null
-            }
+@Preview(showBackground = true, name = "Error State")
+@Composable
+fun AdminPanelScreenErrorPreview() {
+    FridgyTheme {
+        AdminPanelScreenContent(
+            uiState = AdminPanelViewModel.AdminUiState.Error("Failed to load admin data. Please try again."),
+            categoryState = CategoryViewModel.CategoryUiState.Error("Failed to load categories"),
+            onNavigateBack = {},
+            onRefresh = {},
+            onEditUser = {},
+            onDeleteUser = {},
+            onEditProduct = {},
+            onDeleteProduct = {},
+            onAddCategory = {},
+            onEditCategory = {},
+            onDeleteCategory = {}
         )
     }
 }

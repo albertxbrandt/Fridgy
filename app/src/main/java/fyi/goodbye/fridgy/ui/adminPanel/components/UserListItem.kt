@@ -76,14 +76,15 @@ fun UserListItem(
 
 @Preview
 @Composable
-fun UserListItemPreview () {
+fun UserListItemPreview() {
     UserListItem(
-        user = AdminUserDisplay(
-            uid = "11",
-            username = "john_doe",
-            email = "john_doe@example.com",
-            createdAt = 1767421399
-        ),
+        user =
+            AdminUserDisplay(
+                uid = "11",
+                username = "john_doe",
+                email = "john_doe@example.com",
+                createdAt = 1767421399
+            ),
         onEdit = {},
         onDelete = {}
     )

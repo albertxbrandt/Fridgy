@@ -77,11 +77,12 @@ fun CategoryListItem(
 @Preview
 @Composable
 fun CategoryListItemPreview() {
-    val sampleCategory = Category(
-        id = "1",
-        name = "Fruits",
-        order = 1
-    )
+    val sampleCategory =
+        Category(
+            id = "1",
+            name = "Fruits",
+            order = 1
+        )
     CategoryListItem(
         category = sampleCategory,
         onEdit = {},

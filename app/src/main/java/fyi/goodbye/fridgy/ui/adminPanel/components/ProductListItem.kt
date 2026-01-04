@@ -78,14 +78,15 @@ fun ProductListItem(
 @Composable
 fun PreviewProductListItem() {
     ProductListItem(
-        product = Product(
-            upc = "1",
-            name = "Milk",
-            brand = "DairyBest",
-            imageUrl = "www.google.com",
-            category = "Dairy",
-            lastUpdated = 12302130981
-        ),
+        product =
+            Product(
+                upc = "1",
+                name = "Milk",
+                brand = "DairyBest",
+                imageUrl = "www.google.com",
+                category = "Dairy",
+                lastUpdated = 12302130981
+            ),
         onEdit = {},
         onDelete = {}
     )

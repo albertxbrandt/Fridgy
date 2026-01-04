@@ -23,17 +23,19 @@ class CategoryViewModel(
     private val categoryRepository: CategoryRepository = CategoryRepository()
 ) : AndroidViewModel(application) {
     companion object {
-        fun provideFactory(): ViewModelProvider.Factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : androidx.lifecycle.ViewModel> create(
-                modelClass: Class<T>,
-                extras: CreationExtras
-            ): T {
-                val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
-                return CategoryViewModel(application) as T
+        fun provideFactory(): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
+                @Suppress("UNCHECKED_CAST")
+                override fun <T : androidx.lifecycle.ViewModel> create(
+                    modelClass: Class<T>,
+                    extras: CreationExtras
+                ): T {
+                    val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
+                    return CategoryViewModel(application) as T
+                }
             }
-        }
     }
+
     sealed interface CategoryUiState {
         data object Loading : CategoryUiState
 

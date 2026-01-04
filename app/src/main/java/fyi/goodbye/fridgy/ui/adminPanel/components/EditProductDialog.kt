@@ -67,12 +67,13 @@ fun EditProductDialog(
 @Preview
 @Composable
 fun EditProductDialogPreview() {
-    val sampleProduct = Product(
-        upc = "1",
-        name = "Sample Product",
-        brand = "Sample Brand",
-        category = "Sample Category"
-    )
+    val sampleProduct =
+        Product(
+            upc = "1",
+            name = "Sample Product",
+            brand = "Sample Brand",
+            category = "Sample Category"
+        )
     EditProductDialog(
         product = sampleProduct,
         onDismiss = {},

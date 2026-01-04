@@ -59,12 +59,13 @@ fun EditUserDialog(
 @Preview
 @Composable
 fun EditUserDialogPreview() {
-    val sampleUser = AdminUserDisplay(
-        uid = "1",
-        username = "johndoe",
-        email = "johndoe@example.com",
-        createdAt = 1767421399
-    )
+    val sampleUser =
+        AdminUserDisplay(
+            uid = "1",
+            username = "johndoe",
+            email = "johndoe@example.com",
+            createdAt = 1767421399
+        )
     EditUserDialog(
         user = sampleUser,
         onDismiss = {},
