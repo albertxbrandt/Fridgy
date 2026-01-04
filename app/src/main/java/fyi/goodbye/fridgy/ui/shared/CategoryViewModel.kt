@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.repositories.CategoryRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,12 +48,17 @@ class CategoryViewModel(
     private val _uiState = MutableStateFlow<CategoryUiState>(CategoryUiState.Loading)
     val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
+    // Job reference to cancel previous collector if loadCategories() is called again
+    private var categoriesJob: Job? = null
+
     init {
         loadCategories()
     }
 
     private fun loadCategories() {
-        viewModelScope.launch {
+        // Cancel any existing collection to prevent multiple collectors
+        categoriesJob?.cancel()
+        categoriesJob = viewModelScope.launch {
             try {
                 categoryRepository.getCategories().collect { categories ->
                     _uiState.value = CategoryUiState.Success(categories)
@@ -65,10 +71,13 @@ class CategoryViewModel(
 
     /**
      * Creates a new category.
+     *
+     * @param name The display name for the category.
+     * @param order The sort order (defaults to [Category.DEFAULT_ORDER]).
      */
     fun createCategory(
         name: String,
-        order: Int = 999
+        order: Int = Category.DEFAULT_ORDER
     ) {
         viewModelScope.launch {
             try {

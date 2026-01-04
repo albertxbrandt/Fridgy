@@ -63,18 +63,16 @@ class AdminRepository {
         return try {
             val usersSnapshot = firestore.collection("users").get().await()
             val profilesSnapshot = firestore.collection("userProfiles").get().await()
-
+            
             // Create maps for easy lookup
-            val users =
-                usersSnapshot.documents.mapNotNull { doc ->
-                    doc.toObject(User::class.java)?.copy(uid = doc.id)
-                }.associateBy { it.uid }
-
-            val profiles =
-                profilesSnapshot.documents.mapNotNull { doc ->
-                    doc.toObject(UserProfile::class.java)?.copy(uid = doc.id)
-                }.associateBy { it.uid }
-
+            val users = usersSnapshot.documents.mapNotNull { doc ->
+                doc.toObject(User::class.java)?.copy(uid = doc.id)
+            }.associateBy { it.uid }
+            
+            val profiles = profilesSnapshot.documents.mapNotNull { doc ->
+                doc.toObject(UserProfile::class.java)?.copy(uid = doc.id)
+            }.associateBy { it.uid }
+            
             // Combine data
             users.map { (uid, user) ->
                 AdminUserDisplay(
@@ -128,7 +126,7 @@ class AdminRepository {
         return try {
             // Delete user document (private data)
             firestore.collection("users").document(userId).delete().await()
-
+            
             // Delete user profile (public data)
             firestore.collection("userProfiles").document(userId).delete().await()
 
@@ -156,11 +154,11 @@ class AdminRepository {
             // Update private data (email)
             val userUpdates = mapOf("email" to email)
             firestore.collection("users").document(userId).update(userUpdates).await()
-
+            
             // Update public data (username)
             val profileUpdates = mapOf("username" to username)
             firestore.collection("userProfiles").document(userId).update(profileUpdates).await()
-
+            
             true
         } catch (e: Exception) {
             Log.e("AdminRepo", "Error updating user: ${e.message}")
@@ -185,7 +183,6 @@ class AdminRepository {
                 Log.w("AdminRepo", "Could not delete product image: ${e.message}")
             }
 
-            firestore.collection("products").document(upc).delete().await()
             true
         } catch (e: Exception) {
             Log.e("AdminRepo", "Error deleting product: ${e.message}")

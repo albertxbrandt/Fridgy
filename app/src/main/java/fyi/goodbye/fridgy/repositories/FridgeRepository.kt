@@ -297,7 +297,7 @@ class FridgeRepository {
                     currentUser.uid,
                     "lastUpdatedAt",
                     System.currentTimeMillis()
-                )
+                ).await()
             } else {
                 val itemToAdd =
                     Item(
@@ -308,7 +308,7 @@ class FridgeRepository {
                         lastUpdatedBy = currentUser.uid,
                         lastUpdatedAt = System.currentTimeMillis()
                     )
-                itemRef.set(itemToAdd)
+                itemRef.set(itemToAdd).await()
             }
             Log.d("FridgeRepo", "Item $upc locally added to fridge $fridgeId")
         } catch (e: Exception) {
@@ -350,7 +350,7 @@ class FridgeRepository {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
         if (newQuantity <= 0) {
             firestore.collection("fridges").document(fridgeId)
-                .collection("items").document(itemId).delete()
+                .collection("items").document(itemId).delete().await()
         } else {
             firestore.collection("fridges").document(fridgeId)
                 .collection("items").document(itemId)
@@ -361,7 +361,7 @@ class FridgeRepository {
                     currentUser.uid,
                     "lastUpdatedAt",
                     System.currentTimeMillis()
-                )
+                ).await()
         }
     }
 

@@ -50,10 +50,10 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
     var isLoading by mutableStateOf(false)
         private set
 
-    private val signupSucess = MutableSharedFlow<Boolean>()
+    private val _signupSuccess = MutableSharedFlow<Boolean>()
 
     /** A stream of success events used to trigger navigation after a successful signup. */
-    val signupSuccess = signupSucess.asSharedFlow()
+    val signupSuccess = _signupSuccess.asSharedFlow()
 
     /** Updates the email state and clears any existing error message. */
     fun onEmailChange(newEmail: String) {
@@ -154,7 +154,7 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
                     firestore.collection("users").document(uid).set(userMap).await()
                     firestore.collection("userProfiles").document(uid).set(profileMap).await()
 
-                    signupSucess.emit(true)
+                    _signupSuccess.emit(true)
                 }
             } catch (e: Exception) {
                 Log.w("SignupViewModel", "createUserWithEmail:failure", e)

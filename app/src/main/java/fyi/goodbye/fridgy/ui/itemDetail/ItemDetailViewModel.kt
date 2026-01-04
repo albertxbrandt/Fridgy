@@ -1,6 +1,7 @@
 package fyi.goodbye.fridgy.ui.itemDetail
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -11,6 +12,7 @@ import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -29,12 +31,17 @@ class ItemDetailViewModel(
     private val _userNames = MutableStateFlow<Map<String, String>>(emptyMap())
     val userNames: StateFlow<Map<String, String>> = _userNames.asStateFlow()
 
+    // Job reference to cancel previous collector if loadDetails() is called again
+    private var itemsJob: Job? = null
+
     init {
         loadDetails()
     }
 
     private fun loadDetails() {
-        viewModelScope.launch {
+        // Cancel any existing collection to prevent multiple collectors
+        itemsJob?.cancel()
+        itemsJob = viewModelScope.launch {
             _uiState.value = ItemDetailUiState.Loading
             try {
                 fridgeRepository.getItemsForFridge(fridgeId).collect { items ->
@@ -77,7 +84,7 @@ class ItemDetailViewModel(
             try {
                 fridgeRepository.updateItemQuantity(fridgeId, itemId, newQuantity)
             } catch (e: Exception) {
-                // Handle error
+                Log.e("ItemDetailVM", "Failed to update quantity: ${e.message}")
             }
         }
     }

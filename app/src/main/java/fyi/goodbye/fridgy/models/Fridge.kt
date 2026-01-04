@@ -1,6 +1,8 @@
 package fyi.goodbye.fridgy.models
 
+import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId
+import kotlinx.parcelize.Parcelize
 
 /**
  * Data model representing a physical fridge shared among users.
@@ -16,14 +18,13 @@ import com.google.firebase.firestore.DocumentId
  * @property pendingInvites A list of User IDs who have been invited but not yet accepted.
  * @property createdAt The timestamp (ms) when the fridge was created.
  */
+@Parcelize
 data class Fridge(
     @DocumentId
     val id: String = "",
     val name: String = "",
     val createdBy: String = "",
-    // List of user IDs
     val members: List<String> = listOf(),
-    // List of user IDs
     val pendingInvites: List<String> = listOf(),
     val createdAt: Long = System.currentTimeMillis()
-)
+) : Parcelable

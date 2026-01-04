@@ -1,6 +1,8 @@
 package fyi.goodbye.fridgy.models
 
+import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId
+import kotlinx.parcelize.Parcelize
 
 /**
  * Data model representing a global product entry in the crowdsourced database.
@@ -12,6 +14,7 @@ import com.google.firebase.firestore.DocumentId
  * @property category The food category (e.g., Dairy, Meat, Frozen).
  * @property lastUpdated Timestamp of the last time this product info was modified.
  */
+@Parcelize
 data class Product(
     @DocumentId
     val upc: String = "",
@@ -20,4 +23,4 @@ data class Product(
     val imageUrl: String? = null,
     val category: String = "Other",
     val lastUpdated: Long = System.currentTimeMillis()
-)
+) : Parcelable

@@ -1,6 +1,8 @@
 package fyi.goodbye.fridgy.models
 
+import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId
+import kotlinx.parcelize.Parcelize
 
 /**
  * Represents a food category in the Fridgy application.
@@ -12,10 +14,16 @@ import com.google.firebase.firestore.DocumentId
  * @property order The sort order for displaying categories (lower numbers appear first).
  * @property createdAt The timestamp when this category was created.
  */
+@Parcelize
 data class Category(
     @DocumentId
     val id: String = "",
     val name: String = "",
-    val order: Int = 999,
+    val order: Int = DEFAULT_ORDER,
     val createdAt: Long = System.currentTimeMillis()
-)
+) : Parcelable {
+    companion object {
+        /** Default sort order for new categories. */
+        const val DEFAULT_ORDER = 999
+    }
+}

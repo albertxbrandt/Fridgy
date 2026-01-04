@@ -16,6 +16,9 @@ import java.io.InputStream
 
 /**
  * Repository for managing a private, crowdsourced barcode database.
+ * 
+ * @param context Application context for file operations. Must be Application context
+ *                to avoid memory leaks. Pass null for read-only operations.
  */
 class ProductRepository(private val context: Context? = null) {
     private val firestore = FirebaseFirestore.getInstance()

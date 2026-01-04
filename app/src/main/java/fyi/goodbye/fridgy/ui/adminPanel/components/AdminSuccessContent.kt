@@ -1,12 +1,10 @@
 package fyi.goodbye.fridgy.ui.adminPanel.components
 
-import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -55,15 +53,6 @@ fun AdminSuccessContent(
     onEditCategory: (Category) -> Unit,
     onDeleteCategory: (Category) -> Unit
 ) {
-    DisposableEffect(Unit) {
-        Log.d("AdminSuccessContent", "DisposableEffect - Function ENTERED")
-        onDispose {
-            Log.d("AdminSuccessContent", "DisposableEffect - Function DISPOSED")
-        }
-    }
-    
-    Log.d("AdminSuccessContent", "Rendering with ${users.size} users, ${products.size} products, categoryState: ${categoryState::class.simpleName}")
-    
     LazyColumn(
         modifier =
             Modifier
@@ -73,7 +62,6 @@ fun AdminSuccessContent(
     ) {
         // Statistics Cards
         item(key = "statistics") {
-            Log.d("AdminSuccessContent", "Rendering SystemStatisticsSection")
             SystemStatisticsSection(
                 totalUsers = totalUsers,
                 totalProducts = totalProducts,
@@ -83,36 +71,30 @@ fun AdminSuccessContent(
 
         // Users Section
         item(key = "users") {
-            Log.d("AdminSuccessContent", "Rendering RecentUsersSection with ${users.size} users")
             RecentUsersSection(
                 users = users,
                 onEditUser = onEditUser,
                 onDeleteUser = onDeleteUser
             )
-            Log.d("AdminSuccessContent", "Completed RecentUsersSection")
         }
 
         // Products Section
         item(key = "products") {
-            Log.d("AdminSuccessContent", "Rendering RecentProductsSection with ${products.size} products")
             RecentProductsSection(
                 products = products,
                 onEditProduct = onEditProduct,
                 onDeleteProduct = onDeleteProduct
             )
-            Log.d("AdminSuccessContent", "Completed RecentProductsSection")
         }
 
         // Categories Section
         item(key = "categories") {
-            Log.d("AdminSuccessContent", "Rendering CategoriesSection with categoryState: ${categoryState::class.simpleName}")
             CategoriesSection(
                 categoryState = categoryState,
                 onAddCategory = onAddCategory,
                 onEditCategory = onEditCategory,
                 onDeleteCategory = onDeleteCategory
             )
-            Log.d("AdminSuccessContent", "Completed CategoriesSection")
         }
     }
 }

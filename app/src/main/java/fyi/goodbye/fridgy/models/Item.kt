@@ -1,6 +1,8 @@
 package fyi.goodbye.fridgy.models
 
+import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId
+import kotlinx.parcelize.Parcelize
 
 /**
  * Data model representing a grocery item stored within a specific fridge.
@@ -14,6 +16,7 @@ import com.google.firebase.firestore.DocumentId
  * @property lastUpdatedBy The User ID of the person who last modified this item.
  * @property lastUpdatedAt The timestamp (ms) when the item was last modified.
  */
+@Parcelize
 data class Item(
     @DocumentId
     val upc: String = "",
@@ -22,4 +25,4 @@ data class Item(
     val addedAt: Long = System.currentTimeMillis(),
     val lastUpdatedBy: String = "",
     val lastUpdatedAt: Long = System.currentTimeMillis()
-)
+) : Parcelable

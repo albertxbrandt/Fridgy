@@ -35,27 +35,17 @@ class AdminPanelViewModel(
     private fun loadAdminData() {
         viewModelScope.launch {
             try {
-                Log.d("AdminPanelViewModel", "Starting to load admin data")
                 _uiState.value = AdminUiState.Loading
 
                 val isAdmin = adminRepository.isCurrentUserAdmin()
-                Log.d("AdminPanelViewModel", "User admin status: $isAdmin")
                 if (!isAdmin) {
                     _uiState.value = AdminUiState.Unauthorized
                     return@launch
                 }
 
-                Log.d("AdminPanelViewModel", "Fetching users...")
                 val users = adminRepository.getAllUsers()
-                Log.d("AdminPanelViewModel", "Fetched ${users.size} users")
-                
-                Log.d("AdminPanelViewModel", "Fetching products...")
                 val products = adminRepository.getAllProducts()
-                Log.d("AdminPanelViewModel", "Fetched ${products.size} products")
-                
-                Log.d("AdminPanelViewModel", "Fetching fridges...")
                 val fridges = adminRepository.getAllFridges()
-                Log.d("AdminPanelViewModel", "Fetched ${fridges.size} fridges")
 
                 // Ensure we're not setting success state with all empty data
                 // which could indicate a loading failure
@@ -65,7 +55,6 @@ class AdminPanelViewModel(
                     return@launch
                 }
 
-                Log.d("AdminPanelViewModel", "Successfully loaded admin data")
                 _uiState.value =
                     AdminUiState.Success(
                         totalUsers = users.size,
