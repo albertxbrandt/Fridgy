@@ -108,6 +108,7 @@
     <string name="cd_add_category">Add Category</string>
     <string name="cd_edit_user">Edit user</string>
     <string name="cd_delete_user">Delete user</string>
+    <string name="cd_edit">Edit</string>
     <string name="cd_edit_product">Edit product</string>
     <string name="cd_delete_product">Delete product</string>
     <string name="cd_edit_category">Edit Category</string>

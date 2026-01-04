@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.adminPanel.components
+package fyi.goodbye.fridgy.ui.adminPanel.components.items
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -16,6 +16,17 @@ import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
+/**
+ * A card component for displaying a single statistic in the admin panel.
+ *
+ * Displays an icon, numeric value, and label in a visually prominent card
+ * with the app's primary color scheme.
+ *
+ * @param title The label describing the statistic (e.g., "Total Users")
+ * @param value The numeric value to display (e.g., "1,234")
+ * @param icon The icon representing this statistic type
+ * @param modifier Optional modifier for the card container
+ */
 @Composable
 fun StatCard(
     title: String,

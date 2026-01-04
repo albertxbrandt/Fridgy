@@ -14,7 +14,9 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.ui.adminPanel.components.*
+import fyi.goodbye.fridgy.ui.adminPanel.components.AdminSuccessContent
+import fyi.goodbye.fridgy.ui.adminPanel.components.UnauthorizedAccessContent
+import fyi.goodbye.fridgy.ui.adminPanel.components.dialogs.*
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
@@ -84,8 +86,16 @@ fun AdminPanelScreen(
     }
 
     productToEdit?.let { product ->
+        // Get categories from categoryState
+        val categories =
+            when (val state = categoryState) {
+                is CategoryViewModel.CategoryUiState.Success -> state.categories
+                else -> emptyList()
+            }
+
         EditProductDialog(
             product = product,
+            categories = categories,
             onDismiss = { productToEdit = null },
             onConfirm = { name, brand, category ->
                 viewModel.updateProduct(product.upc, name, brand, category)
@@ -226,7 +236,7 @@ fun AdminPanelScreenContent(
     }
 }
 
-@Preview(showBackground = true, name="Success State")
+@Preview(showBackground = true, name = "Success State")
 @Composable
 fun AdminPanelScreenPreview() {
     FridgyTheme {

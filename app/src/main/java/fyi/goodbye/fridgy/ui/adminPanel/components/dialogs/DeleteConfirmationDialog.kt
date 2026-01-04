@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.adminPanel.components
+package fyi.goodbye.fridgy.ui.adminPanel.components.dialogs
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -6,6 +6,17 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import fyi.goodbye.fridgy.R
 
+/**
+ * A reusable confirmation dialog for delete operations in the admin panel.
+ *
+ * Displays a customizable title and message with Cancel and Delete buttons.
+ * The Delete button is styled with error colors to indicate a destructive action.
+ *
+ * @param title The dialog title (e.g., "Delete User")
+ * @param message The confirmation message explaining what will be deleted
+ * @param onDismiss Callback invoked when the dialog is dismissed or cancelled
+ * @param onConfirm Callback invoked when the delete action is confirmed
+ */
 @Composable
 fun DeleteConfirmationDialog(
     title: String,

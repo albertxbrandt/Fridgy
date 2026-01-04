@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.adminPanel.components
+package fyi.goodbye.fridgy.ui.adminPanel.components.sections
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,9 +23,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
+import fyi.goodbye.fridgy.ui.adminPanel.components.items.CategoryListItem
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 
+/**
+ * Section for managing product categories in the admin panel.
+ *
+ * Displays the list of categories with their sort order, and provides
+ * add, edit, and delete functionality. Shows loading/error states based
+ * on the category UI state.
+ *
+ * @param categoryState The current state of category loading (Loading, Success, or Error)
+ * @param onAddCategory Callback invoked when the add category button is tapped
+ * @param onEditCategory Callback invoked when edit is tapped for a category
+ * @param onDeleteCategory Callback invoked when delete is tapped for a category
+ */
 @Composable
 fun CategoriesSection(
     categoryState: CategoryViewModel.CategoryUiState,
@@ -88,13 +101,15 @@ fun CategoriesSection(
 @Composable
 fun CategoriesSectionPreview() {
     CategoriesSection(
-        categoryState = CategoryViewModel.CategoryUiState.Success(
-            categories = listOf(
-                Category(id = "1", name = "Dairy", order = 1),
-                Category(id = "2", name = "Vegetables", order = 2),
-                Category(id = "3", name = "Fruits", order = 3)
-            )
-        ),
+        categoryState =
+            CategoryViewModel.CategoryUiState.Success(
+                categories =
+                    listOf(
+                        Category(id = "1", name = "Dairy", order = 1),
+                        Category(id = "2", name = "Vegetables", order = 2),
+                        Category(id = "3", name = "Fruits", order = 3)
+                    )
+            ),
         onAddCategory = {},
         onEditCategory = {},
         onDeleteCategory = {}

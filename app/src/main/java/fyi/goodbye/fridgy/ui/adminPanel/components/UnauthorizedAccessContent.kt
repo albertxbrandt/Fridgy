@@ -22,6 +22,13 @@ import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 
+/**
+ * Content displayed when a non-admin user attempts to access the admin panel.
+ *
+ * Shows a lock icon with an unauthorized access message. This is a fallback
+ * state that shouldn't normally be seen since the admin panel button is only
+ * visible to admin users.
+ */
 @Composable
 fun UnauthorizedAccessContent() {
     Box(

@@ -28,6 +28,29 @@ import fyi.goodbye.fridgy.ui.fridgeSettings.FridgeSettingsScreen
 import fyi.goodbye.fridgy.ui.itemDetail.ItemDetailScreen
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 
+/**
+ * Main entry point for the Fridgy application.
+ *
+ * This activity handles:
+ * - Firebase initialization (Auth, Firestore, App Check)
+ * - Navigation setup using Jetpack Compose Navigation
+ * - App Check configuration (Debug provider for development, Play Integrity for production)
+ *
+ * ## Navigation Routes
+ * - `login` / `signup` - Authentication screens
+ * - `fridgeList` - Main screen showing user's fridges and invitations
+ * - `fridgeInventory/{fridgeId}` - Inventory screen for a specific fridge
+ * - `itemDetail/{fridgeId}/{itemId}` - Detail view for a specific item
+ * - `barcodeScanner/{fridgeId}` - Barcode scanner for adding items
+ * - `fridgeSettings/{fridgeId}` - Settings/member management for a fridge
+ * - `adminPanel` - Admin dashboard (admin users only)
+ *
+ * ## App Check Setup
+ * - Debug builds use `DebugAppCheckProviderFactory` - check logcat for debug token
+ * - Production builds use `PlayIntegrityAppCheckProviderFactory`
+ *
+ * @see FridgyTheme for the app's Material 3 theme configuration
+ */
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

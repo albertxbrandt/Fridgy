@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.adminPanel.components
+package fyi.goodbye.fridgy.ui.adminPanel.components.sections
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -19,8 +19,19 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.ui.adminPanel.components.items.StatCard
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 
+/**
+ * Section displaying system-wide statistics in the admin panel.
+ *
+ * Shows three stat cards for total users, products, and fridges in the system.
+ * This provides a quick overview of the app's usage metrics.
+ *
+ * @param totalUsers The total number of registered users
+ * @param totalProducts The total number of products in the crowdsourced database
+ * @param totalFridges The total number of fridges created across all users
+ */
 @Composable
 fun SystemStatisticsSection(
     totalUsers: Int,

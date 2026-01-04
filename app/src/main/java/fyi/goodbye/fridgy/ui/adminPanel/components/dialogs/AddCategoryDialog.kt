@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.adminPanel.components
+package fyi.goodbye.fridgy.ui.adminPanel.components.dialogs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -10,6 +10,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 
+/**
+ * Dialog for adding a new product category in the admin panel.
+ *
+ * Provides text fields for entering the category name and sort order.
+ * Lower sort order numbers appear first in the category list.
+ *
+ * @param onDismiss Callback invoked when the dialog is dismissed
+ * @param onConfirm Callback invoked with the category name and order when confirmed
+ */
 @Composable
 fun AddCategoryDialog(
     onDismiss: () -> Unit,

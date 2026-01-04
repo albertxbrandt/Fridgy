@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.adminPanel.components
+package fyi.goodbye.fridgy.ui.adminPanel.components.dialogs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -10,6 +10,16 @@ import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 
+/**
+ * Dialog for editing user information in the admin panel.
+ *
+ * Pre-populates fields with the current username and email.
+ * Note: This only updates the user's profile data, not their Firebase Auth credentials.
+ *
+ * @param user The user being edited (provides initial values)
+ * @param onDismiss Callback invoked when the dialog is dismissed
+ * @param onConfirm Callback invoked with updated username and email when saved
+ */
 @Composable
 fun EditUserDialog(
     user: AdminUserDisplay,

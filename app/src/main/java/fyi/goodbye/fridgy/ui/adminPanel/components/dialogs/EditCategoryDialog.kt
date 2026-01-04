@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.ui.adminPanel.components
+package fyi.goodbye.fridgy.ui.adminPanel.components.dialogs
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -11,6 +11,16 @@ import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
 
+/**
+ * Dialog for editing an existing product category in the admin panel.
+ *
+ * Pre-populates fields with the current category name and sort order.
+ * Lower sort order numbers appear first in the category list.
+ *
+ * @param category The category being edited (provides initial values)
+ * @param onDismiss Callback invoked when the dialog is dismissed
+ * @param onConfirm Callback invoked with the updated name and order when saved
+ */
 @Composable
 fun EditCategoryDialog(
     category: Category,
