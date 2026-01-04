@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
+import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
 @Composable
 fun ProductListItem(
@@ -28,7 +29,7 @@ fun ProductListItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = FridgyWhite)
     ) {
         Row(
             modifier =

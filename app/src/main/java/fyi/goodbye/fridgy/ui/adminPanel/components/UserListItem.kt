@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
+import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
 @Composable
 fun UserListItem(
@@ -28,7 +29,7 @@ fun UserListItem(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+        colors = CardDefaults.cardColors(containerColor = FridgyWhite)
     ) {
         Row(
             modifier =

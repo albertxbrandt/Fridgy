@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Fridgy</string>
-    
+
     <!-- Auth Screens -->
     <string name="welcome_to_fridgy">Welcome to Fridgy!</string>
     <string name="manage_fridge_effortlessly">Manage your fridge, effortlessly.</string>
@@ -13,7 +13,7 @@
     <string name="sign_up">Sign Up</string>
     <string name="dont_have_account">Don\'t have an account? Sign Up</string>
     <string name="already_have_account">Already have an account? Log In</string>
-    
+
     <!-- Fridge List Screen -->
     <string name="my_fridges">My Fridges</string>
     <string name="no_fridges_yet">No fridges yet! Click the \'+\' button to create one.</string>
@@ -28,7 +28,7 @@
     <string name="decline">Decline</string>
     <string name="accept">Accept</string>
     <string name="close">Close</string>
-    
+
     <!-- Fridge Inventory Screen -->
     <string name="error_loading_fridge">Error Loading Fridge</string>
     <string name="loading_fridge">Loading Fridge…</string>
@@ -40,7 +40,7 @@
     <string name="brand_optional">Brand (Optional)</string>
     <string name="category">Category</string>
     <string name="save_and_add">Save &amp; Add</string>
-    
+
     <!-- Categories -->
     <string name="category_dairy">Dairy</string>
     <string name="category_meat">Meat</string>
@@ -49,7 +49,7 @@
     <string name="category_frozen">Frozen</string>
     <string name="category_pantry">Pantry</string>
     <string name="category_other">Other</string>
-    
+
     <!-- Item Detail Screen -->
     <string name="item_details">Item Details</string>
     <string name="history">History</string>
@@ -59,7 +59,7 @@
     <string name="last_updated_on">Last updated on</string>
     <string name="loading">Loading…</string>
     <string name="quantity_label">Qty: %1$d</string>
-    
+
     <!-- Fridge Settings Screen -->
     <string name="fridge_settings">Fridge Settings</string>
     <string name="general_info">General Info</string>
@@ -81,11 +81,11 @@
     <string name="delete">Delete</string>
     <string name="leave_fridge_message">Are you sure you want to leave this fridge? You will need an invite to join again.</string>
     <string name="leave">Leave</string>
-    
+
     <!-- Barcode Scanner Screen -->
     <string name="scan_barcode">Scan Barcode</string>
     <string name="align_barcode">Align barcode within the box</string>
-    
+
     <!-- Content Descriptions -->
     <string name="cd_back">Back</string>
     <string name="cd_fridge_logo">Fridgy Logo</string>
@@ -113,7 +113,7 @@
     <string name="cd_edit_category">Edit Category</string>
     <string name="cd_delete_category">Delete Category</string>
     <string name="refresh">Refresh</string>
-    
+
     <!-- Error Messages -->
     <string name="error_user_not_logged_in">User not logged in. Please log in again.</string>
     <string name="error_failed_to_create_fridge">Failed to create fridge.</string>
@@ -130,13 +130,13 @@
     <string name="error_login_failed">Login failed. Please try again.</string>
     <string name="error_failed_to_add_item">Failed to add item to fridge: %1$s</string>
     <string name="error_failed_to_create_product">Failed to create product: %1$s</string>
-    <string name="error_loading_data_prefix">Error Loading Data\\n%1$s</string>
+    <string name="error_loading_data_prefix">Error Loading Data: %1$s</string>
     <string name="error_username_invalid_chars">Username can only contain letters, numbers, underscores, and periods</string>
     <string name="error_username_too_short">Username must be at least 3 characters</string>
     <string name="error_username_too_long">Username must be 16 characters or less</string>
     <string name="error_username_taken">Username \'%1$s\' is already taken. Please choose a different username.</string>
     <string name="cd_scan_barcode">Scan barcode</string>
-    
+
     <!-- Misc -->
     <string name="dismiss">Dismiss</string>
     <string name="unknown">Unknown</string>
@@ -145,7 +145,7 @@
     <string name="created_by_label">Created by: %1$s</string>
     <string name="members_count">Members: %1$d</string>
     <string name="added_date">Added: %1$s</string>
-    
+
     <!-- Admin Panel -->
     <string name="admin_panel">Admin Panel</string>
     <string name="system_statistics">System Statistics</string>
@@ -155,8 +155,8 @@
     <string name="recent_users">Recent Users</string>
     <string name="recent_products">Recent Products</string>
     <string name="food_categories">Food Categories</string>
-    <string name="order_label">Order: %1$d</string>
     <string name="unauthorized_access">Unauthorized Access</string>
+    <string name="order_label">Order: %1$d</string>
     <string name="no_admin_privileges">You don\'t have admin privileges</string>
     <string name="error_failed_to_load_categories">Failed to load categories</string>
     <string name="error_failed_to_create_category">Failed to create category</string>
@@ -185,15 +185,15 @@
     <string name="delete_user_confirmation">Are you sure you want to delete user \"%1$s\"? This action cannot be undone.</string>
     <string name="delete_product_confirmation">Are you sure you want to delete product \"%1$s\"? This action cannot be undone.</string>
     <string name="delete_category_confirmation">Are you sure you want to delete category \"%1$s\"? Products using this category will still reference it.</string>
-    
+
     <!-- Search and Filter -->
     <string name="search_by_name_or_upc">Search by name or UPC</string>
     <string name="no_items_match">No items match \"%1$s\"</string>
-    
+
     <!-- Item Detail -->
     <string name="upc_label">UPC: %1$s</string>
     <string name="qty">Qty</string>
-    
+
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
     <string name="product_brand_category">%1$s • %2$s</string>

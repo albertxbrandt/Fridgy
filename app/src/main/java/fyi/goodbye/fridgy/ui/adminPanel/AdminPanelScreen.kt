@@ -235,140 +235,21 @@ fun AdminPanelScreenContent(
                 }
 
                 is AdminPanelViewModel.AdminUiState.Success -> {
-                    LazyColumn(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        // Statistics Cards
-                        item {
-                            Text(
-                                stringResource(R.string.system_statistics),
-                                fontSize = 24.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = FridgyDarkBlue
-                            )
-                        }
-
-                        item {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                StatCard(
-                                    title = stringResource(R.string.users),
-                                    value = state.totalUsers.toString(),
-                                    icon = Icons.Default.Person,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                StatCard(
-                                    title = stringResource(R.string.products),
-                                    value = state.totalProducts.toString(),
-                                    icon = Icons.Default.ShoppingCart,
-                                    modifier = Modifier.weight(1f)
-                                )
-                                StatCard(
-                                    title = stringResource(R.string.fridges),
-                                    value = state.totalFridges.toString(),
-                                    icon = Icons.Default.Home,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-
-                        // Users Section
-                        item {
-                            Text(
-                                stringResource(R.string.recent_users),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = FridgyDarkBlue,
-                                modifier = Modifier.padding(top = 16.dp)
-                            )
-                        }
-
-                        items(state.users.take(10)) { user ->
-                            UserListItem(
-                                user = user,
-                                onEdit = { onEditUser(user) },
-                                onDelete = { onDeleteUser(user) }
-                            )
-                        }
-
-                        // Products Section
-                        item {
-                            Text(
-                                stringResource(R.string.recent_products),
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = FridgyDarkBlue,
-                                modifier = Modifier.padding(top = 16.dp)
-                            )
-                        }
-
-                        items(state.products.take(10)) { product ->
-                            ProductListItem(
-                                product = product,
-                                onEdit = { onEditProduct(product) },
-                                onDelete = { onDeleteProduct(product) }
-                            )
-                        }
-
-                        // Categories Section
-                        item {
-                            Row(
-                                modifier = Modifier.padding(top = 16.dp).fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    stringResource(R.string.food_categories),
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = FridgyDarkBlue
-                                )
-                                IconButton(onClick = onAddCategory) {
-                                    Icon(
-                                        Icons.Default.Add,
-                                        contentDescription = stringResource(R.string.cd_add_category)
-                                    )
-                                }
-                            }
-                        }
-
-                        when (val catState = categoryState) {
-                            is CategoryViewModel.CategoryUiState.Success -> {
-                                items(catState.categories) { category ->
-                                    CategoryListItem(
-                                        category = category,
-                                        onEdit = { onEditCategory(category) },
-                                        onDelete = { onDeleteCategory(category) }
-                                    )
-                                }
-                            }
-                            is CategoryViewModel.CategoryUiState.Loading -> {
-                                item {
-                                    Box(
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator()
-                                    }
-                                }
-                            }
-                            is CategoryViewModel.CategoryUiState.Error -> {
-                                item {
-                                    Text(
-                                        stringResource(R.string.error_loading_categories, catState.message),
-                                        color = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.padding(8.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                    AdminSuccessContent(
+                        totalUsers = state.totalUsers,
+                        totalProducts = state.totalProducts,
+                        totalFridges = state.totalFridges,
+                        users = state.users,
+                        products = state.products,
+                        categoryState = categoryState,
+                        onEditUser = onEditUser,
+                        onDeleteUser = onDeleteUser,
+                        onEditProduct = onEditProduct,
+                        onDeleteProduct = onDeleteProduct,
+                        onAddCategory = onAddCategory,
+                        onEditCategory = onEditCategory,
+                        onDeleteCategory = onDeleteCategory
+                    )
                 }
             }
         }
