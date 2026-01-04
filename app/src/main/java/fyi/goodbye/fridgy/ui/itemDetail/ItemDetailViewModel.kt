@@ -38,7 +38,7 @@ class ItemDetailViewModel(
             _uiState.value = ItemDetailUiState.Loading
             try {
                 fridgeRepository.getItemsForFridge(fridgeId).collect { items ->
-                    val item = items.find { it.id == itemId || it.upc == itemId }
+                    val item = items.find { it.upc == itemId }
                     if (item != null) {
                         val product = productRepository.getProductInfo(item.upc)
                         if (product != null) {

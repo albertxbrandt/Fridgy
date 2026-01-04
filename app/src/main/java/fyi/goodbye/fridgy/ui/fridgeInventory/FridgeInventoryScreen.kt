@@ -264,7 +264,7 @@ fun FridgeInventoryScreen(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(items, key = { it.item.id }) { inventoryItem ->
+                                items(items, key = { it.item.upc }) { inventoryItem ->
                                     InventoryItemCard(inventoryItem = inventoryItem) { clickedItemId ->
                                         onItemClick(fridgeId, clickedItemId)
                                     }

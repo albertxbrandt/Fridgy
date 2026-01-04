@@ -63,7 +63,7 @@ fun SystemStatisticsSection(
     }
 }
 
-@Preview(showBackground = true)
+@Preview(showBackground = false)
 @Composable
 fun SystemStatisticsSectionPreview() {
     SystemStatisticsSection(

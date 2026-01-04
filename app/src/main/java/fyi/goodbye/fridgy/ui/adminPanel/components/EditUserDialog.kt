@@ -61,7 +61,7 @@ fun EditUserDialog(
 fun EditUserDialogPreview() {
     val sampleUser =
         AdminUserDisplay(
-            uid = "1",
+            uid = "123",
             username = "johndoe",
             email = "johndoe@example.com",
             createdAt = 1767421399

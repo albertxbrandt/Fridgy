@@ -250,7 +250,7 @@ class FridgeRepository {
                             close(e)
                             return@addSnapshotListener
                         }
-                        val items = snapshot?.documents?.mapNotNull { it.toObject(Item::class.java)?.copy(id = it.id) } ?: emptyList()
+                        val items = snapshot?.documents?.mapNotNull { it.toObject(Item::class.java) } ?: emptyList()
                         trySend(items).isSuccess
                     }
             awaitClose { listener.remove() }
@@ -285,7 +285,6 @@ class FridgeRepository {
             } else {
                 val itemToAdd =
                     Item(
-                        id = upc,
                         upc = upc,
                         quantity = 1,
                         addedBy = currentUser.uid,
@@ -314,7 +313,6 @@ class FridgeRepository {
                 } else {
                     val itemToAdd =
                         Item(
-                            id = upc,
                             upc = upc,
                             quantity = 1,
                             addedBy = currentUser.uid,

@@ -37,7 +37,7 @@ fun InventoryItemCard(
             Modifier
                 .fillMaxWidth()
                 .height(180.dp)
-                .clickable { onClick(item.id) },
+                .clickable { onClick(item.upc) },
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)

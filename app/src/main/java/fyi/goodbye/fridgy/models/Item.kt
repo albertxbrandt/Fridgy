@@ -5,10 +5,9 @@ import com.google.firebase.firestore.DocumentId
 /**
  * Data model representing a grocery item stored within a specific fridge.
  * This model only stores fridge-specific metadata. Product details are fetched
- * separately using the [upc].
+ * separately using the document ID (which is the UPC).
  *
- * @property id The unique Firestore document ID for this item (usually the UPC).
- * @property upc The Universal Product Code (barcode) for this item.
+ * @property upc The unique Firestore document ID for this item (the UPC barcode).
  * @property quantity The current number of units of this item in the fridge.
  * @property addedBy The User ID of the person who originally added this item.
  * @property addedAt The timestamp (ms) when the item was first created.
@@ -17,7 +16,6 @@ import com.google.firebase.firestore.DocumentId
  */
 data class Item(
     @DocumentId
-    val id: String = "",
     val upc: String = "",
     val quantity: Int = 1,
     val addedBy: String = "",

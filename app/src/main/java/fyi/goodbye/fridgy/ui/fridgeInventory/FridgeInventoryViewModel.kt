@@ -168,8 +168,7 @@ class FridgeInventoryViewModel(
 
             val optimisticItem =
                 Item(
-                    id = "optimistic_$upc",
-                    upc = upc,
+                    upc = "optimistic_$upc",
                     quantity = 1,
                     addedAt = System.currentTimeMillis()
                 )
