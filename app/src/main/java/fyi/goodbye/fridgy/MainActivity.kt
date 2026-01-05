@@ -1,10 +1,13 @@
 package fyi.goodbye.fridgy
 
+import android.Manifest
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
@@ -93,6 +96,22 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+
+                    // Request camera permission on app launch for barcode scanning
+                    val permissionLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.RequestPermission()
+                    ) { isGranted ->
+                        if (isGranted) {
+                            Log.d("Fridgy_Permission", "Camera permission granted")
+                        } else {
+                            Log.w("Fridgy_Permission", "Camera permission denied - barcode scanning will not work")
+                        }
+                    }
+
+                    // Request camera permission if not already granted
+                    androidx.compose.runtime.LaunchedEffect(Unit) {
+                        permissionLauncher.launch(Manifest.permission.CAMERA)
+                    }
 
                     val startDestination = if (auth.currentUser != null) "fridgeList" else "login"
 
