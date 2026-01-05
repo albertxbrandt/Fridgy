@@ -10,6 +10,7 @@ import androidx.exifinterface.media.ExifInterface
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.utils.LruCache
 import kotlinx.coroutines.tasks.await
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -26,8 +27,14 @@ class ProductRepository(private val context: Context? = null) {
     private val productsCollection = firestore.collection("products")
 
     companion object {
-        // Shared cache across all repository instances to ensure data persistence
-        private val productCache = mutableMapOf<String, Product>()
+        /** Maximum number of products to cache. */
+        private const val PRODUCT_CACHE_SIZE = 200
+
+        /**
+         * LRU cache for products, shared across repository instances.
+         * Evicts least recently used products when capacity is reached.
+         */
+        private val productCache = LruCache<String, Product>(PRODUCT_CACHE_SIZE)
 
         // Image optimization constants
         private const val MAX_IMAGE_WIDTH = 1024

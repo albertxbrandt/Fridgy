@@ -12,6 +12,7 @@ import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.utils.LruCache
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -25,9 +26,17 @@ class FridgeRepository {
     private val auth = FirebaseAuth.getInstance()
 
     private var fridgeCache: List<Fridge> = emptyList()
-    
-    // OPTIMIZATION: Cache user profiles to avoid re-fetching
-    private val userProfileCache = mutableMapOf<String, UserProfile>()
+
+    companion object {
+        /** Maximum number of user profiles to cache. */
+        private const val USER_PROFILE_CACHE_SIZE = 100
+
+        /**
+         * LRU cache for user profiles, shared across repository instances.
+         * Evicts least recently used profiles when capacity is reached.
+         */
+        private val userProfileCache = LruCache<String, UserProfile>(USER_PROFILE_CACHE_SIZE)
+    }
 
     /**
      * Converts a Firestore document to a Fridge, handling both old Map and new List formats.
