@@ -40,13 +40,24 @@ class FridgeInventoryViewModel(
     private val fridgeId: String,
     initialFridgeName: String = ""
 ) : AndroidViewModel(application) {
-    private val _displayFridgeState = MutableStateFlow<FridgeDetailUiState>(
-        if (initialFridgeName.isNotBlank()) {
-            FridgeDetailUiState.Success(DisplayFridge(id = fridgeId, name = initialFridgeName, createdByUid = "", creatorDisplayName = "", memberUsers = emptyList(), pendingInviteUsers = emptyList(), createdAt = 0L))
-        } else {
-            FridgeDetailUiState.Loading
-        }
-    )
+    private val _displayFridgeState =
+        MutableStateFlow<FridgeDetailUiState>(
+            if (initialFridgeName.isNotBlank()) {
+                FridgeDetailUiState.Success(
+                    DisplayFridge(
+                        id = fridgeId,
+                        name = initialFridgeName,
+                        createdByUid = "",
+                        creatorDisplayName = "",
+                        memberUsers = emptyList(),
+                        pendingInviteUsers = emptyList(),
+                        createdAt = 0L
+                    )
+                )
+            } else {
+                FridgeDetailUiState.Loading
+            }
+        )
     val displayFridgeState: StateFlow<FridgeDetailUiState> = _displayFridgeState.asStateFlow()
 
     private val _itemsUiState = MutableStateFlow<ItemsUiState>(ItemsUiState.Loading)

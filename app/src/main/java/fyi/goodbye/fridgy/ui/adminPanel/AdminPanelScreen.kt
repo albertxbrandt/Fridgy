@@ -38,7 +38,7 @@ fun AdminPanelScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val categoryState by categoryViewModel.uiState.collectAsState()
-    
+
     Log.d("AdminPanelScreen", "Current UI state: ${uiState::class.simpleName}")
 
     // State for dialogs
@@ -49,8 +49,11 @@ fun AdminPanelScreen(
     var categoryToEdit by remember { mutableStateOf<Category?>(null) }
     var categoryToDelete by remember { mutableStateOf<Category?>(null) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
-    
-    Log.d("AdminPanelScreen", "Dialog states - userToEdit: ${userToEdit != null}, productToEdit: ${productToEdit != null}, userToDelete: ${userToDelete != null}")
+
+    Log.d(
+        "AdminPanelScreen",
+        "Dialog states - userToEdit: ${userToEdit != null}, productToEdit: ${productToEdit != null}, userToDelete: ${userToDelete != null}"
+    )
 
     AdminPanelScreenContent(
         uiState = uiState,
@@ -223,10 +226,16 @@ fun AdminPanelScreenContent(
                 }
 
                 is AdminPanelViewModel.AdminUiState.Success -> {
-                    Log.d("AdminPanelScreen", "Rendering Success state - users: ${state.users.size}, products: ${state.products.size}")
+                    Log.d(
+                        "AdminPanelScreen",
+                        "Rendering Success state - users: ${state.users.size}, products: ${state.products.size}"
+                    )
                     Log.d("AdminPanelScreen", "categoryState type: ${categoryState::class.simpleName}")
-                    Log.d("AdminPanelScreen", "totalUsers: ${state.totalUsers}, totalProducts: ${state.totalProducts}, totalFridges: ${state.totalFridges}")
-                    
+                    Log.d(
+                        "AdminPanelScreen",
+                        "totalUsers: ${state.totalUsers}, totalProducts: ${state.totalProducts}, totalFridges: ${state.totalFridges}"
+                    )
+
                     AdminSuccessContent(
                         totalUsers = state.totalUsers,
                         totalProducts = state.totalProducts,

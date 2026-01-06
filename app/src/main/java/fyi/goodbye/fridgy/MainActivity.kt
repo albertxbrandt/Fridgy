@@ -32,6 +32,7 @@ import fyi.goodbye.fridgy.ui.fridgeInventory.FridgeInventoryScreen
 import fyi.goodbye.fridgy.ui.fridgeList.FridgeListScreen
 import fyi.goodbye.fridgy.ui.fridgeSettings.FridgeSettingsScreen
 import fyi.goodbye.fridgy.ui.itemDetail.ItemDetailScreen
+import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListScreen
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 
 /**
@@ -98,15 +99,16 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
 
                     // Request camera permission on app launch for barcode scanning
-                    val permissionLauncher = rememberLauncherForActivityResult(
-                        contract = ActivityResultContracts.RequestPermission()
-                    ) { isGranted ->
-                        if (isGranted) {
-                            Log.d("Fridgy_Permission", "Camera permission granted")
-                        } else {
-                            Log.w("Fridgy_Permission", "Camera permission denied - barcode scanning will not work")
+                    val permissionLauncher =
+                        rememberLauncherForActivityResult(
+                            contract = ActivityResultContracts.RequestPermission()
+                        ) { isGranted ->
+                            if (isGranted) {
+                                Log.d("Fridgy_Permission", "Camera permission granted")
+                            } else {
+                                Log.w("Fridgy_Permission", "Camera permission denied - barcode scanning will not work")
+                            }
                         }
-                    }
 
                     // Request camera permission if not already granted
                     androidx.compose.runtime.LaunchedEffect(Unit) {
@@ -150,7 +152,9 @@ class MainActivity : ComponentActivity() {
                         composable("fridgeList") {
                             FridgeListScreen(
                                 onNavigateToFridgeInventory = { displayFridge ->
-                                    navController.navigate("fridgeInventory/${displayFridge.id}/${Uri.encode(displayFridge.name)}") {
+                                    navController.navigate(
+                                        "fridgeInventory/${displayFridge.id}/${Uri.encode(displayFridge.name)}"
+                                    ) {
                                         launchSingleTop = true
                                     }
                                 },
@@ -204,6 +208,11 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("itemDetail/$fId/$iId") {
                                         launchSingleTop = true
                                     }
+                                },
+                                onShoppingListClick = { currentFridgeId ->
+                                    navController.navigate("shoppingList/$currentFridgeId") {
+                                        launchSingleTop = true
+                                    }
                                 }
                             )
                         }
@@ -221,6 +230,25 @@ class MainActivity : ComponentActivity() {
                                 fridgeId = fridgeId,
                                 itemId = itemId,
                                 onBackClick = { navController.popBackStack() }
+                            )
+                        }
+                        composable(
+                            route = "shoppingList/{fridgeId}",
+                            arguments =
+                                listOf(
+                                    navArgument("fridgeId") { type = NavType.StringType }
+                                )
+                        ) { backStackEntry ->
+                            val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
+                            ShoppingListScreen(
+                                fridgeId = fridgeId,
+                                onBackClick = { navController.popBackStack() },
+                                onScanClick = { currentFridgeId ->
+                                    navController.navigate("barcodeScanner/$currentFridgeId") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                navController = navController
                             )
                         }
                         composable(

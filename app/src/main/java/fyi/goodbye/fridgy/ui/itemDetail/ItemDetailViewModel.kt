@@ -41,27 +41,28 @@ class ItemDetailViewModel(
     private fun loadDetails() {
         // Cancel any existing collection to prevent multiple collectors
         itemsJob?.cancel()
-        itemsJob = viewModelScope.launch {
-            _uiState.value = ItemDetailUiState.Loading
-            try {
-                fridgeRepository.getItemsForFridge(fridgeId).collect { items ->
-                    val item = items.find { it.upc == itemId }
-                    if (item != null) {
-                        val product = productRepository.getProductInfo(item.upc)
-                        if (product != null) {
-                            _uiState.value = ItemDetailUiState.Success(item, product)
-                            loadUserNames(item)
+        itemsJob =
+            viewModelScope.launch {
+                _uiState.value = ItemDetailUiState.Loading
+                try {
+                    fridgeRepository.getItemsForFridge(fridgeId).collect { items ->
+                        val item = items.find { it.upc == itemId }
+                        if (item != null) {
+                            val product = productRepository.getProductInfo(item.upc)
+                            if (product != null) {
+                                _uiState.value = ItemDetailUiState.Success(item, product)
+                                loadUserNames(item)
+                            } else {
+                                _uiState.value = ItemDetailUiState.Error(getApplication<Application>().getString(R.string.error_product_not_found))
+                            }
                         } else {
-                            _uiState.value = ItemDetailUiState.Error(getApplication<Application>().getString(R.string.error_product_not_found))
+                            _uiState.value = ItemDetailUiState.Error(getApplication<Application>().getString(R.string.error_item_not_found))
                         }
-                    } else {
-                        _uiState.value = ItemDetailUiState.Error(getApplication<Application>().getString(R.string.error_item_not_found))
                     }
+                } catch (e: Exception) {
+                    _uiState.value = ItemDetailUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_details))
                 }
-            } catch (e: Exception) {
-                _uiState.value = ItemDetailUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_details))
             }
-        }
     }
 
     private fun loadUserNames(item: Item) {

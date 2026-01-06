@@ -58,15 +58,16 @@ class CategoryViewModel(
     private fun loadCategories() {
         // Cancel any existing collection to prevent multiple collectors
         categoriesJob?.cancel()
-        categoriesJob = viewModelScope.launch {
-            try {
-                categoryRepository.getCategories().collect { categories ->
-                    _uiState.value = CategoryUiState.Success(categories)
+        categoriesJob =
+            viewModelScope.launch {
+                try {
+                    categoryRepository.getCategories().collect { categories ->
+                        _uiState.value = CategoryUiState.Success(categories)
+                    }
+                } catch (e: Exception) {
+                    _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_categories))
                 }
-            } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_categories))
             }
-        }
     }
 
     /**

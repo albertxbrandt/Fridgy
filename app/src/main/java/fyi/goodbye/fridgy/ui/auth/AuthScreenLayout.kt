@@ -131,10 +131,11 @@ fun AuthScreenLayout(
                     Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = FridgyDarkBlue,
-                    contentColor = FridgyWhite
-                ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = FridgyDarkBlue,
+                        contentColor = FridgyWhite
+                    ),
                 enabled = !isLoading
             ) {
                 if (isLoading) {

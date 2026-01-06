@@ -78,31 +78,32 @@ fun BarcodeScannerScreen(
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    
+
     // Check camera permission status
     var hasCameraPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         )
     }
-    
+
     // Permission launcher
-    val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasCameraPermission = isGranted
-        if (!isGranted) {
-            Log.w("BarcodeScannerScreen", "Camera permission denied")
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.RequestPermission()
+        ) { isGranted ->
+            hasCameraPermission = isGranted
+            if (!isGranted) {
+                Log.w("BarcodeScannerScreen", "Camera permission denied")
+            }
         }
-    }
-    
+
     // Request permission if not granted
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
-    
+
     // Show permission denied UI if permission is not granted
     if (!hasCameraPermission) {
         Scaffold(
@@ -131,9 +132,10 @@ fun BarcodeScannerScreen(
             containerColor = FridgyWhite
         ) { paddingValues ->
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
                 contentAlignment = Alignment.Center
             ) {
                 Column(
@@ -166,7 +168,7 @@ fun BarcodeScannerScreen(
         }
         return
     }
-    
+
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
 
     // OPTIMIZATION: Lifecycle-aware resource management

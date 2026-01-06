@@ -17,7 +17,7 @@ import java.io.InputStream
 
 /**
  * Repository for managing a private, crowdsourced barcode database.
- * 
+ *
  * @param context Application context for file operations. Must be Application context
  *                to avoid memory leaks. Pass null for read-only operations.
  */
@@ -275,5 +275,31 @@ class ProductRepository(private val context: Context? = null) {
 
     suspend fun saveProductInfo(product: Product) {
         saveProductWithImage(product, null)
+    }
+
+    /**
+     * Search products by name using case-insensitive matching.
+     * Returns products where name contains the search query.
+     */
+    suspend fun searchProductsByName(query: String): List<Product> {
+        if (query.isBlank()) return emptyList()
+
+        return try {
+            val queryLower = query.lowercase()
+            productsCollection
+                .get()
+                .await()
+                .documents
+                .mapNotNull { it.toObject(Product::class.java) }
+                .filter { product ->
+                    product.name.lowercase().contains(queryLower) ||
+                        product.brand.lowercase().contains(queryLower)
+                }
+                .sortedBy { it.name }
+                .take(20) // Limit results to 20
+        } catch (e: Exception) {
+            Log.e("ProductRepo", "Search failed: ${e.message}")
+            emptyList()
+        }
     }
 }

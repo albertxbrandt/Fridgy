@@ -195,6 +195,21 @@
     <string name="upc_label">UPC: %1$s</string>
     <string name="qty">Qty</string>
 
+    <!-- Shopping List -->
+    <string name="shopping_list">Shopping List</string>
+    <string name="search_products">Search products</string>
+    <string name="no_products_found">No products found</string>
+    <string name="cant_find_product">Can\'t find what you\'re looking for?</string>
+    <string name="click_add_manually">Click here to add a product manually</string>
+    <string name="no_items_in_shopping_list">No items in shopping list</string>
+    <string name="add_item_manually">Add Item Manually</string>
+    <string name="item_name">Item Name</string>
+    <string name="quantity">Quantity</string>
+    <string name="store_label">Store: %1$s</string>
+    <string name="quantity_label_shopping">Quantity: %1$d</string>
+    <string name="upc_label_product">UPC: %1$s</string>
+    <string name="cd_remove_item">Remove item</string>
+
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
     <string name="product_brand_category">%1$s • %2$s</string>

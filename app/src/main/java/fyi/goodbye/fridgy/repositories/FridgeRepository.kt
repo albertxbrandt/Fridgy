@@ -22,6 +22,115 @@ import kotlinx.coroutines.tasks.await
  * Repository class responsible for handling all data operations related to Fridges and Items.
  */
 class FridgeRepository {
+    /**
+     * Returns a Flow of shopping list items for a fridge (subcollection).
+     */
+    fun getShoppingListItems(fridgeId: String): Flow<List<fyi.goodbye.fridgy.models.ShoppingListItem>> =
+        callbackFlow {
+            val colRef = firestore.collection("fridges").document(fridgeId).collection("shoppingList")
+            val listener =
+                colRef.addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        close(e)
+                        return@addSnapshotListener
+                    }
+                    val items =
+                        snapshot?.documents?.mapNotNull {
+                            it.toObject(fyi.goodbye.fridgy.models.ShoppingListItem::class.java)
+                        } ?: emptyList()
+                    trySend(items).isSuccess
+                }
+            awaitClose { listener.remove() }
+        }
+
+    /**
+     * Adds a UPC to the fridge's shopping list subcollection, with quantity and store.
+     */
+    suspend fun addShoppingListItem(
+        fridgeId: String,
+        upc: String,
+        quantity: Int = 1,
+        store: String = "",
+        customName: String = ""
+    ) {
+        val currentUser = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in.")
+        val item =
+            fyi.goodbye.fridgy.models.ShoppingListItem(
+                upc = upc,
+                addedAt = System.currentTimeMillis(),
+                addedBy = currentUser,
+                quantity = quantity,
+                store = store,
+                customName = customName
+            )
+        firestore.collection("fridges").document(fridgeId)
+            .collection("shoppingList").document(upc).set(item).await()
+    }
+
+    /**
+     * Removes a UPC from the fridge's shopping list subcollection.
+     */
+    suspend fun removeShoppingListItem(
+        fridgeId: String,
+        upc: String
+    ) {
+        firestore.collection("fridges").document(fridgeId)
+            .collection("shoppingList").document(upc).delete().await()
+    }
+
+    /**
+     * Updates the checked status of a shopping list item.
+     */
+    suspend fun updateShoppingListItemChecked(
+        fridgeId: String,
+        upc: String,
+        checked: Boolean
+    ) {
+        firestore.collection("fridges").document(fridgeId)
+            .collection("shoppingList").document(upc)
+            .update("checked", checked).await()
+    }
+
+    /**
+     * Returns a Flow of the shopping list UPCs for a fridge.
+     */
+    fun getShoppingList(fridgeId: String): Flow<List<String>> =
+        callbackFlow {
+            val docRef = firestore.collection("fridges").document(fridgeId)
+            val listener =
+                docRef.addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        close(e)
+                        return@addSnapshotListener
+                    }
+                    val shoppingList = snapshot?.get("shoppingList") as? List<String> ?: emptyList()
+                    trySend(shoppingList).isSuccess
+                }
+            awaitClose { listener.remove() }
+        }
+
+    /**
+     * Adds a UPC to the fridge's shopping list.
+     */
+    suspend fun addItemToShoppingList(
+        fridgeId: String,
+        upc: String
+    ) {
+        firestore.collection("fridges").document(fridgeId)
+            .update("shoppingList", FieldValue.arrayUnion(upc)).await()
+    }
+
+    /**
+     * Removes a UPC from the fridge's shopping list.
+     */
+    suspend fun removeItemFromShoppingList(
+        fridgeId: String,
+        upc: String
+    ) {
+        firestore.collection("fridges").document(fridgeId)
+            .update("shoppingList", FieldValue.arrayRemove(upc)).await()
+    }
+
     private val firestore = FirebaseFirestore.getInstance()
     private val auth = FirebaseAuth.getInstance()
 
@@ -124,7 +233,10 @@ class FridgeRepository {
             awaitClose { invitesListener.remove() }
         }
 
-    suspend fun getFridgeById(fridgeId: String, fetchUserDetails: Boolean = true): DisplayFridge? {
+    suspend fun getFridgeById(
+        fridgeId: String,
+        fetchUserDetails: Boolean = true
+    ): DisplayFridge? {
         val cachedFridge = fridgeCache.find { it.id == fridgeId }
         val fridge =
             if (cachedFridge != null) {
@@ -413,7 +525,7 @@ class FridgeRepository {
             // OPTIMIZATION: Check cache first, only fetch missing users
             val result = mutableMapOf<String, UserProfile>()
             val missingIds = mutableListOf<String>()
-            
+
             userIds.forEach { userId ->
                 val cached = userProfileCache[userId]
                 if (cached != null) {
@@ -422,7 +534,7 @@ class FridgeRepository {
                     missingIds.add(userId)
                 }
             }
-            
+
             // Only fetch users not in cache
             if (missingIds.isNotEmpty()) {
                 // Firestore 'in' queries are limited to 10 items, so batch if needed
@@ -443,8 +555,11 @@ class FridgeRepository {
                     }
                 }
             }
-            
-            Log.d("FridgeRepo", "Fetched ${result.size} user profiles (${result.size - missingIds.size} from cache, ${missingIds.size} from network)")
+
+            Log.d(
+                "FridgeRepo",
+                "Fetched ${result.size} user profiles (${result.size - missingIds.size} from cache, ${missingIds.size} from network)"
+            )
             result
         } catch (e: Exception) {
             Log.e("FridgeRepo", "Error fetching user profiles by IDs: ${e.message}", e)

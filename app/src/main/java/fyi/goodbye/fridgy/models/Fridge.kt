@@ -26,5 +26,5 @@ data class Fridge(
     val createdBy: String = "",
     val members: List<String> = listOf(),
     val pendingInvites: List<String> = listOf(),
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
 ) : Parcelable

@@ -34,7 +34,7 @@ fun RecentProductsSection(
     onDeleteProduct: (Product) -> Unit
 ) {
     Log.d("RecentProductsSection", "Rendering with ${products.size} products")
-    
+
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
