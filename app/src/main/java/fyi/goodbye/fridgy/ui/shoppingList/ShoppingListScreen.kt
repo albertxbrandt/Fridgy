@@ -22,7 +22,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.ui.shoppingList.components.AddShoppingListItemDialog
+import fyi.goodbye.fridgy.ui.shoppingList.components.AddItemFromSearchDialog
+import fyi.goodbye.fridgy.ui.shoppingList.components.PartialPickupDialog
 import fyi.goodbye.fridgy.ui.shoppingList.components.ProductSearchResultCard
 import fyi.goodbye.fridgy.ui.shoppingList.components.ShoppingListItemCard
 import fyi.goodbye.fridgy.ui.shared.components.SearchBar
@@ -71,12 +74,15 @@ fun ShoppingListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
+    var showPickupDialog by remember { mutableStateOf<ShoppingListViewModel.ShoppingListItemWithProduct?>(null) }
+    var productToAdd by remember { mutableStateOf<Product?>(null) }
+    var scannedUpcForDialog by remember { mutableStateOf<String?>(null) }
 
     // Handle barcode scan result from BarcodeScannerScreen
     LaunchedEffect(navController.currentBackStackEntry) {
         navController.currentBackStackEntry?.savedStateHandle?.get<String>("scannedUpc")?.let { scannedUpc ->
-            // Add scanned item to shopping list with default quantity of 1 and empty store
-            viewModel.addItem(scannedUpc, 1, "")
+            // Show dialog to get quantity and store for scanned item
+            scannedUpcForDialog = scannedUpc
             // Clear the scanned result from saved state
             navController.currentBackStackEntry?.savedStateHandle?.remove<String>("scannedUpc")
         }
@@ -184,8 +190,7 @@ fun ShoppingListScreen(
                             ProductSearchResultCard(
                                 product = product,
                                 onAddClick = {
-                                    viewModel.addItem(product.upc, 1, "")
-                                    viewModel.updateSearchQuery("")
+                                    productToAdd = product
                                 }
                             )
                         }
@@ -260,11 +265,8 @@ fun ShoppingListScreen(
                                 items(state.items, key = { it.item.upc }) { itemWithProduct ->
                                     ShoppingListItemCard(
                                         itemWithProduct = itemWithProduct,
-                                        onCheckedChange = {
-                                            viewModel.toggleItemChecked(
-                                                itemWithProduct.item.upc,
-                                                itemWithProduct.item.checked
-                                            )
+                                        onCheckClick = {
+                                            showPickupDialog = itemWithProduct
                                         },
                                         onDeleteClick = { viewModel.removeItem(itemWithProduct.item.upc) }
                                     )
@@ -300,9 +302,52 @@ fun ShoppingListScreen(
                 showAddDialog = false
                 onScanClick(fridgeId)
             },
-            onAddManual = { name, quantity ->
-                viewModel.addManualItem(name, quantity)
+            onAddManual = { name, quantity, store ->
+                viewModel.addManualItem(name, quantity, store)
                 showAddDialog = false
+            }
+        )
+    }
+    
+    // Add Item From Search Dialog
+    productToAdd?.let { product ->
+        AddItemFromSearchDialog(
+            product = product,
+            onDismiss = { productToAdd = null },
+            onConfirm = { quantity, store ->
+                viewModel.addItem(product.upc, quantity, store)
+                viewModel.updateSearchQuery("")
+                productToAdd = null
+            }
+        )
+    }
+    
+    // Partial Pickup Dialog
+    showPickupDialog?.let { itemWithProduct ->
+        PartialPickupDialog(
+            itemName = itemWithProduct.productName,
+            requestedQuantity = itemWithProduct.item.quantity,
+            currentObtained = itemWithProduct.item.obtainedQuantity ?: 0,
+            onDismiss = { showPickupDialog = null },
+            onConfirm = { obtainedQty ->
+                viewModel.updateItemPickup(
+                    upc = itemWithProduct.item.upc,
+                    obtainedQuantity = obtainedQty,
+                    totalQuantity = itemWithProduct.item.quantity
+                )
+                showPickupDialog = null
+            }
+        )
+    }
+    
+    // Scanned Item Dialog - prompt for quantity and store
+    scannedUpcForDialog?.let { upc ->
+        AddItemFromSearchDialog(
+            product = Product(upc = upc, name = "", brand = "", category = "", imageUrl = "", lastUpdated = 0),
+            onDismiss = { scannedUpcForDialog = null },
+            onConfirm = { quantity, store ->
+                viewModel.addItem(upc, quantity, store)
+                scannedUpcForDialog = null
             }
         )
     }

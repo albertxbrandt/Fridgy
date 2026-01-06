@@ -40,6 +40,7 @@
     <string name="brand_optional">Brand (Optional)</string>
     <string name="category">Category</string>
     <string name="save_and_add">Save &amp; Add</string>
+    <string name="add_to_fridge">Add to Fridge</string>
 
     <!-- Categories -->
     <string name="category_dairy">Dairy</string>
@@ -206,10 +207,16 @@
     <string name="item_name">Item Name</string>
     <string name="quantity">Quantity</string>
     <string name="store_label">Store: %1$s</string>
+    <string name="store_optional">Store (Optional)</string>
     <string name="quantity_label_shopping">Quantity: %1$d</string>
     <string name="upc_label_product">UPC: %1$s</string>
     <string name="cd_remove_item">Remove item</string>
-
+    <string name="mark_item_picked_up">Mark Item as Picked Up</string>
+    <string name="how_many_obtained">How many did you get?</string>
+    <string name="picked_up_x_of_y">%1$d of %2$d</string>
+    <string name="increase_quantity">Increase quantity</string>
+    <string name="decrease_quantity">Decrease quantity</string>
+    <string name="confirm">Confirm</string>
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
     <string name="product_brand_category">%1$s • %2$s</string>

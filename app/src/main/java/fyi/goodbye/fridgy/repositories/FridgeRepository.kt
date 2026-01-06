@@ -81,14 +81,21 @@ class FridgeRepository {
     /**
      * Updates the checked status of a shopping list item.
      */
-    suspend fun updateShoppingListItemChecked(
+    suspend fun updateShoppingListItemPickup(
         fridgeId: String,
         upc: String,
-        checked: Boolean
+        obtainedQuantity: Int,
+        totalQuantity: Int
     ) {
+        val checked = obtainedQuantity >= totalQuantity
         firestore.collection("fridges").document(fridgeId)
             .collection("shoppingList").document(upc)
-            .update("checked", checked).await()
+            .update(
+                mapOf(
+                    "checked" to checked,
+                    "obtainedQuantity" to obtainedQuantity
+                )
+            ).await()
     }
 
     /**

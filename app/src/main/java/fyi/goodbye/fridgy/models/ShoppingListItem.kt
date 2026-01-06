@@ -10,6 +10,10 @@ import kotlinx.parcelize.Parcelize
  * @property upc The product UPC code or generated ID for manual entries.
  * @property addedAt Timestamp when the item was added.
  * @property addedBy User ID who added the item.
+ * @property quantity Total quantity needed to purchase.
+ * @property store Optional store name where item should be purchased.
+ * @property checked Whether the item has been checked off (fully or partially).
+ * @property obtainedQuantity How many units were actually obtained (for partial pickup).
  * @property customName Optional custom name for manual entries (when product not in database).
  */
 @Parcelize
@@ -21,5 +25,6 @@ data class ShoppingListItem(
     val quantity: Int = 1,
     val store: String = "",
     val checked: Boolean = false,
+    val obtainedQuantity: Int? = null,
     val customName: String = "" // For manual entries without UPC
 ) : Parcelable

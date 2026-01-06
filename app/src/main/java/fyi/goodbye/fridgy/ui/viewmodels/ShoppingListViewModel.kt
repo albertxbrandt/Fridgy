@@ -71,13 +71,19 @@ class ShoppingListViewModel(private val fridgeId: String) : ViewModel() {
         }
     }
 
-    fun toggleItemChecked(
+    fun updateItemPickup(
         upc: String,
-        currentChecked: Boolean
+        obtainedQuantity: Int,
+        totalQuantity: Int
     ) {
         viewModelScope.launch {
             try {
-                repository.updateShoppingListItemChecked(fridgeId, upc, !currentChecked)
+                repository.updateShoppingListItemPickup(
+                    fridgeId = fridgeId,
+                    upc = upc,
+                    obtainedQuantity = obtainedQuantity,
+                    totalQuantity = totalQuantity
+                )
             } catch (e: Exception) {
                 _uiState.value = UiState.Error("Failed to update item: ${e.message}")
             }
@@ -111,7 +117,8 @@ class ShoppingListViewModel(private val fridgeId: String) : ViewModel() {
 
     fun addManualItem(
         name: String,
-        quantity: Int
+        quantity: Int,
+        store: String
     ) {
         viewModelScope.launch {
             try {
@@ -121,7 +128,7 @@ class ShoppingListViewModel(private val fridgeId: String) : ViewModel() {
                     fridgeId = fridgeId,
                     upc = generatedId,
                     quantity = quantity,
-                    store = "",
+                    store = store,
                     customName = name
                 )
             } catch (e: Exception) {

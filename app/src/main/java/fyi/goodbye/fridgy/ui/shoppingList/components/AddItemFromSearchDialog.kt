@@ -11,53 +11,40 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.ui.shared.components.SquaredButton
 import fyi.goodbye.fridgy.ui.shared.components.SquaredInput
 
 /**
- * Dialog for manually adding an item to the shopping list.
+ * Dialog for adding a searched product to the shopping list with quantity and store.
  * 
- * This dialog is shown when users can't find a product in the search results and need to
- * add a custom item. The item will be added with a generic name (not linked to the products
- * database) along with the specified quantity.
+ * Shown when user clicks "Add" on a product search result. Allows specifying:
+ * - Quantity needed (with +/- picker)
+ * - Store where to buy (optional text field)
  * 
- * **Input Fields:**
- * - Item Name: Required text field for the product/item name
- * - Quantity: Numeric field defaulting to 1
- * 
- * **Validation:**
- * - Item name must not be blank to enable Add button
- * - Quantity falls back to 1 if invalid input provided
- * 
- * @param fridgeId The ID of the fridge (currently unused but available for future features)
- * @param onDismiss Callback invoked when dialog is cancelled or dismissed
- * @param onScanClick Callback to switch to barcode scanning (currently unused)
- * @param onAddManual Callback invoked with (itemName, quantity, store) when Add button is pressed
+ * @param product The product to be added to shopping list
+ * @param onDismiss Callback when dialog is cancelled
+ * @param onConfirm Callback with (quantity, store) when Add button is pressed
  */
 @Composable
-fun AddShoppingListItemDialog(
-    fridgeId: String,
+fun AddItemFromSearchDialog(
+    product: Product,
     onDismiss: () -> Unit,
-    onScanClick: () -> Unit,
-    onAddManual: (String, Int, String) -> Unit
+    onConfirm: (Int, String) -> Unit
 ) {
-    var itemName by remember { mutableStateOf("") }
     var quantity by remember { mutableIntStateOf(1) }
     var store by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.add_item_manually)) },
+        title = { 
+            Text(
+                if (product.name.isNotEmpty()) "Add ${product.name}" 
+                else "Add Scanned Item"
+            )
+        },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                SquaredInput(
-                    value = itemName,
-                    onValueChange = { itemName = it },
-                    label = { Text(stringResource(R.string.item_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -95,12 +82,7 @@ fun AddShoppingListItemDialog(
         },
         confirmButton = {
             SquaredButton(
-                onClick = {
-                    if (itemName.isNotBlank()) {
-                        onAddManual(itemName.trim(), quantity, store.trim())
-                    }
-                },
-                enabled = itemName.isNotBlank()
+                onClick = { onConfirm(quantity, store.trim()) }
             ) {
                 Text(stringResource(R.string.add))
             }

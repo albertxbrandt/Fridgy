@@ -31,16 +31,18 @@ import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
  * - Checkbox for marking items as purchased
  * 
  * @param itemWithProduct Combined data containing the shopping list item and associated product details
- * @param onCheckedChange Callback invoked when the checkbox is toggled (checked/unchecked)
+ * @param onCheckClick Callback invoked when checkbox is clicked to open pickup dialog
  * @param onDeleteClick Callback invoked when delete button is pressed to remove item from list
  */
 @Composable
 fun ShoppingListItemCard(
     itemWithProduct: ShoppingListViewModel.ShoppingListItemWithProduct,
-    onCheckedChange: () -> Unit,
+    onCheckClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     val item = itemWithProduct.item
+    val isPartiallyPicked = item.obtainedQuantity != null && item.obtainedQuantity < item.quantity
+    val isFullyPicked = item.obtainedQuantity != null && item.obtainedQuantity >= item.quantity
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = FridgyWhite),
@@ -61,7 +63,7 @@ fun ShoppingListItemCard(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = FridgyDarkBlue,
-                    textDecoration = if (item.checked) TextDecoration.LineThrough else TextDecoration.None
+                    textDecoration = if (isFullyPicked) TextDecoration.LineThrough else TextDecoration.None
                 )
                 if (itemWithProduct.productBrand.isNotEmpty()) {
                     Text(
@@ -79,12 +81,26 @@ fun ShoppingListItemCard(
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-                Text(
-                    text = stringResource(R.string.quantity_label_shopping, item.quantity),
-                    fontSize = 14.sp,
-                    color = FridgyDarkBlue.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(top = 2.dp)
-                )
+                
+                when {
+                    isPartiallyPicked -> {
+                        Text(
+                            text = stringResource(R.string.picked_up_x_of_y, item.obtainedQuantity!!, item.quantity),
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
+                    !isFullyPicked -> {
+                        Text(
+                            text = stringResource(R.string.quantity_label_shopping, item.quantity),
+                            fontSize = 14.sp,
+                            color = FridgyDarkBlue.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
+                }
             }
 
             IconButton(onClick = onDeleteClick) {
@@ -96,11 +112,11 @@ fun ShoppingListItemCard(
             }
 
             Checkbox(
-                checked = item.checked,
-                onCheckedChange = { onCheckedChange() },
+                checked = isFullyPicked || item.checked,
+                onCheckedChange = { onCheckClick() },
                 colors =
                     CheckboxDefaults.colors(
-                        checkedColor = FridgyDarkBlue,
+                        checkedColor = if (isPartiallyPicked) MaterialTheme.colorScheme.tertiary else FridgyDarkBlue,
                         uncheckedColor = FridgyDarkBlue.copy(alpha = 0.6f)
                     )
             )
