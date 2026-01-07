@@ -276,8 +276,7 @@ fun FridgeListScreen(
                                             text = type.replaceFirstChar { it.uppercase() },
                                             style = MaterialTheme.typography.labelLarge
                                         )
-                                    },
-                                    modifier = Modifier.weight(1f)
+                                    }
                                 )
                             }
                         }
