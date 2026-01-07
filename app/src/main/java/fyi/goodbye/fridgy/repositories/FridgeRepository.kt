@@ -447,7 +447,14 @@ class FridgeRepository {
                 firestore.collection("fridges").document(fridgeId).collection("items")
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
-                            close(e)
+                            // Gracefully handle permission errors (fridge deleted/left)
+                            if (e.message?.contains("PERMISSION_DENIED") == true) {
+                                Log.w("FridgeRepo", "Permission denied for fridge $fridgeId - sending empty list")
+                                trySend(emptyList()).isSuccess
+                                close() // Close flow gracefully without error
+                            } else {
+                                close(e)
+                            }
                             return@addSnapshotListener
                         }
                         val items = snapshot?.documents?.mapNotNull { it.toObject(Item::class.java) } ?: emptyList()

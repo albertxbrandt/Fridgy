@@ -278,7 +278,12 @@ class MainActivity : ComponentActivity() {
                                 fridgeId = fridgeId,
                                 onBackClick = { navController.popBackStack() },
                                 onDeleteSuccess = {
-                                    navController.popBackStack("fridgeList", inclusive = false)
+                                    // Navigate back to fridge list and clear everything above it to prevent
+                                    // permission errors from lingering Firestore listeners
+                                    navController.navigate("fridgeList") {
+                                        popUpTo(0) { inclusive = false } // Clear entire back stack except initial destination
+                                        launchSingleTop = true
+                                    }
                                 }
                             )
                         }

@@ -147,31 +147,41 @@ class FridgeInventoryViewModel(
         viewModelScope.launch {
             // Don't reset to Loading - we might already have cached data showing
 
-            // Combine remote items with our local optimistic items (without search query)
-            combine(
-                fridgeRepository.getItemsForFridge(fridgeId),
-                optimisticItems
-            ) { remoteItems, optimistic ->
-                // Filter out optimistic items that have now been confirmed by remote data
-                val remoteUpcs = remoteItems.map { it.upc }.toSet()
-                val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
+            try {
+                // Combine remote items with our local optimistic items (without search query)
+                combine(
+                    fridgeRepository.getItemsForFridge(fridgeId),
+                    optimisticItems
+                ) { remoteItems, optimistic ->
+                    // Filter out optimistic items that have now been confirmed by remote data
+                    val remoteUpcs = remoteItems.map { it.upc }.toSet()
+                    val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
 
-                // Map remote items to products (always fetch fresh from server for remote updates)
-                val mappedRemote =
-                    remoteItems.map { item ->
-                        // For remote items, force re-fetch from Firestore to get latest product data
-                        val product = productRepository.getProductInfoFresh(item.upc) 
-                            ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
-                        InventoryItem(item, product)
-                    }
+                    // Map remote items to products (always fetch fresh from server for remote updates)
+                    val mappedRemote =
+                        remoteItems.map { item ->
+                            // For remote items, force re-fetch from Firestore to get latest product data
+                            val product = productRepository.getProductInfoFresh(item.upc) 
+                                ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
+                            InventoryItem(item, product)
+                        }
 
-                // Final display list: Remote items first, then any still-pending optimistic items
-                mappedRemote + pendingOptimistic
-            }
-                .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
-                .collectLatest { combinedList ->
-                    _itemsUiState.value = ItemsUiState.Success(combinedList)
+                    // Final display list: Remote items first, then any still-pending optimistic items
+                    mappedRemote + pendingOptimistic
                 }
+                    .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
+                    .collectLatest { combinedList ->
+                        _itemsUiState.value = ItemsUiState.Success(combinedList)
+                    }
+            } catch (e: Exception) {
+                // Handle permission errors gracefully (e.g., when fridge is deleted/left)
+                if (e.message?.contains("PERMISSION_DENIED") == true) {
+                    Log.w("FridgeInventoryVM", "Permission denied - fridge may have been deleted or left")
+                    // Keep existing state, don't crash
+                } else {
+                    _itemsUiState.value = ItemsUiState.Error(e.message ?: "Unknown error")
+                }
+            }
         }
     }
 
