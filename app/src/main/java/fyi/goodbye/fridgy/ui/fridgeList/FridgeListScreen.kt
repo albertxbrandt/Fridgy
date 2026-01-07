@@ -63,6 +63,13 @@ fun FridgeListScreen(
     var newFridgeName by remember { mutableStateOf("") }
     var newFridgeType by remember { mutableStateOf("fridge") }
     var newFridgeLocation by remember { mutableStateOf("") }
+    
+    // Helper function to reset dialog state
+    fun resetDialogState() {
+        newFridgeName = ""
+        newFridgeType = "fridge"
+        newFridgeLocation = ""
+    }
 
     val fridgeUiState by viewModel.fridgesUiState.collectAsState()
     val invites by viewModel.invites.collectAsState()
@@ -229,9 +236,7 @@ fun FridgeListScreen(
         AlertDialog(
             onDismissRequest = {
                 showAddFridgeDialog = false
-                newFridgeName = ""
-                newFridgeType = "fridge"
-                newFridgeLocation = ""
+                resetDialogState()
             },
             title = {
                 Text(
@@ -259,7 +264,7 @@ fun FridgeListScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text(
-                            text = "Type",
+                            text = stringResource(R.string.fridge_type_label),
                             style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -299,9 +304,7 @@ fun FridgeListScreen(
                         if (newFridgeName.isNotBlank()) {
                             viewModel.createNewFridge(newFridgeName, newFridgeType, newFridgeLocation)
                             showAddFridgeDialog = false
-                            newFridgeName = ""
-                            newFridgeType = "fridge"
-                            newFridgeLocation = ""
+                            resetDialogState()
                         }
                     },
                     enabled = newFridgeName.isNotBlank()
@@ -312,9 +315,7 @@ fun FridgeListScreen(
             dismissButton = {
                 TextButton(onClick = {
                     showAddFridgeDialog = false
-                    newFridgeName = ""
-                    newFridgeType = "fridge"
-                    newFridgeLocation = ""
+                    resetDialogState()
                 }) {
                     Text(stringResource(R.string.cancel))
                 }

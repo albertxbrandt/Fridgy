@@ -21,12 +21,14 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.ui.theme.FridgeTypeColors
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -47,9 +49,9 @@ fun FridgeCard(
     
     // Determine icon and gradient colors based on fridge type
     val (fridgeIcon, iconGradient) = when (fridge.type.lowercase()) {
-        "freezer" -> Icons.Default.AcUnit to listOf(Color(0xFF81D4FA), Color(0xFF4FC3F7), Color(0xFF29B6F6)) // Light blue gradient
-        "pantry" -> Icons.Default.Inventory to listOf(Color(0xFFFFB74D), Color(0xFFFF9800), Color(0xFFF57C00)) // Orange gradient
-        else -> Icons.Default.Kitchen to listOf(Color(0xFF42A5F5), Color(0xFF1E88E5), Color(0xFF1565C0)) // Blue gradient
+        "freezer" -> Icons.Default.AcUnit to FridgeTypeColors.FreezerGradient
+        "pantry" -> Icons.Default.Inventory to FridgeTypeColors.PantryGradient
+        else -> Icons.Default.Kitchen to FridgeTypeColors.FridgeGradient
     }
 
     Card(
@@ -99,7 +101,7 @@ fun FridgeCard(
                         modifier = Modifier
                     ) {
                         Text(
-                            text = "${fridge.memberUsers.size} ${if (fridge.memberUsers.size == 1) "member" else "members"}",
+                            text = pluralStringResource(R.plurals.member_count, fridge.memberUsers.size, fridge.memberUsers.size),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,

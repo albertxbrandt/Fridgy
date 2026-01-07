@@ -186,7 +186,14 @@ class FridgeInventoryViewModel(
     }
 
     /**
-     * Checks if a scanned UPC exists in the global database.
+     * Handles a scanned barcode UPC, checking if the product exists in the global
+     * product database before adding it to the fridge.
+     * 
+     * If the product exists, it's immediately added to the fridge.
+     * If the product doesn't exist, sets [pendingScannedUpc] to trigger the
+     * new product dialog where the user can add product details.
+     * 
+     * @param upc The scanned UPC/barcode string.
      */
     fun onBarcodeScanned(upc: String) {
         viewModelScope.launch {

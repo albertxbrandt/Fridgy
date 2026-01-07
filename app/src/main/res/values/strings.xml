@@ -220,4 +220,13 @@
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
     <string name="product_brand_category">%1$s • %2$s</string>
+    
+    <!-- Fridge Card -->
+    <plurals name="member_count">
+        <item quantity="one">%d member</item>
+        <item quantity="other">%d members</item>
+    </plurals>
+    
+    <!-- Fridge Type -->
+    <string name="fridge_type_label">Type</string>
 </resources>
