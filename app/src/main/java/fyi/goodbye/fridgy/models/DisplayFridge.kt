@@ -11,6 +11,7 @@ import kotlinx.parcelize.Parcelize
  *
  * @property id The unique identifier for the fridge.
  * @property name The display name of the fridge (e.g., "Kitchen Fridge").
+ * @property type The type of storage (fridge, freezer, pantry).
  * @property createdByUid The User ID of the person who created this fridge.
  * @property creatorDisplayName The username of the person who created this fridge.
  * @property memberUsers A list of UserProfile objects for active members.
@@ -21,6 +22,7 @@ import kotlinx.parcelize.Parcelize
 data class DisplayFridge(
     val id: String = "",
     val name: String = "",
+    val type: String = "fridge",
     val createdByUid: String = "",
     val creatorDisplayName: String = "Unknown",
     val memberUsers: List<UserProfile> = listOf(),

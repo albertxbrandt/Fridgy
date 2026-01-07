@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -71,9 +72,11 @@ class FridgeSettingsViewModel(
         viewModelScope.launch {
             _uiState.value = FridgeSettingsUiState.Loading
             try {
-                val fridge = fridgeRepository.getFridgeById(fridgeId)
-                if (fridge != null) {
-                    _uiState.value = FridgeSettingsUiState.Success(fridge)
+                val displayFridge = fridgeRepository.getFridgeById(fridgeId)
+                val rawFridge = fridgeRepository.getRawFridgeById(fridgeId)
+                
+                if (displayFridge != null && rawFridge != null) {
+                    _uiState.value = FridgeSettingsUiState.Success(displayFridge, rawFridge)
                 } else {
                     _uiState.value = FridgeSettingsUiState.Error(getApplication<Application>().getString(R.string.error_fridge_not_found))
                 }
@@ -193,7 +196,7 @@ class FridgeSettingsViewModel(
     sealed interface FridgeSettingsUiState {
         data object Loading : FridgeSettingsUiState
 
-        data class Success(val fridge: DisplayFridge) : FridgeSettingsUiState
+        data class Success(val fridge: DisplayFridge, val fridgeData: Fridge) : FridgeSettingsUiState
 
         data class Error(val message: String) : FridgeSettingsUiState
     }

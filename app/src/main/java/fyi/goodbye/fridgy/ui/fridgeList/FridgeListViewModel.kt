@@ -92,7 +92,8 @@ class FridgeListViewModel(
                                 creatorDisplayName = creatorName,
                                 memberUsers = memberUsers,
                                 pendingInviteUsers = inviteUsers,
-                                createdAt = fridge.createdAt
+                                createdAt = fridge.createdAt,
+                                type = fridge.type
                             )
                         }
                     _fridgesUiState.value = FridgeUiState.Success(displayFridges)
@@ -119,7 +120,8 @@ class FridgeListViewModel(
                                 creatorDisplayName = creatorName,
                                 memberUsers = memberUsers,
                                 pendingInviteUsers = inviteUsers,
-                                createdAt = fridge.createdAt
+                                createdAt = fridge.createdAt,
+                                type = fridge.type
                             )
                         }
                     _invites.value = displayInvites

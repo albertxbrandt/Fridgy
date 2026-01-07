@@ -3,14 +3,22 @@ package fyi.goodbye.fridgy.ui.elements
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AcUnit
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Kitchen
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +42,13 @@ fun FridgeCard(
     onClick: (DisplayFridge) -> Unit
 ) {
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
+    
+    // Determine icon and color based on fridge type
+    val (fridgeIcon, iconColor) = when (fridge.type.lowercase()) {
+        "freezer" -> Icons.Default.AcUnit to Color(0xFF64B5F6) // Light blue
+        "pantry" -> Icons.Default.Inventory to Color(0xFFFF9800) // Orange
+        else -> Icons.Default.Kitchen to Color(0xFF1976D2) // Darker blue for fridge
+    }
 
     Card(
         modifier =
@@ -47,23 +62,27 @@ fun FridgeCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                    .padding(20.dp)
+                    .padding(end = 44.dp) // Make room for icon
             ) {
-                // Title section
-                Text(
-                    text = fridge.name,
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    // Title section
+                    Text(
+                        text = fridge.name,
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
             
                 // Bottom info section with chips
                 Row(
@@ -116,6 +135,18 @@ fun FridgeCard(
                     }
                 }
             }
+            }
+            
+            // Type icon on the right
+            Icon(
+                imageVector = fridgeIcon,
+                contentDescription = "${fridge.type} icon",
+                tint = iconColor.copy(alpha = 0.8f),
+                modifier = Modifier
+                    .align(Alignment.CenterEnd)
+                    .padding(end = 20.dp)
+                    .size(56.dp)
+            )
             
             // Decorative accent bar
             Box(

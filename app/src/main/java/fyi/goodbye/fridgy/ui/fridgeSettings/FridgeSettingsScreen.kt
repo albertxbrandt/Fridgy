@@ -120,9 +120,15 @@ fun FridgeSettingsScreen(
                                 SettingsItem(label = stringResource(R.string.name), value = fridge.name)
                                 SettingsItem(label = stringResource(R.string.owner), value = fridge.creatorDisplayName)
                                 SettingsItem(
-                                    label = stringResource(R.string.location),
-                                    value = stringResource(R.string.location_kitchen)
+                                    label = "Type", 
+                                    value = state.fridgeData.type.replaceFirstChar { it.uppercase() }
                                 )
+                                if (state.fridgeData.location.isNotBlank()) {
+                                    SettingsItem(
+                                        label = stringResource(R.string.location),
+                                        value = state.fridgeData.location
+                                    )
+                                }
                             }
                         }
                     }

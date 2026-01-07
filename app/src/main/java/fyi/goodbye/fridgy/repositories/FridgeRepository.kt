@@ -260,6 +260,16 @@ class FridgeRepository {
             awaitClose { invitesListener.remove() }
         }
 
+    suspend fun getRawFridgeById(fridgeId: String): Fridge? {
+        return try {
+            val doc = firestore.collection("fridges").document(fridgeId).get().await()
+            doc.toFridgeCompat()
+        } catch (e: Exception) {
+            Log.e("FridgeRepo", "Error fetching raw fridge: ${e.message}")
+            null
+        }
+    }
+
     suspend fun getFridgeById(
         fridgeId: String,
         fetchUserDetails: Boolean = true
@@ -299,7 +309,8 @@ class FridgeRepository {
                 creatorDisplayName = "",
                 memberUsers = emptyList(),
                 pendingInviteUsers = emptyList(),
-                createdAt = fridge.createdAt
+                createdAt = fridge.createdAt,
+                type = fridge.type
             )
         }
 
@@ -318,7 +329,8 @@ class FridgeRepository {
             creatorDisplayName = creatorName,
             memberUsers = memberUsers,
             pendingInviteUsers = inviteUsers,
-            createdAt = fridge.createdAt
+            createdAt = fridge.createdAt,
+            type = fridge.type
         )
     }
 
