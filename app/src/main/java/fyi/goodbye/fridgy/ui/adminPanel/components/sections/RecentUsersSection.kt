@@ -3,6 +3,7 @@ package fyi.goodbye.fridgy.ui.adminPanel.components.sections
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -10,11 +11,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.ui.adminPanel.components.items.UserListItem
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 
 /**
@@ -38,9 +37,9 @@ fun RecentUsersSection(
     ) {
         Text(
             stringResource(R.string.recent_users),
-            fontSize = 20.sp,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = FridgyDarkBlue,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 16.dp)
         )
 

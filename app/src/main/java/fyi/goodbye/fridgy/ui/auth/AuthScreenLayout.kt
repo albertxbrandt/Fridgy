@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -28,18 +27,15 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shared.components.SquaredButton
 import fyi.goodbye.fridgy.ui.shared.components.SquaredInput
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
-import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
 /**
- * Shared layout wrapper for authentication screens (Login and Signup).
+ * Modern shared layout wrapper for authentication screens (Login and Signup).
  *
+ * Features clean typography, proper spacing, and Material 3 theming.
  * Provides consistent styling including:
  * - Centered column layout with Fridgy branding
  * - Logo, title, and subtitle header
@@ -71,7 +67,7 @@ fun AuthScreenLayout(
     content: @Composable ColumnScope.() -> Unit
 ) {
     Scaffold(
-        containerColor = FridgyWhite
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier =
@@ -79,7 +75,7 @@ fun AuthScreenLayout(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .padding(horizontal = 24.dp)
-                    .background(FridgyWhite),
+                    .background(MaterialTheme.colorScheme.background),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -96,17 +92,17 @@ fun AuthScreenLayout(
             // Title
             Text(
                 text = title,
-                fontSize = 28.sp,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = FridgyTextBlue,
+                color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
             // Subtitle
             Text(
                 text = subtitle,
-                fontSize = 16.sp,
-                color = FridgyTextBlue.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
                 modifier = Modifier.padding(bottom = 48.dp)
             )
 
@@ -118,6 +114,7 @@ fun AuthScreenLayout(
                 Text(
                     text = it,
                     color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 8.dp)
                 )
             }
@@ -131,22 +128,17 @@ fun AuthScreenLayout(
                     Modifier
                         .fillMaxWidth()
                         .height(56.dp),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        containerColor = FridgyDarkBlue,
-                        contentColor = FridgyWhite
-                    ),
                 enabled = !isLoading
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        color = FridgyWhite,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(24.dp)
                     )
                 } else {
                     Text(
                         text = primaryButtonText,
-                        fontSize = 18.sp,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
                     )
                 }
@@ -162,8 +154,8 @@ fun AuthScreenLayout(
             ) {
                 Text(
                     text = secondaryButtonText,
-                    color = FridgyTextBlue,
-                    fontSize = 16.sp
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge
                 )
             }
         }

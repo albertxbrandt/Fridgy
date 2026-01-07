@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.adminPanel.components.items
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
@@ -15,14 +14,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
 /**
- * A generic list item component for displaying data in the admin panel.
+ * A modern generic list item component for displaying data in the admin panel.
  *
+ * Features Material 3 theming with clean typography and proper spacing.
  * Provides a consistent layout with an optional leading icon, primary/secondary text,
  * and edit/delete actions. Used across Users, Products, and Categories sections.
  *
@@ -49,8 +46,8 @@ fun AdminListItem(
             Modifier
                 .fillMaxWidth()
                 .padding(vertical = 4.dp),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = FridgyWhite)
+        shape = MaterialTheme.shapes.small,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
             modifier =
@@ -69,7 +66,7 @@ fun AdminListItem(
                         leadingIcon,
                         contentDescription = null,
                         modifier = Modifier.size(40.dp),
-                        tint = FridgyPrimary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                     Spacer(modifier = Modifier.width(12.dp))
                 }
@@ -77,12 +74,12 @@ fun AdminListItem(
                 Column {
                     Text(
                         primaryText,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         secondaryText,
-                        fontSize = if (leadingIcon != null) 14.sp else 12.sp,
+                        style = if (leadingIcon != null) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -93,7 +90,7 @@ fun AdminListItem(
                     Icon(
                         Icons.Default.Edit,
                         contentDescription = editContentDescription,
-                        tint = FridgyPrimary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
                 IconButton(onClick = onDelete) {

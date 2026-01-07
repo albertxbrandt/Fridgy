@@ -18,7 +18,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -30,7 +29,6 @@ import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SearchBar
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import kotlinx.coroutines.launch
 
 /**
@@ -138,9 +136,9 @@ fun FridgeInventoryScreen(
                 title = {
                     Text(
                         text = fridgeName,
-                        color = FridgyWhite,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -150,7 +148,7 @@ fun FridgeInventoryScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.cd_back),
-                            tint = FridgyWhite
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
@@ -160,7 +158,7 @@ fun FridgeInventoryScreen(
                             Icon(
                                 imageVector = Icons.Default.Settings,
                                 contentDescription = stringResource(R.string.cd_fridge_settings),
-                                tint = FridgyWhite
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     }

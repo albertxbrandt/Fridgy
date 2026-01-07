@@ -3,7 +3,6 @@ package fyi.goodbye.fridgy.ui.elements
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -15,13 +14,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.fridgeInventory.InventoryItem
 
 /**
- * A card representing a single inventory item in the grid.
+ * A modern card representing a single inventory item in the grid.
+ * Features elevated design with gradient overlay and clean typography.
  * Displays global product info (image, name, brand) and fridge-specific info (quantity).
  */
 @Composable
@@ -38,7 +37,7 @@ fun InventoryItemCard(
                 .fillMaxWidth()
                 .height(180.dp)
                 .clickable { onClick(item.upc) },
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
@@ -60,7 +59,10 @@ fun InventoryItemCard(
                             .background(MaterialTheme.colorScheme.surfaceVariant),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(text = stringResource(R.string.cd_placeholder_icon), fontSize = 48.sp)
+                    Text(
+                        text = stringResource(R.string.cd_placeholder_icon), 
+                        style = MaterialTheme.typography.displaySmall
+                    )
                 }
             }
 
@@ -88,8 +90,7 @@ fun InventoryItemCard(
                 if (product.brand.isNotBlank()) {
                     Text(
                         text = product.brand,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
+                        style = MaterialTheme.typography.labelSmall,
                         color = Color.White.copy(alpha = 0.8f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -97,7 +98,7 @@ fun InventoryItemCard(
                 }
                 Text(
                     text = product.name,
-                    fontSize = 15.sp,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     maxLines = 1,
@@ -105,7 +106,7 @@ fun InventoryItemCard(
                 )
                 Text(
                     text = stringResource(R.string.quantity_label, item.quantity),
-                    fontSize = 13.sp,
+                    style = MaterialTheme.typography.bodySmall,
                     fontWeight = FontWeight.Medium,
                     color = Color.White.copy(alpha = 0.9f)
                 )

@@ -20,12 +20,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.ui.adminPanel.components.items.CategoryListItem
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 
 /**
  * Section for managing product categories in the admin panel.
@@ -56,9 +54,9 @@ fun CategoriesSection(
         ) {
             Text(
                 stringResource(R.string.food_categories),
-                fontSize = 20.sp,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
-                color = FridgyDarkBlue
+                color = MaterialTheme.colorScheme.onBackground
             )
             IconButton(onClick = onAddCategory) {
                 Icon(

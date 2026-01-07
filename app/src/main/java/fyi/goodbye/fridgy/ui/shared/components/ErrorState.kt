@@ -15,10 +15,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 
 /**
- * Reusable error state component that displays a centered error message with optional icon.
+ * Modern reusable error state component that displays a centered error message with optional icon.
+ * Features Material 3 theming and clean typography.
  * Used across multiple screens to show error states consistently.
  *
  * @param message The error message to display
@@ -56,7 +56,7 @@ fun ErrorState(
             }
             Text(
                 text = message,
-                fontSize = 16.sp,
+                style = MaterialTheme.typography.bodyLarge,
                 fontWeight = if (showIcon) FontWeight.Bold else FontWeight.Normal,
                 color = color,
                 textAlign = TextAlign.Center

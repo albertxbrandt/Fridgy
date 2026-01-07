@@ -1,27 +1,25 @@
 package fyi.goodbye.fridgy.ui.shared.components
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.TextField
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.TextFieldColors
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.unit.dp
 
 /**
- * A custom styled TextField with a squared shape and brand-consistent colors.
+ * A modern styled TextField with rounded corners and brand-consistent colors.
  *
- * This component wraps the standard Material 3 [TextField] and applies the
- * Fridgy theme's color scheme and a zero-radius rounded corner shape.
+ * This component wraps the Material 3 [OutlinedTextField] and applies the
+ * Fridgy theme's color scheme with a clean, modern appearance.
  */
 @Composable
 fun SquaredInput(
@@ -46,19 +44,20 @@ fun SquaredInput(
     maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
     minLines: Int = 1,
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
-    shape: Shape = RoundedCornerShape(0.dp),
-    colors: TextFieldColors =
-        TextFieldDefaults.colors(
-            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-            unfocusedIndicatorColor = MaterialTheme.colorScheme.outline,
-            focusedIndicatorColor = MaterialTheme.colorScheme.primary,
-            cursorColor = MaterialTheme.colorScheme.primary,
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    shape: Shape = MaterialTheme.shapes.small,
+    colors: TextFieldColors = OutlinedTextFieldDefaults.colors(
+        focusedBorderColor = MaterialTheme.colorScheme.primary,
+        unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+        focusedLabelColor = MaterialTheme.colorScheme.primary,
+        unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        cursorColor = MaterialTheme.colorScheme.primary,
+        focusedContainerColor = MaterialTheme.colorScheme.surface,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+        errorBorderColor = MaterialTheme.colorScheme.error,
+        errorLabelColor = MaterialTheme.colorScheme.error
+    )
 ) {
-    TextField(
+    OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier,

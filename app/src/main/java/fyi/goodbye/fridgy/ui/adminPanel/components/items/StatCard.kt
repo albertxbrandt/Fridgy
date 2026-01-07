@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.adminPanel.components.items
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
@@ -12,15 +11,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
 /**
- * A card component for displaying a single statistic in the admin panel.
+ * A modern card component for displaying a single statistic in the admin panel.
  *
- * Displays an icon, numeric value, and label in a visually prominent card
- * with the app's primary color scheme.
+ * Features gradient-style primary container with clean typography and 
+ * proper Material 3 theming.
  *
  * @param title The label describing the statistic (e.g., "Total Users")
  * @param value The numeric value to display (e.g., "1,234")
@@ -36,8 +32,8 @@ fun StatCard(
 ) {
     Card(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = FridgyPrimary),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Column(
@@ -51,19 +47,19 @@ fun StatCard(
                 icon,
                 contentDescription = null,
                 modifier = Modifier.size(32.dp),
-                tint = FridgyWhite
+                tint = MaterialTheme.colorScheme.onPrimary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 value,
-                fontSize = 24.sp,
+                style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = FridgyWhite
+                color = MaterialTheme.colorScheme.onPrimary
             )
             Text(
                 title,
-                fontSize = 12.sp,
-                color = FridgyWhite
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.9f)
             )
         }
     }

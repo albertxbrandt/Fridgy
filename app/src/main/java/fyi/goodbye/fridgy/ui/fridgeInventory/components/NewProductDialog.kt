@@ -21,10 +21,12 @@ import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,6 +42,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.layout.size
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -93,53 +96,90 @@ fun NewProductDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.new_product_detected), fontWeight = FontWeight.Bold) },
+        title = { 
+            Text(
+                stringResource(R.string.new_product_detected),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(stringResource(R.string.product_not_recognized, upc), fontSize = 14.sp)
-                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    stringResource(R.string.product_not_recognized, upc),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(20.dp))
 
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(120.dp)
-                            .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                            .clickable { cameraLauncher.launch(tempUri) },
-                    contentAlignment = Alignment.Center
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    onClick = { cameraLauncher.launch(tempUri) }
                 ) {
-                    if (capturedImageUri != null) {
-                        AsyncImage(
-                            model = capturedImageUri,
-                            contentDescription = stringResource(R.string.cd_captured_product),
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(Icons.Default.PhotoCamera, contentDescription = null)
-                            Text(stringResource(R.string.take_product_photo), fontSize = 12.sp)
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (capturedImageUri != null) {
+                            AsyncImage(
+                                model = capturedImageUri,
+                                contentDescription = stringResource(R.string.cd_captured_product),
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.PhotoCamera,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(36.dp)
+                                )
+                                Text(
+                                    stringResource(R.string.take_product_photo),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 OutlinedTextField(
                     value = productName,
                     onValueChange = { productName = it },
                     label = { Text(stringResource(R.string.product_name)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    singleLine = true
                 )
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = productBrand,
                     onValueChange = { productBrand = it },
                     label = { Text(stringResource(R.string.brand_optional)) },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium,
+                    singleLine = true
                 )
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(stringResource(R.string.category), fontWeight = FontWeight.Medium)
+                Spacer(modifier = Modifier.height(20.dp))
+                Text(
+                    stringResource(R.string.category),
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(12.dp))
                 Column(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     categories.chunked(3).forEach { rowCategories ->
                         Row(
@@ -154,13 +194,12 @@ fun NewProductDialog(
                                 )
                             }
                         }
-                        Spacer(modifier = Modifier.height(8.dp))
                     }
                 }
             }
         },
         confirmButton = {
-            Button(
+            FilledTonalButton(
                 onClick = { onConfirm(productName, productBrand, selectedCategory, capturedImageUri) },
                 enabled = productName.isNotBlank()
             ) {
@@ -171,6 +210,8 @@ fun NewProductDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
-        }
+        },
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }

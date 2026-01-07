@@ -22,7 +22,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
-import fyi.goodbye.fridgy.ui.theme.*
 
 /**
  * Screen displaying the settings and management options for a specific fridge.
@@ -74,7 +73,8 @@ fun FridgeSettingsScreen(
                 title = {
                     Text(
                         stringResource(R.string.fridge_settings),
-                        color = FridgyWhite,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -83,7 +83,7 @@ fun FridgeSettingsScreen(
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.cd_back),
-                            tint = FridgyWhite
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
@@ -213,12 +213,12 @@ fun FridgeSettingsScreen(
             title = {
                 Text(
                     stringResource(R.string.invite_member),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     OutlinedTextField(
                         value = inviteEmail,
                         onValueChange = { inviteEmail = it },
@@ -226,24 +226,20 @@ fun FridgeSettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isInviting,
                         singleLine = true,
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                focusedLabelColor = MaterialTheme.colorScheme.primary
-                            )
+                        shape = MaterialTheme.shapes.medium
                     )
                     if (inviteError != null) {
                         Text(
                             text = inviteError!!,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
-                            fontSize = 12.sp,
                             modifier = Modifier.padding(top = 4.dp)
                         )
                     }
                 }
             },
             confirmButton = {
-                TextButton(
+                FilledTonalButton(
                     onClick = {
                         viewModel.inviteMember(inviteEmail)
                     },
@@ -252,15 +248,10 @@ fun FridgeSettingsScreen(
                     if (isInviting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text(
-                            stringResource(R.string.send_invite),
-                            color = MaterialTheme.colorScheme.primary,
-                            fontWeight = FontWeight.Bold
-                        )
+                        Text(stringResource(R.string.send_invite))
                     }
                 }
             },
@@ -276,8 +267,8 @@ fun FridgeSettingsScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(16.dp)
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -295,44 +286,46 @@ fun FridgeSettingsScreen(
             title = {
                 Text(
                     stringResource(R.string.delete_fridge),
+                    style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.error,
                     fontWeight = FontWeight.Bold
                 )
             },
             text = {
-                Column {
-                    Text(stringResource(R.string.delete_confirmation_message))
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(stringResource(R.string.type_confirm), fontWeight = FontWeight.SemiBold)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Text(
+                        stringResource(R.string.delete_confirmation_message),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        stringResource(R.string.type_confirm),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold
+                    )
                     OutlinedTextField(
                         value = confirmText,
                         onValueChange = { confirmText = it },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         placeholder = { Text(stringResource(R.string.confirm_text)) },
-                        colors =
-                            OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = MaterialTheme.colorScheme.error,
-                                focusedLabelColor = MaterialTheme.colorScheme.error
-                            )
+                        shape = MaterialTheme.shapes.medium
                     )
                 }
             },
             confirmButton = {
-                TextButton(
+                Button(
                     onClick = {
                         viewModel.deleteFridge {
                             showDeleteConfirmDialog = false
                             onDeleteSuccess()
                         }
                     },
-                    enabled = confirmText == "CONFIRM"
-                ) {
-                    Text(
-                        stringResource(R.string.delete),
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold
+                    enabled = confirmText == "CONFIRM",
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
                     )
+                ) {
+                    Text(stringResource(R.string.delete))
                 }
             },
             dismissButton = {
@@ -343,8 +336,8 @@ fun FridgeSettingsScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(16.dp)
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 
@@ -354,23 +347,29 @@ fun FridgeSettingsScreen(
             title = {
                 Text(
                     stringResource(R.string.leave_fridge),
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
             },
-            text = { Text(stringResource(R.string.leave_fridge_message)) },
+            text = { 
+                Text(
+                    stringResource(R.string.leave_fridge_message),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    viewModel.leaveFridge {
-                        showLeaveConfirmDialog = false
-                        onDeleteSuccess()
-                    }
-                }) {
-                    Text(
-                        stringResource(R.string.leave),
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.Bold
+                Button(
+                    onClick = {
+                        viewModel.leaveFridge {
+                            showLeaveConfirmDialog = false
+                            onDeleteSuccess()
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
                     )
+                ) {
+                    Text(stringResource(R.string.leave))
                 }
             },
             dismissButton = {
@@ -378,8 +377,8 @@ fun FridgeSettingsScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
-            containerColor = MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(16.dp)
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }

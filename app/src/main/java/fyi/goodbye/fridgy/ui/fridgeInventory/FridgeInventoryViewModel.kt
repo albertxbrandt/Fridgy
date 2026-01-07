@@ -181,7 +181,7 @@ class FridgeInventoryViewModel(
                     name = name,
                     brand = brand,
                     category = category,
-                    imageUrl = imageUri?.toString(),
+                    imageUrl = "",
                     lastUpdated = System.currentTimeMillis()
                 )
 

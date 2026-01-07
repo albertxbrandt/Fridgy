@@ -49,6 +49,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.material3.MaterialTheme
 import com.google.mlkit.vision.barcode.BarcodeScanner
 import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
@@ -56,13 +57,12 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shared.components.SquaredButton
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import java.util.concurrent.Executors
 
 /**
- * Screen that integrates CameraX and Google ML Kit to scan product barcodes.
+ * Modern screen that integrates CameraX and Google ML Kit to scan product barcodes.
+ * Features proper Material 3 theming and clean UI.
  *
  * PERFORMANCE OPTIMIZATIONS:
  * 1. Used STRATEGY_KEEP_ONLY_LATEST to prevent camera preview lag.
@@ -112,9 +112,9 @@ fun BarcodeScannerScreen(
                     title = {
                         Text(
                             text = stringResource(R.string.scan_barcode),
-                            color = FridgyWhite,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            fontWeight = FontWeight.Bold
                         )
                     },
                     navigationIcon = {
@@ -122,14 +122,14 @@ fun BarcodeScannerScreen(
                             Icon(
                                 imageVector = Icons.Default.ArrowBack,
                                 contentDescription = stringResource(R.string.cd_back),
-                                tint = FridgyWhite
+                                tint = MaterialTheme.colorScheme.onPrimary
                             )
                         }
                     },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = FridgyDarkBlue)
+                    colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
                 )
             },
-            containerColor = FridgyWhite
+            containerColor = MaterialTheme.colorScheme.background
         ) { paddingValues ->
             Box(
                 modifier =
@@ -144,16 +144,16 @@ fun BarcodeScannerScreen(
                 ) {
                     Text(
                         text = "Camera Permission Required",
-                        fontSize = 20.sp,
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = FridgyDarkBlue,
+                        color = MaterialTheme.colorScheme.onBackground,
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(
                         text = "To scan barcodes, Fridgy needs access to your camera. Please grant camera permission to continue.",
-                        fontSize = 16.sp,
-                        color = FridgyDarkBlue.copy(alpha = 0.8f),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(24.dp))
@@ -198,9 +198,9 @@ fun BarcodeScannerScreen(
                 title = {
                     Text(
                         text = stringResource(R.string.scan_barcode),
-                        color = FridgyWhite,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
@@ -208,13 +208,13 @@ fun BarcodeScannerScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = stringResource(R.string.cd_back),
-                            tint = FridgyWhite
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor = FridgyDarkBlue
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
             )
         },

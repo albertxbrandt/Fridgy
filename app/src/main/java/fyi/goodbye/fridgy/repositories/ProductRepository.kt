@@ -231,19 +231,13 @@ class ProductRepository(private val context: Context? = null) {
         product: Product,
         imageUri: Uri?
     ): Product {
-        // Update cache immediately
+        // Update cache immediately for optimistic UI
         productCache[product.upc] = product
 
-        // 1. Save metadata (fire-and-forget for local cache benefit)
-        val saveTask = productsCollection.document(product.upc).set(product)
-
-        // We don't await the metadata save if we want instant UI,
-        // Firestore's local persistence will handle the immediate fetch.
-        // However, we still want to handle the image upload in the background.
-
         var finalImageUrl = product.imageUrl
+        var productToSave = product
 
-        // 2. Upload Image to Firebase Storage if provided
+        // 1. Upload Image to Firebase Storage FIRST if provided
         if (imageUri != null) {
             try {
                 val storageRef = storage.reference.child("products/${product.upc}.jpg")
@@ -255,22 +249,29 @@ class ProductRepository(private val context: Context? = null) {
                     // Upload compressed bytes instead of raw file
                     storageRef.putBytes(compressedBytes).await()
                     finalImageUrl = storageRef.downloadUrl.await().toString()
-
-                    // 3. Update metadata with the final image URL
-                    val updatedProduct = product.copy(imageUrl = finalImageUrl)
-                    productsCollection.document(product.upc).set(updatedProduct)
-                    productCache[product.upc] = updatedProduct
+                    
+                    // Create updated product with Storage URL
+                    productToSave = product.copy(imageUrl = finalImageUrl)
+                    productCache[product.upc] = productToSave
                     Log.d("ProductRepo", "Compressed product image uploaded: ${product.upc}")
-                    return updatedProduct
                 } else {
                     Log.e("ProductRepo", "Image compression returned null, skipping upload")
                 }
             } catch (e: Exception) {
                 Log.e("ProductRepo", "Image upload failed for ${product.upc}: ${e.message}")
+                // Continue with empty imageUrl on upload failure
             }
         }
 
-        return productCache[product.upc] ?: product
+        // 2. Save metadata to Firestore with proper Storage URL (or empty string)
+        try {
+            productsCollection.document(product.upc).set(productToSave).await()
+            Log.d("ProductRepo", "Product metadata saved: ${product.upc}")
+        } catch (e: Exception) {
+            Log.e("ProductRepo", "Failed to save product metadata: ${e.message}")
+        }
+
+        return productCache[product.upc] ?: productToSave
     }
 
     suspend fun saveProductInfo(product: Product) {

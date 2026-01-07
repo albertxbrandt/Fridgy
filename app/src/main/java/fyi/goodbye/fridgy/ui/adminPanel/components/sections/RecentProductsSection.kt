@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -11,11 +12,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.ui.adminPanel.components.items.ProductListItem
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 
 /**
  * Section displaying recent products in the admin panel.
@@ -40,9 +39,9 @@ fun RecentProductsSection(
     ) {
         Text(
             stringResource(R.string.recent_products),
-            fontSize = 20.sp,
+            style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
-            color = FridgyDarkBlue,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(top = 16.dp)
         )
 

@@ -3,7 +3,6 @@ package fyi.goodbye.fridgy.ui.shared.components
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -14,8 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * Shared search bar component with integrated barcode scanner button.
- * Follows DRY principles by consolidating search UI across the app.
+ * Modern search bar component with integrated barcode scanner button.
+ * Features rounded corners, subtle shadows, and clean Material 3 styling.
  *
  * @param value Current search query text
  * @param onValueChange Callback when search text changes
@@ -38,8 +37,13 @@ fun SearchBar(
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        placeholder = { Text(placeholder) },
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        placeholder = { 
+            Text(
+                text = placeholder,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+            ) 
+        },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Default.Search,
@@ -68,10 +72,12 @@ fun SearchBar(
             }
         },
         singleLine = true,
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
+            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+            focusedContainerColor = MaterialTheme.colorScheme.surface,
+            unfocusedContainerColor = MaterialTheme.colorScheme.surface
         )
     )
 }

@@ -21,9 +21,7 @@ import fyi.goodbye.fridgy.ui.adminPanel.components.dialogs.*
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
-import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 
 /**
  * Admin panel screen that displays system-wide statistics and data.
@@ -192,10 +190,10 @@ fun AdminPanelScreenContent(
                 },
                 colors =
                     TopAppBarDefaults.topAppBarColors(
-                        containerColor = FridgyPrimary,
-                        titleContentColor = FridgyWhite,
-                        navigationIconContentColor = FridgyWhite,
-                        actionIconContentColor = FridgyWhite
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        titleContentColor = MaterialTheme.colorScheme.onPrimary,
+                        navigationIconContentColor = MaterialTheme.colorScheme.onPrimary,
+                        actionIconContentColor = MaterialTheme.colorScheme.onPrimary
                     )
             )
         }
@@ -209,7 +207,7 @@ fun AdminPanelScreenContent(
             when (val state = uiState) {
                 AdminPanelViewModel.AdminUiState.Loading -> {
                     Log.d("AdminPanelScreen", "Rendering Loading state")
-                    LoadingState(color = FridgyPrimary)
+                    LoadingState(color = MaterialTheme.colorScheme.primary)
                 }
 
                 AdminPanelViewModel.AdminUiState.Unauthorized -> {

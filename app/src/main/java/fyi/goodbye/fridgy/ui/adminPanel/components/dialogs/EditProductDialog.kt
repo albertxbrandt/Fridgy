@@ -40,22 +40,30 @@ fun EditProductDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.edit_product)) },
+        title = { 
+            Text(
+                stringResource(R.string.edit_product),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text(stringResource(R.string.product_name)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
                 )
                 OutlinedTextField(
                     value = brand,
                     onValueChange = { brand = it },
                     label = { Text(stringResource(R.string.brand_optional)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
                 )
 
                 // Category dropdown
@@ -98,9 +106,9 @@ fun EditProductDialog(
             }
         },
         confirmButton = {
-            TextButton(
+            FilledTonalButton(
                 onClick = { onConfirm(name, brand, category) },
-                enabled = name.isNotBlank() && brand.isNotBlank() && category.isNotBlank()
+                enabled = name.isNotBlank()
             ) {
                 Text(stringResource(R.string.save))
             }
@@ -109,7 +117,9 @@ fun EditProductDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
-        }
+        },
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 

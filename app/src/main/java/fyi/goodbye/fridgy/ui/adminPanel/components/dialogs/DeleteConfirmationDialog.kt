@@ -26,15 +26,26 @@ fun DeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(title) },
-        text = { Text(message) },
+        title = { 
+            Text(
+                title,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                color = MaterialTheme.colorScheme.error
+            )
+        },
+        text = { 
+            Text(
+                message,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
         confirmButton = {
-            TextButton(
+            Button(
                 onClick = onConfirm,
-                colors =
-                    ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    )
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
             ) {
                 Text(stringResource(R.string.delete))
             }
@@ -43,7 +54,9 @@ fun DeleteConfirmationDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
-        }
+        },
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 

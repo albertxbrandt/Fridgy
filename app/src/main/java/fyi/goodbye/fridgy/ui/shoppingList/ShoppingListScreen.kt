@@ -18,7 +18,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import fyi.goodbye.fridgy.R
@@ -29,8 +28,6 @@ import fyi.goodbye.fridgy.ui.shoppingList.components.PartialPickupDialog
 import fyi.goodbye.fridgy.ui.shoppingList.components.ProductSearchResultCard
 import fyi.goodbye.fridgy.ui.shoppingList.components.ShoppingListItemCard
 import fyi.goodbye.fridgy.ui.shared.components.SearchBar
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
 
 /**
@@ -94,9 +91,9 @@ fun ShoppingListScreen(
                 title = {
                     Text(
                         text = stringResource(R.string.shopping_list),
-                        color = FridgyWhite,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 22.sp
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontWeight = FontWeight.Bold
                     )
                 },
                 navigationIcon = {
@@ -104,14 +101,14 @@ fun ShoppingListScreen(
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = stringResource(R.string.cd_back),
-                            tint = FridgyWhite
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = FridgyDarkBlue)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
             )
         },
-        containerColor = FridgyWhite
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -141,14 +138,15 @@ fun ShoppingListScreen(
                     ) {
                         Text(
                             text = stringResource(R.string.no_products_found),
-                            fontSize = 16.sp,
-                            color = FridgyDarkBlue.copy(alpha = 0.6f)
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 32.dp),
+                            shape = MaterialTheme.shapes.medium,
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                             )
@@ -163,13 +161,13 @@ fun ShoppingListScreen(
                                 ) {
                                     Text(
                                         text = stringResource(R.string.cant_find_product),
-                                        fontSize = 14.sp,
-                                        color = FridgyDarkBlue.copy(alpha = 0.8f)
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                     )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = stringResource(R.string.click_add_manually),
-                                        fontSize = 13.sp,
+                                        style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.SemiBold,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -199,6 +197,7 @@ fun ShoppingListScreen(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp),
+                                shape = MaterialTheme.shapes.medium,
                                 colors = CardDefaults.cardColors(
                                     containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                                 )
@@ -213,13 +212,13 @@ fun ShoppingListScreen(
                                     ) {
                                         Text(
                                             text = "Can't find what you're looking for?",
-                                            fontSize = 14.sp,
-                                            color = FridgyDarkBlue.copy(alpha = 0.8f)
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
                                             text = "Click here to add a product manually",
-                                            fontSize = 13.sp,
+                                            style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -249,8 +248,8 @@ fun ShoppingListScreen(
                             ) {
                                 Text(
                                     text = stringResource(R.string.no_items_in_shopping_list),
-                                    fontSize = 16.sp,
-                                    color = FridgyDarkBlue.copy(alpha = 0.6f)
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         } else {
@@ -283,7 +282,7 @@ fun ShoppingListScreen(
                             Text(
                                 text = state.message,
                                 color = MaterialTheme.colorScheme.error,
-                                fontSize = 16.sp
+                                style = MaterialTheme.typography.bodyLarge
                             )
                         }
                     }

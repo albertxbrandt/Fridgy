@@ -31,27 +31,35 @@ fun EditUserDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.edit_user)) },
+        title = { 
+            Text(
+                stringResource(R.string.edit_user),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
+            )
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
                     label = { Text(stringResource(R.string.username)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
                 )
                 OutlinedTextField(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text(stringResource(R.string.email)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.medium
                 )
             }
         },
         confirmButton = {
-            TextButton(
+            FilledTonalButton(
                 onClick = { onConfirm(username, email) },
                 enabled = username.isNotBlank() && email.isNotBlank()
             ) {
@@ -62,7 +70,9 @@ fun EditUserDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.cancel))
             }
-        }
+        },
+        shape = MaterialTheme.shapes.extraLarge,
+        containerColor = MaterialTheme.colorScheme.surface
     )
 }
 

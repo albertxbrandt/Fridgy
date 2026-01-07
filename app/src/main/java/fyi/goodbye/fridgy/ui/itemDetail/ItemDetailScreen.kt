@@ -29,7 +29,6 @@ import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -52,7 +51,8 @@ fun ItemDetailScreen(
                 title = {
                     Text(
                         stringResource(R.string.item_details),
-                        color = FridgyWhite,
+                        style = MaterialTheme.typography.titleLarge,
+                        color = MaterialTheme.colorScheme.onPrimary,
                         fontWeight = FontWeight.Bold
                     )
                 },
@@ -61,7 +61,7 @@ fun ItemDetailScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.cd_back),
-                            tint = FridgyWhite
+                            tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 },

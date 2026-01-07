@@ -2,7 +2,7 @@ package fyi.goodbye.fridgy.ui.shoppingList.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -11,15 +11,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
 
 /**
- * Card displaying a single item in the shopping list.
+ * Modern card displaying a single item in the shopping list.
  * 
+ * Features clean typography, subtle elevation, and intuitive controls.
  * Shows product information including name, brand (if available), store location (if specified),
  * quantity, and provides controls to check off or delete the item.
  * 
@@ -27,7 +25,7 @@ import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
  * - Checked items display with strikethrough text decoration
  * - Brand and store information shown as secondary text when available
  * - Quantity always displayed
- * - Delete button with icon for quick removal
+ * - Delete button with outlined icon for consistency
  * - Checkbox for marking items as purchased
  * 
  * @param itemWithProduct Combined data containing the shopping list item and associated product details
@@ -43,9 +41,11 @@ fun ShoppingListItemCard(
     val item = itemWithProduct.item
     val isPartiallyPicked = item.obtainedQuantity != null && item.obtainedQuantity < item.quantity
     val isFullyPicked = item.obtainedQuantity != null && item.obtainedQuantity >= item.quantity
+    
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = FridgyWhite),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -60,24 +60,24 @@ fun ShoppingListItemCard(
             ) {
                 Text(
                     text = itemWithProduct.productName,
-                    fontSize = 16.sp,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = FridgyDarkBlue,
+                    color = MaterialTheme.colorScheme.onSurface,
                     textDecoration = if (isFullyPicked) TextDecoration.LineThrough else TextDecoration.None
                 )
                 if (itemWithProduct.productBrand.isNotEmpty()) {
                     Text(
                         text = itemWithProduct.productBrand,
-                        fontSize = 14.sp,
-                        color = FridgyDarkBlue.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 2.dp)
                     )
                 }
                 if (item.store.isNotEmpty()) {
                     Text(
                         text = stringResource(R.string.store_label, item.store),
-                        fontSize = 14.sp,
-                        color = FridgyDarkBlue.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
@@ -86,7 +86,7 @@ fun ShoppingListItemCard(
                     isPartiallyPicked -> {
                         Text(
                             text = stringResource(R.string.picked_up_x_of_y, item.obtainedQuantity!!, item.quantity),
-                            fontSize = 14.sp,
+                            style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.padding(top = 4.dp)
@@ -95,8 +95,8 @@ fun ShoppingListItemCard(
                     !isFullyPicked -> {
                         Text(
                             text = stringResource(R.string.quantity_label_shopping, item.quantity),
-                            fontSize = 14.sp,
-                            color = FridgyDarkBlue.copy(alpha = 0.7f),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
@@ -105,9 +105,9 @@ fun ShoppingListItemCard(
 
             IconButton(onClick = onDeleteClick) {
                 Icon(
-                    imageVector = Icons.Default.Delete,
+                    imageVector = Icons.Outlined.Delete,
                     contentDescription = stringResource(R.string.cd_remove_item),
-                    tint = FridgyDarkBlue.copy(alpha = 0.6f)
+                    tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
                 )
             }
 
@@ -116,8 +116,9 @@ fun ShoppingListItemCard(
                 onCheckedChange = { onCheckClick() },
                 colors =
                     CheckboxDefaults.colors(
-                        checkedColor = if (isPartiallyPicked) MaterialTheme.colorScheme.tertiary else FridgyDarkBlue,
-                        uncheckedColor = FridgyDarkBlue.copy(alpha = 0.6f)
+                        checkedColor = if (isPartiallyPicked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.primary,
+                        uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        checkmarkColor = MaterialTheme.colorScheme.onPrimary
                     )
             )
         }

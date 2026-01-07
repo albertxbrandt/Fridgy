@@ -15,18 +15,28 @@ private val DarkColorScheme =
     darkColorScheme(
         primary = FridgyPrimary,
         onPrimary = FridgyOnPrimary,
-        primaryContainer = FridgyPrimaryContainer,
-        onPrimaryContainer = FridgyOnPrimaryContainer,
+        primaryContainer = Color(0xFF1E3A8A),
+        onPrimaryContainer = Color(0xFFDEEAFF),
         secondary = FridgySecondary,
         onSecondary = FridgyOnSecondary,
-        secondaryContainer = FridgySecondaryContainer,
-        onSecondaryContainer = FridgyOnSecondaryContainer,
+        secondaryContainer = Color(0xFF334155),
+        onSecondaryContainer = FridgySecondaryContainer,
         tertiary = FridgyTertiary,
         onTertiary = FridgyOnTertiary,
-        background = Color(0xFF1A1C1E),
-        surface = Color(0xFF1A1C1E),
+        tertiaryContainer = Color(0xFF312E81),
+        onTertiaryContainer = FridgyTertiaryContainer,
+        background = Color(0xFF0F172A),
+        onBackground = Color(0xFFE2E8F0),
+        surface = Color(0xFF1E293B),
+        onSurface = Color(0xFFE2E8F0),
+        surfaceVariant = Color(0xFF334155),
+        onSurfaceVariant = Color(0xFFCBD5E1),
         error = FridgyError,
-        onError = FridgyOnError
+        onError = FridgyOnError,
+        errorContainer = FridgyErrorContainer,
+        onErrorContainer = FridgyOnErrorContainer,
+        outline = Color(0xFF64748B),
+        outlineVariant = Color(0xFF475569)
     )
 
 private val LightColorScheme =
@@ -41,13 +51,20 @@ private val LightColorScheme =
         onSecondaryContainer = FridgyOnSecondaryContainer,
         tertiary = FridgyTertiary,
         onTertiary = FridgyOnTertiary,
+        tertiaryContainer = FridgyTertiaryContainer,
+        onTertiaryContainer = FridgyOnTertiaryContainer,
         background = FridgyBackground,
+        onBackground = FridgyOnSurface,
         surface = FridgySurface,
         onSurface = FridgyOnSurface,
         surfaceVariant = FridgySurfaceVariant,
         onSurfaceVariant = FridgyOnSurfaceVariant,
         error = FridgyError,
-        onError = FridgyOnError
+        onError = FridgyOnError,
+        errorContainer = FridgyErrorContainer,
+        onErrorContainer = FridgyOnErrorContainer,
+        outline = FridgyOutline,
+        outlineVariant = FridgyOutlineVariant
     )
 
 @Composable
@@ -71,6 +88,7 @@ fun FridgyTheme(
     MaterialTheme(
         colorScheme = colorScheme,
         typography = Typography,
+        shapes = FridgyShapes,
         content = content
     )
 }

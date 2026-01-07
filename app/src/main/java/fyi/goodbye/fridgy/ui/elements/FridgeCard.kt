@@ -1,29 +1,29 @@
 package fyi.goodbye.fridgy.ui.elements
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
-import fyi.goodbye.fridgy.ui.theme.FridgyTextBlue
-import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
- * A card component that displays summary information for a single fridge.
+ * A modern card component that displays summary information for a single fridge.
+ * Features clean typography, subtle elevation, and consistent Material 3 styling.
  *
  * @param fridge The [DisplayFridge] data to show.
  * @param onClick Callback triggered when the card is clicked.
@@ -33,55 +33,106 @@ fun FridgeCard(
     fridge: DisplayFridge,
     onClick: (DisplayFridge) -> Unit
 ) {
-    val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
+    val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
 
     Card(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .height(130.dp)
                 .clickable { onClick(fridge) },
-        shape = RoundedCornerShape(12.dp),
-        colors =
-            CardDefaults.cardColors(
-                containerColor = FridgyWhite
-            ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Row(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
+        Box(
+            modifier = Modifier.fillMaxSize()
         ) {
-            Column(modifier = Modifier.weight(1f)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Title section
                 Text(
                     text = fridge.name,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = FridgyDarkBlue,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = stringResource(R.string.created_by_label, fridge.creatorDisplayName),
-                    fontSize = 14.sp,
-                    color = FridgyTextBlue.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = stringResource(R.string.members_count, fridge.memberUsers.size),
-                    fontSize = 14.sp,
-                    color = FridgyTextBlue.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = stringResource(R.string.added_date, dateFormatter.format(Date(fridge.createdAt))),
-                    fontSize = 12.sp,
-                    color = FridgyTextBlue.copy(alpha = 0.5f)
-                )
+            
+                // Bottom info section with chips
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Items chip
+                    Surface(
+                        shape = MaterialTheme.shapes.small,
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        modifier = Modifier
+                    ) {
+                        Text(
+                            text = "${fridge.memberUsers.size} ${if (fridge.memberUsers.size == 1) "member" else "members"}",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                    
+                    // Divider
+                    Box(
+                        modifier = Modifier
+                            .size(4.dp)
+                            .background(
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                MaterialTheme.shapes.small
+                            )
+                    )
+                    
+                    // Creator info
+                    Column(
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = fridge.creatorDisplayName,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = dateFormatter.format(Date(fridge.createdAt)),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                        )
+                    }
+                }
             }
+            
+            // Decorative accent bar
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomStart)
+                    .fillMaxWidth()
+                    .height(4.dp)
+                    .background(
+                        brush = Brush.horizontalGradient(
+                            colors = listOf(
+                                MaterialTheme.colorScheme.primary,
+                                MaterialTheme.colorScheme.tertiary,
+                                Color.Transparent
+                            )
+                        )
+                    )
+            )
         }
     }
 }

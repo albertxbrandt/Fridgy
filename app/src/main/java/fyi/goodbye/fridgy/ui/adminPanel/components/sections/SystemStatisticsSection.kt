@@ -10,17 +10,15 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.adminPanel.components.items.StatCard
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 
 /**
  * Section displaying system-wide statistics in the admin panel.
@@ -41,9 +39,8 @@ fun SystemStatisticsSection(
     Column {
         Text(
             stringResource(R.string.system_statistics),
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = FridgyDarkBlue
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.onBackground
         )
 
         Spacer(modifier = Modifier.height(16.dp))
