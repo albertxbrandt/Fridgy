@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -43,11 +45,11 @@ fun FridgeCard(
 ) {
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
     
-    // Determine icon and color based on fridge type
-    val (fridgeIcon, iconColor) = when (fridge.type.lowercase()) {
-        "freezer" -> Icons.Default.AcUnit to Color(0xFF64B5F6) // Light blue
-        "pantry" -> Icons.Default.Inventory to Color(0xFFFF9800) // Orange
-        else -> Icons.Default.Kitchen to Color(0xFF1976D2) // Darker blue for fridge
+    // Determine icon and gradient colors based on fridge type
+    val (fridgeIcon, iconGradient) = when (fridge.type.lowercase()) {
+        "freezer" -> Icons.Default.AcUnit to listOf(Color(0xFF81D4FA), Color(0xFF4FC3F7), Color(0xFF29B6F6)) // Light blue gradient
+        "pantry" -> Icons.Default.Inventory to listOf(Color(0xFFFFB74D), Color(0xFFFF9800), Color(0xFFF57C00)) // Orange gradient
+        else -> Icons.Default.Kitchen to listOf(Color(0xFF42A5F5), Color(0xFF1E88E5), Color(0xFF1565C0)) // Blue gradient
     }
 
     Card(
@@ -137,16 +139,29 @@ fun FridgeCard(
             }
             }
             
-            // Type icon on the right
-            Icon(
-                imageVector = fridgeIcon,
-                contentDescription = "${fridge.type} icon",
-                tint = iconColor.copy(alpha = 0.8f),
+            // Type icon on the right with shadow and gradient
+            Box(
                 modifier = Modifier
                     .align(Alignment.CenterEnd)
                     .padding(end = 20.dp)
-                    .size(56.dp)
-            )
+                    .size(64.dp)
+                    .shadow(8.dp, CircleShape)
+                    .drawBehind {
+                        drawCircle(
+                            brush = Brush.linearGradient(
+                                colors = iconGradient
+                            )
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = fridgeIcon,
+                    contentDescription = "${fridge.type} icon",
+                    tint = Color.White,
+                    modifier = Modifier.size(40.dp)
+                )
+            }
             
             // Decorative accent bar
             Box(
