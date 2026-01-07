@@ -78,6 +78,27 @@ fun FridgeInventoryScreen(
         }
     }
 
+    // OPTIMIZATION: Filter items in UI layer using derivedStateOf to avoid re-fetching on search
+    val filteredItemsUiState by remember {
+        derivedStateOf {
+            when (val state = itemsUiState) {
+                is FridgeInventoryViewModel.ItemsUiState.Success -> {
+                    if (searchQuery.isNotBlank()) {
+                        val filtered = state.items.filter { inventoryItem ->
+                            inventoryItem.product.name.contains(searchQuery, ignoreCase = true) ||
+                                inventoryItem.product.brand.contains(searchQuery, ignoreCase = true) ||
+                                inventoryItem.item.upc.contains(searchQuery, ignoreCase = true)
+                        }
+                        FridgeInventoryViewModel.ItemsUiState.Success(filtered)
+                    } else {
+                        state
+                    }
+                }
+                else -> state
+            }
+        }
+    }
+
     // OPTIMIZATION: derivedStateOf for ownership check
     val isOwner by remember {
         derivedStateOf {
@@ -194,7 +215,7 @@ fun FridgeInventoryScreen(
         },
         floatingActionButtonPosition = FabPosition.Center,
         containerColor = MaterialTheme.colorScheme.background
-    ) { paddingValues ->
+) { paddingValues ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -216,7 +237,7 @@ fun FridgeInventoryScreen(
                 )
 
                 Box(modifier = Modifier.fillMaxSize()) {
-                    when (val state = itemsUiState) {
+                    when (val state = filteredItemsUiState) {
                         FridgeInventoryViewModel.ItemsUiState.Loading -> {
                             LoadingState()
                         }

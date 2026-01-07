@@ -118,12 +118,11 @@ class FridgeInventoryViewModel(
         viewModelScope.launch {
             // Don't reset to Loading - we might already have cached data showing
 
-            // Combine remote items with our local optimistic items and search query
+            // Combine remote items with our local optimistic items (without search query)
             combine(
                 fridgeRepository.getItemsForFridge(fridgeId),
-                optimisticItems,
-                _searchQuery
-            ) { remoteItems, optimistic, query ->
+                optimisticItems
+            ) { remoteItems, optimistic ->
                 // Filter out optimistic items that have now been confirmed by remote data
                 val remoteUpcs = remoteItems.map { it.upc }.toSet()
                 val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
@@ -138,18 +137,7 @@ class FridgeInventoryViewModel(
                     }
 
                 // Final display list: Remote items first, then any still-pending optimistic items
-                val combinedList = mappedRemote + pendingOptimistic
-
-                // Apply search filter if query is not empty
-                if (query.isNotBlank()) {
-                    combinedList.filter { inventoryItem ->
-                        inventoryItem.product.name.contains(query, ignoreCase = true) ||
-                            inventoryItem.product.brand.contains(query, ignoreCase = true) ||
-                            inventoryItem.item.upc.contains(query, ignoreCase = true)
-                    }
-                } else {
-                    combinedList
-                }
+                mappedRemote + pendingOptimistic
             }
                 .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
                 .collectLatest { combinedList ->
