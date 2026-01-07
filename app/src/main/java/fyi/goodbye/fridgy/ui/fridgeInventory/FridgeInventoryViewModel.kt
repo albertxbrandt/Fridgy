@@ -19,7 +19,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 
 /**
@@ -77,6 +80,32 @@ class FridgeInventoryViewModel(
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
+    // OPTIMIZATION: Filtered items state - combines items with debounced search query
+    val filteredItemsUiState: StateFlow<ItemsUiState> = combine(
+        _itemsUiState,
+        _searchQuery.debounce(150) // Debounce search input to reduce recomputations
+    ) { itemsState, query ->
+        when (itemsState) {
+            is ItemsUiState.Success -> {
+                if (query.isNotBlank()) {
+                    val filtered = itemsState.items.filter { inventoryItem ->
+                        inventoryItem.product.name.contains(query, ignoreCase = true) ||
+                            inventoryItem.product.brand.contains(query, ignoreCase = true) ||
+                            inventoryItem.item.upc.contains(query, ignoreCase = true)
+                    }
+                    ItemsUiState.Success(filtered)
+                } else {
+                    itemsState
+                }
+            }
+            else -> itemsState
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = ItemsUiState.Loading
+    )
 
     init {
         // Preload items from cache for instant display

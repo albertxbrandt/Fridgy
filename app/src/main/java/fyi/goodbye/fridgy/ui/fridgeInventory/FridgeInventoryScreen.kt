@@ -55,7 +55,7 @@ fun FridgeInventoryScreen(
         viewModel(factory = FridgeInventoryViewModel.provideFactory(fridgeId, initialFridgeName))
 ) {
     val fridgeDetailUiState by viewModel.displayFridgeState.collectAsState()
-    val itemsUiState by viewModel.itemsUiState.collectAsState()
+    val filteredItemsUiState by viewModel.filteredItemsUiState.collectAsState()
     val addItemError by viewModel.addItemError.collectAsState()
     val pendingUpc by viewModel.pendingScannedUpc.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -74,27 +74,6 @@ fun FridgeInventoryScreen(
                 is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.name
                 is FridgeInventoryViewModel.FridgeDetailUiState.Error -> errorLoadingString
                 FridgeInventoryViewModel.FridgeDetailUiState.Loading -> loadingString
-            }
-        }
-    }
-
-    // OPTIMIZATION: Filter items in UI layer using derivedStateOf to avoid re-fetching on search
-    val filteredItemsUiState by remember {
-        derivedStateOf {
-            when (val state = itemsUiState) {
-                is FridgeInventoryViewModel.ItemsUiState.Success -> {
-                    if (searchQuery.isNotBlank()) {
-                        val filtered = state.items.filter { inventoryItem ->
-                            inventoryItem.product.name.contains(searchQuery, ignoreCase = true) ||
-                                inventoryItem.product.brand.contains(searchQuery, ignoreCase = true) ||
-                                inventoryItem.item.upc.contains(searchQuery, ignoreCase = true)
-                        }
-                        FridgeInventoryViewModel.ItemsUiState.Success(filtered)
-                    } else {
-                        state
-                    }
-                }
-                else -> state
             }
         }
     }
