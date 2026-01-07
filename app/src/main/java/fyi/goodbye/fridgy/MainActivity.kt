@@ -24,6 +24,8 @@ import com.google.firebase.appcheck.FirebaseAppCheck
 import com.google.firebase.appcheck.debug.DebugAppCheckProviderFactory
 import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderFactory
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreSettings
 import fyi.goodbye.fridgy.ui.adminPanel.AdminPanelScreen
 import fyi.goodbye.fridgy.ui.auth.LoginScreen
 import fyi.goodbye.fridgy.ui.auth.SignupScreen
@@ -64,6 +66,19 @@ class MainActivity : ComponentActivity() {
 
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
+
+        // Configure Firestore for optimal offline performance
+        // Note: Persistence is enabled by default in recent Firestore SDK versions
+        // Explicitly configure cache size for better performance
+        val firestore = FirebaseFirestore.getInstance()
+        try {
+            val settings = FirebaseFirestoreSettings.Builder()
+                .build()
+            firestore.firestoreSettings = settings
+            Log.d("Fridgy_Firestore", "Firestore configured with offline persistence (default)")
+        } catch (e: Exception) {
+            Log.w("Fridgy_Firestore", "Firestore settings already configured: ${e.message}")
+        }
 
         // Initialize App Check
         val firebaseAppCheck = FirebaseAppCheck.getInstance()

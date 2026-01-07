@@ -8,6 +8,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.utils.LruCache
@@ -195,12 +196,20 @@ class ProductRepository(private val context: Context? = null) {
     /**
      * Fetches product metadata from the internal database using a barcode.
      * Uses a local cache to speed up subsequent requests.
+     * Tries Firestore cache first for instant loading, then falls back to server.
      */
     suspend fun getProductInfo(upc: String): Product? {
         productCache[upc]?.let { return it }
 
         return try {
-            val doc = productsCollection.document(upc).get().await()
+            // Try cache first for instant loading
+            var doc = productsCollection.document(upc).get(Source.CACHE).await()
+            
+            // If not in cache, fetch from server
+            if (!doc.exists()) {
+                doc = productsCollection.document(upc).get(Source.SERVER).await()
+            }
+            
             if (doc.exists()) {
                 val product = doc.toObject(Product::class.java)?.copy(upc = doc.id)
                 if (product != null) {
@@ -213,6 +222,33 @@ class ProductRepository(private val context: Context? = null) {
         } catch (e: Exception) {
             Log.e("ProductRepo", "Error fetching product $upc: ${e.message}")
             null
+        }
+    }
+
+    /**
+     * Fetches product metadata from server, bypassing cache to get latest data.
+     * Use this when you need guaranteed fresh data (e.g., after product updates).
+     */
+    suspend fun getProductInfoFresh(upc: String): Product? {
+        return try {
+            val doc = productsCollection.document(upc).get(Source.SERVER).await()
+            
+            if (doc.exists()) {
+                val product = doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                if (product != null) {
+                    // Update cache with fresh data
+                    productCache[upc] = product
+                }
+                product
+            } else {
+                // Remove from cache if it no longer exists
+                productCache.remove(upc)
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("ProductRepo", "Error fetching fresh product $upc: ${e.message}")
+            // Fall back to cached version on network error
+            productCache[upc]
         }
     }
 

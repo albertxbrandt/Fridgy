@@ -62,6 +62,11 @@ class FridgeListViewModel(
         if (currentUserId == null) {
             _fridgesUiState.value = FridgeUiState.Error(getApplication<Application>().getString(R.string.error_user_not_logged_in))
         } else {
+            // Preload fridges from cache for instant display
+            viewModelScope.launch {
+                fridgeRepository.preloadFridgesFromCache()
+            }
+
             // Check admin status
             viewModelScope.launch {
                 _isAdmin.value = adminRepository.isCurrentUserAdmin()
@@ -127,13 +132,15 @@ class FridgeListViewModel(
      * Creates a new fridge with the given name and adds it to the user's list.
      *
      * @param name The name of the new fridge to create.
+     * @param type The type of storage (fridge, freezer, pantry).
+     * @param location Optional physical location description.
      */
-    fun createNewFridge(name: String) {
+    fun createNewFridge(name: String, type: String = "fridge", location: String = "") {
         createdFridgeError.value = null
         _isCreatingFridge.value = true
         viewModelScope.launch {
             try {
-                fridgeRepository.createFridge(name)
+                fridgeRepository.createFridge(name, type, location)
             } catch (e: Exception) {
                 createdFridgeError.value = e.message ?: getApplication<Application>().getString(R.string.error_failed_to_create_fridge)
             } finally {

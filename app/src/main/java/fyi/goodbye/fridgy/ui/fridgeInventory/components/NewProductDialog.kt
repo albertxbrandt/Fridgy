@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -53,7 +55,7 @@ import java.io.File
 /**
  * Dialog for entering details for a new, unknown product.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NewProductDialog(
     upc: String,
@@ -177,23 +179,23 @@ fun NewProductDialog(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(12.dp))
-                Column(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    categories.chunked(3).forEach { rowCategories ->
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
-                        ) {
-                            rowCategories.forEach { cat ->
-                                FilterChip(
-                                    selected = selectedCategory == cat,
-                                    onClick = { selectedCategory = cat },
-                                    label = { Text(cat) }
+                    categories.forEach { cat ->
+                        FilterChip(
+                            selected = selectedCategory == cat,
+                            onClick = { selectedCategory = cat },
+                            label = { 
+                                Text(
+                                    text = cat,
+                                    maxLines = 1,
+                                    style = MaterialTheme.typography.labelLarge
                                 )
                             }
-                        }
+                        )
                     }
                 }
             }

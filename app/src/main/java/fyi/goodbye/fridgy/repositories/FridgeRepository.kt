@@ -143,6 +143,26 @@ class FridgeRepository {
 
     private var fridgeCache: List<Fridge> = emptyList()
 
+    /**
+     * Preloads user's fridges from Firestore cache to memory for instant cold-start access.
+     * Should be called on app initialization to populate cache before UI loads.
+     * This reads from Firestore's local persistence layer without network access.
+     */
+    suspend fun preloadFridgesFromCache() {
+        try {
+            val currentUserId = auth.currentUser?.uid ?: return
+            val snapshot = firestore.collection("fridges")
+                .whereArrayContains("members", currentUserId)
+                .get(Source.CACHE)
+                .await()
+            
+            fridgeCache = snapshot.documents.mapNotNull { it.toFridgeCompat() }
+            Log.d("FridgeRepo", "Preloaded ${fridgeCache.size} fridges from cache")
+        } catch (e: Exception) {
+            Log.w("FridgeRepo", "Could not preload from cache (likely first run): ${e.message}")
+        }
+    }
+
     companion object {
         /** Maximum number of user profiles to cache. */
         private const val USER_PROFILE_CACHE_SIZE = 100
@@ -302,7 +322,7 @@ class FridgeRepository {
         )
     }
 
-    suspend fun createFridge(fridgeName: String): Fridge {
+    suspend fun createFridge(fridgeName: String, fridgeType: String = "fridge", fridgeLocation: String = ""): Fridge {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
 
         val newFridgeDocRef = firestore.collection("fridges").document()
@@ -312,6 +332,8 @@ class FridgeRepository {
             Fridge(
                 id = fridgeId,
                 name = fridgeName,
+                type = fridgeType,
+                location = fridgeLocation,
                 createdBy = currentUser.uid,
                 members = listOf(currentUser.uid),
                 createdAt = System.currentTimeMillis()
@@ -382,6 +404,28 @@ class FridgeRepository {
         firestore.collection("fridges").document(fridgeId)
             .update("members", FieldValue.arrayRemove(uid))
             .await()
+    }
+
+    /**
+     * Preloads items for a specific fridge from Firestore cache to memory.
+     * Should be called when opening a fridge inventory to enable instant display.
+     * This reads from Firestore's local persistence layer without network access.
+     */
+    suspend fun preloadItemsFromCache(fridgeId: String): List<Item> {
+        return try {
+            val snapshot = firestore.collection("fridges")
+                .document(fridgeId)
+                .collection("items")
+                .get(Source.CACHE)
+                .await()
+            
+            val items = snapshot.documents.mapNotNull { it.toObject(Item::class.java) }
+            Log.d("FridgeRepo", "Preloaded ${items.size} items from cache for fridge $fridgeId")
+            items
+        } catch (e: Exception) {
+            Log.w("FridgeRepo", "Could not preload items from cache: ${e.message}")
+            emptyList()
+        }
     }
 
     fun getItemsForFridge(fridgeId: String): Flow<List<Item>> =

@@ -79,6 +79,20 @@ class FridgeInventoryViewModel(
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     init {
+        // Preload items from cache for instant display
+        viewModelScope.launch {
+            val cachedItems = fridgeRepository.preloadItemsFromCache(fridgeId)
+            if (cachedItems.isNotEmpty()) {
+                // Map cached items to products and show immediately
+                val inventoryItems = cachedItems.map { item ->
+                    val product = productRepository.getProductInfo(item.upc) 
+                        ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
+                    InventoryItem(item, product)
+                }
+                _itemsUiState.value = ItemsUiState.Success(inventoryItems)
+            }
+        }
+        
         loadFridgeDetails()
         listenToInventoryUpdates()
     }
@@ -102,7 +116,7 @@ class FridgeInventoryViewModel(
 
     private fun listenToInventoryUpdates() {
         viewModelScope.launch {
-            _itemsUiState.value = ItemsUiState.Loading
+            // Don't reset to Loading - we might already have cached data showing
 
             // Combine remote items with our local optimistic items and search query
             combine(
@@ -114,10 +128,12 @@ class FridgeInventoryViewModel(
                 val remoteUpcs = remoteItems.map { it.upc }.toSet()
                 val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
 
-                // Map remote items to products (using cache for speed)
+                // Map remote items to products (always fetch fresh from server for remote updates)
                 val mappedRemote =
                     remoteItems.map { item ->
-                        val product = productRepository.getProductInfo(item.upc) ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
+                        // For remote items, force re-fetch from Firestore to get latest product data
+                        val product = productRepository.getProductInfoFresh(item.upc) 
+                            ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
                         InventoryItem(item, product)
                     }
 

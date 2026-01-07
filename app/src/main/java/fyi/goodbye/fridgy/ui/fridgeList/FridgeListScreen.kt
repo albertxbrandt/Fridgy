@@ -4,6 +4,8 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ExitToApp
@@ -59,6 +61,8 @@ fun FridgeListScreen(
     var showNotificationsDialog by remember { mutableStateOf(false) }
     var showAddFridgeDialog by remember { mutableStateOf(false) }
     var newFridgeName by remember { mutableStateOf("") }
+    var newFridgeType by remember { mutableStateOf("fridge") }
+    var newFridgeLocation by remember { mutableStateOf("") }
 
     val fridgeUiState by viewModel.fridgesUiState.collectAsState()
     val invites by viewModel.invites.collectAsState()
@@ -226,6 +230,8 @@ fun FridgeListScreen(
             onDismissRequest = {
                 showAddFridgeDialog = false
                 newFridgeName = ""
+                newFridgeType = "fridge"
+                newFridgeLocation = ""
             },
             title = {
                 Text(
@@ -235,22 +241,68 @@ fun FridgeListScreen(
                 )
             },
             text = {
-                OutlinedTextField(
-                    value = newFridgeName,
-                    onValueChange = { newFridgeName = it },
-                    label = { Text(stringResource(R.string.fridge_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.medium
-                )
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    OutlinedTextField(
+                        value = newFridgeName,
+                        onValueChange = { newFridgeName = it },
+                        label = { Text(stringResource(R.string.fridge_name)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                    
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Type",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("fridge", "freezer", "pantry").forEach { type ->
+                                FilterChip(
+                                    selected = newFridgeType == type,
+                                    onClick = { newFridgeType = type },
+                                    label = { 
+                                        Text(
+                                            text = type.replaceFirstChar { it.uppercase() },
+                                            style = MaterialTheme.typography.labelLarge
+                                        )
+                                    },
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+                    
+                    OutlinedTextField(
+                        value = newFridgeLocation,
+                        onValueChange = { newFridgeLocation = it },
+                        label = { Text("Location (Optional)") },
+                        placeholder = { Text("e.g., Kitchen, Garage") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.medium
+                    )
+                }
             },
             confirmButton = {
                 FilledTonalButton(
                     onClick = {
                         if (newFridgeName.isNotBlank()) {
-                            viewModel.createNewFridge(newFridgeName)
+                            viewModel.createNewFridge(newFridgeName, newFridgeType, newFridgeLocation)
                             showAddFridgeDialog = false
                             newFridgeName = ""
+                            newFridgeType = "fridge"
+                            newFridgeLocation = ""
                         }
                     },
                     enabled = newFridgeName.isNotBlank()
@@ -262,6 +314,8 @@ fun FridgeListScreen(
                 TextButton(onClick = {
                     showAddFridgeDialog = false
                     newFridgeName = ""
+                    newFridgeType = "fridge"
+                    newFridgeLocation = ""
                 }) {
                     Text(stringResource(R.string.cancel))
                 }
