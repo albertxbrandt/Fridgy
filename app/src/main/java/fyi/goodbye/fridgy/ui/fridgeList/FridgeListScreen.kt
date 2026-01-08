@@ -12,6 +12,11 @@ import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AdminPanelSettings
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,6 +34,8 @@ import fyi.goodbye.fridgy.ui.elements.FridgeCard
 import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
+import fyi.goodbye.fridgy.ui.shared.components.CollapsibleSidebar
+import fyi.goodbye.fridgy.ui.shared.components.SidebarMenuItem
 
 /**
  * The main dashboard screen displaying a list of the user's fridges.
@@ -63,6 +70,7 @@ fun FridgeListScreen(
     var newFridgeName by remember { mutableStateOf("") }
     var newFridgeType by remember { mutableStateOf("fridge") }
     var newFridgeLocation by remember { mutableStateOf("") }
+    var isSidebarOpen by remember { mutableStateOf(false) }
     
     // Helper function to reset dialog state
     fun resetDialogState() {
@@ -76,6 +84,44 @@ fun FridgeListScreen(
     val isAdmin by viewModel.isAdmin.collectAsState()
     val auth = remember { FirebaseAuth.getInstance() }
 
+    // Define sidebar menu items
+    val sidebarMenuItems = buildList {
+        add(
+            SidebarMenuItem(
+                icon = Icons.Default.Notifications,
+                label = "Notifications",
+                onClick = { showNotificationsDialog = true }
+            )
+        )
+        add(
+            SidebarMenuItem(
+                icon = Icons.Default.AccountCircle,
+                label = "Account",
+                onClick = onProfileClick
+            )
+        )
+        add(
+            SidebarMenuItem(
+                icon = Icons.AutoMirrored.Filled.Logout,
+                label = "Logout",
+                onClick = {
+                    auth.signOut()
+                    onLogout()
+                }
+            )
+        )
+        // Show admin option only for admins
+        if (isAdmin) {
+            add(
+                SidebarMenuItem(
+                    icon = Icons.Default.AdminPanelSettings,
+                    label = "Admin Panel",
+                    onClick = onNavigateToAdminPanel
+                )
+            )
+        }
+    }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -87,67 +133,29 @@ fun FridgeListScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                navigationIcon = {
-                    // Admin Panel Button (only visible to admins)
-                    if (isAdmin) {
-                        IconButton(onClick = onNavigateToAdminPanel) {
-                            Icon(
-                                imageVector = Icons.Default.Settings,
-                                contentDescription = stringResource(R.string.cd_admin_panel),
-                                tint = MaterialTheme.colorScheme.onPrimary
-                            )
-                        }
-                    }
-                },
                 colors =
-                    TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    TopAppBarDefaults.topAppBarColors(
                         containerColor = MaterialTheme.colorScheme.primary
                     ),
                 actions = {
-                    IconButton(
-                        onClick = {
-                            showNotificationsDialog = true
-                        }
-                    ) {
-                        BadgedBox(
-                            badge = {
-                                if (invites.isNotEmpty()) {
-                                    Badge(
-                                        containerColor = MaterialTheme.colorScheme.error,
-                                        contentColor = MaterialTheme.colorScheme.onError,
-                                        modifier = Modifier.offset(x = (-4).dp, y = 4.dp)
-                                    ) {
-                                        Text(
-                                            text = invites.size.toString(),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                    }
-                                }
-                            }
+                    // Notification badge indicator
+                    if (invites.isNotEmpty()) {
+                        Badge(
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError,
+                            modifier = Modifier.offset(x = 20.dp, y = (-8).dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = stringResource(R.string.cd_notifications),
-                                tint = MaterialTheme.colorScheme.onPrimary
+                            Text(
+                                text = invites.size.toString(),
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold
                             )
                         }
                     }
-                    IconButton(onClick = onProfileClick) {
+                    IconButton(onClick = { isSidebarOpen = !isSidebarOpen }) {
                         Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = stringResource(R.string.cd_profile),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-
-                    IconButton(onClick = {
-                        auth.signOut()
-                        onLogout()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.ExitToApp,
-                            contentDescription = stringResource(R.string.cd_logout),
+                            imageVector = if (isSidebarOpen) Icons.Default.Close else Icons.Default.Menu,
+                            contentDescription = if (isSidebarOpen) "Close menu" else "Open menu",
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -165,7 +173,12 @@ fun FridgeListScreen(
         },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
-        when (val state = fridgeUiState) {
+        CollapsibleSidebar(
+            isOpen = isSidebarOpen,
+            onDismiss = { isSidebarOpen = false },
+            menuItems = sidebarMenuItems
+        ) {
+            when (val state = fridgeUiState) {
             FridgeListViewModel.FridgeUiState.Loading -> {
                 LoadingState(
                     modifier = Modifier.padding(paddingValues),
@@ -221,6 +234,7 @@ fun FridgeListScreen(
                 }
             }
         }
+        } // End CollapsibleSidebar
     }
 
     if (showNotificationsDialog) {
