@@ -1,7 +1,9 @@
 package fyi.goodbye.fridgy
 
 import android.Manifest
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -13,7 +15,10 @@ import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,6 +31,7 @@ import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderF
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import fyi.goodbye.fridgy.repositories.NotificationRepository
 import fyi.goodbye.fridgy.ui.adminPanel.AdminPanelScreen
 import fyi.goodbye.fridgy.ui.auth.LoginScreen
 import fyi.goodbye.fridgy.ui.auth.SignupScreen
@@ -34,8 +40,10 @@ import fyi.goodbye.fridgy.ui.fridgeInventory.FridgeInventoryScreen
 import fyi.goodbye.fridgy.ui.fridgeList.FridgeListScreen
 import fyi.goodbye.fridgy.ui.fridgeSettings.FridgeSettingsScreen
 import fyi.goodbye.fridgy.ui.itemDetail.ItemDetailScreen
+import fyi.goodbye.fridgy.ui.notifications.NotificationsScreen
 import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListScreen
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
+import kotlinx.coroutines.launch
 
 /**
  * Main entry point for the Fridgy application.
@@ -61,6 +69,9 @@ import fyi.goodbye.fridgy.ui.theme.FridgyTheme
  * @see FridgyTheme for the app's Material 3 theme configuration
  */
 class MainActivity : ComponentActivity() {
+    
+    private val notificationRepository = NotificationRepository()
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -105,6 +116,9 @@ class MainActivity : ComponentActivity() {
 
         val auth = FirebaseAuth.getInstance()
 
+        // Request notification permission and initialize FCM token
+        requestNotificationPermissionAndInitializeFCM()
+
         setContent {
             FridgyTheme {
                 Surface(
@@ -112,6 +126,52 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    
+                    // Handle deep linking from notifications
+                    LaunchedEffect(Unit) {
+                        intent?.let { notificationIntent ->
+                            val notificationType = notificationIntent.getStringExtra("notificationType")
+                            val fridgeId = notificationIntent.getStringExtra("fridgeId")
+                            val itemId = notificationIntent.getStringExtra("itemId")
+                            
+                            if (notificationType != null) {
+                                Log.d("Fridgy_DeepLink", "Handling notification: type=$notificationType, fridgeId=$fridgeId, itemId=$itemId")
+                                
+                                // Wait a bit for auth state to settle
+                                kotlinx.coroutines.delay(500)
+                                
+                                when (notificationType) {
+                                    "FRIDGE_INVITE" -> {
+                                        navController.navigate("fridgeList") {
+                                            popUpTo(navController.graph.id) { inclusive = false }
+                                            launchSingleTop = true
+                                        }
+                                    }
+                                    "ITEM_ADDED", "ITEM_REMOVED", "ITEM_LOW_STOCK" -> {
+                                        if (fridgeId != null && itemId != null) {
+                                            navController.navigate("itemDetail/$fridgeId/$itemId") {
+                                                popUpTo(navController.graph.id) { inclusive = false }
+                                                launchSingleTop = true
+                                            }
+                                        } else if (fridgeId != null) {
+                                            navController.navigate("fridgeInventory/$fridgeId/Fridge") {
+                                                popUpTo(navController.graph.id) { inclusive = false }
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }
+                                    "MEMBER_JOINED", "MEMBER_LEFT" -> {
+                                        if (fridgeId != null) {
+                                            navController.navigate("fridgeInventory/$fridgeId/Fridge") {
+                                                popUpTo(navController.graph.id) { inclusive = false }
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     // Request camera permission on app launch for barcode scanning
                     val permissionLauncher =
@@ -174,7 +234,11 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onAddFridgeClick = { },
-                                onNotificationsClick = { },
+                                onNotificationsClick = {
+                                    navController.navigate("notifications") {
+                                        launchSingleTop = true
+                                    }
+                                },
                                 onProfileClick = { },
                                 onNavigateToAdminPanel = {
                                     navController.navigate("adminPanel") {
@@ -191,6 +255,26 @@ class MainActivity : ComponentActivity() {
                         composable("adminPanel") {
                             AdminPanelScreen(
                                 onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
+                        composable("notifications") {
+                            NotificationsScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onNotificationClick = { notification ->
+                                    // Handle notification click - navigate based on type
+                                    when {
+                                        notification.relatedFridgeId != null && notification.relatedItemId != null -> {
+                                            navController.navigate("itemDetail/${notification.relatedFridgeId}/${notification.relatedItemId}") {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                        notification.relatedFridgeId != null -> {
+                                            navController.navigate("fridgeInventory/${notification.relatedFridgeId}/Fridge") {
+                                                launchSingleTop = true
+                                            }
+                                        }
+                                    }
+                                }
                             )
                         }
                         composable(
@@ -311,6 +395,68 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
+        }
+    }
+    
+    /**
+     * Request notification permission (Android 13+) and initialize FCM token.
+     * For Android 12 and below, FCM token is initialized immediately.
+     */
+    private fun requestNotificationPermissionAndInitializeFCM() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13+ requires runtime permission for notifications
+            when {
+                ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED -> {
+                    // Permission already granted, initialize FCM
+                    Log.d("Fridgy_FCM", "Notification permission already granted")
+                    initializeFCMToken()
+                }
+                else -> {
+                    // Request permission
+                    Log.d("Fridgy_FCM", "Requesting notification permission")
+                    registerForActivityResult(
+                        ActivityResultContracts.RequestPermission()
+                    ) { isGranted ->
+                        if (isGranted) {
+                            Log.d("Fridgy_FCM", "Notification permission granted by user")
+                            initializeFCMToken()
+                        } else {
+                            Log.w("Fridgy_FCM", "Notification permission denied - push notifications will not work")
+                        }
+                    }.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }
+            }
+        } else {
+            // Android 12 and below don't require permission
+            Log.d("Fridgy_FCM", "Android 12 or below - no permission needed")
+            initializeFCMToken()
+        }
+    }
+    
+    /**
+     * Initialize FCM token and save to Firestore.
+     * This should be called after notification permission is granted (Android 13+)
+     * or immediately on app start (Android 12 and below).
+     */
+    private fun initializeFCMToken() {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
+            Log.d("Fridgy_FCM", "User not authenticated - skipping FCM token initialization")
+            return
+        }
+        
+        lifecycleScope.launch {
+            Log.d("Fridgy_FCM", "Initializing FCM token for user: ${currentUser.uid}")
+            notificationRepository.refreshFcmToken()
+                .onSuccess { 
+                    Log.d("Fridgy_FCM", "FCM token initialized successfully")
+                }
+                .onFailure { error ->
+                    Log.e("Fridgy_FCM", "Failed to initialize FCM token: ${error.message}", error)
+                }
         }
     }
 }

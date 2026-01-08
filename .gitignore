@@ -23,4 +23,5 @@ replay_pid*
 # Internal Development Notes
 .dev-notes/
 
-.github/
+# Node.js dependencies
+node_modules/

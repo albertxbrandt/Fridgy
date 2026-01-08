@@ -229,4 +229,7 @@
     
     <!-- Fridge Type -->
     <string name="fridge_type_label">Type</string>
+    
+    <!-- Push Notifications -->
+    <string name="default_notification_channel_id">fridgy_notifications</string>
 </resources>

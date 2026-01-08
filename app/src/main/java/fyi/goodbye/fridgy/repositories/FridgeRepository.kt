@@ -164,6 +164,8 @@ class FridgeRepository {
     }
 
     companion object {
+        private const val TAG = "FridgeRepository"
+        
         /** Maximum number of user profiles to cache. */
         private const val USER_PROFILE_CACHE_SIZE = 100
 
@@ -364,6 +366,7 @@ class FridgeRepository {
         val snapshot = firestore.collection("userProfiles").whereEqualTo("username", email).get().await()
         val userDoc = snapshot.documents.firstOrNull() ?: throw Exception("User not found.")
         val userUid = userDoc.id
+        val username = userDoc.getString("username") ?: email
 
         val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
         val fridge = fridgeDoc.toObject(Fridge::class.java) ?: throw Exception("Fridge not found.")
@@ -371,8 +374,26 @@ class FridgeRepository {
         if (fridge.members.contains(userUid)) throw Exception("User is already a member.")
         if (fridge.pendingInvites.contains(userUid)) throw Exception("Invitation already sent.")
 
+        // Update fridge with pending invite
         firestore.collection("fridges").document(fridgeId)
             .update("pendingInvites", FieldValue.arrayUnion(userUid))
+            .await()
+        
+        // Create notification for the invited user
+        val currentUser = auth.currentUser
+        val inviterName = currentUser?.displayName ?: "Someone"
+        val notificationData = hashMapOf(
+            "userId" to userUid,
+            "title" to "Fridge Invitation",
+            "body" to "You were invited to join '${fridge.name}'",
+            "type" to "FRIDGE_INVITE",
+            "relatedFridgeId" to fridgeId,
+            "isRead" to false,
+            "createdAt" to FieldValue.serverTimestamp()
+        )
+        
+        firestore.collection("notifications")
+            .add(notificationData)
             .await()
     }
 
@@ -385,12 +406,44 @@ class FridgeRepository {
             transaction.update(fridgeRef, "members", FieldValue.arrayUnion(currentUserId))
             transaction.update(fridgeRef, "pendingInvites", FieldValue.arrayRemove(currentUserId))
         }.await()
+        
+        // Mark related invitation notification as read
+        try {
+            val notificationQuery = firestore.collection("notifications")
+                .whereEqualTo("userId", currentUserId)
+                .whereEqualTo("type", "FRIDGE_INVITE")
+                .whereEqualTo("relatedFridgeId", fridgeId)
+                .get()
+                .await()
+            
+            notificationQuery.documents.forEach { doc ->
+                doc.reference.update("isRead", true).await()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to mark invitation notification as read", e)
+        }
     }
 
     suspend fun declineInvite(fridgeId: String) {
         val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in.")
         firestore.collection("fridges").document(fridgeId)
             .update("pendingInvites", FieldValue.arrayRemove(currentUserId)).await()
+        
+        // Delete related invitation notification
+        try {
+            val notificationQuery = firestore.collection("notifications")
+                .whereEqualTo("userId", currentUserId)
+                .whereEqualTo("type", "FRIDGE_INVITE")
+                .whereEqualTo("relatedFridgeId", fridgeId)
+                .get()
+                .await()
+            
+            notificationQuery.documents.forEach { doc ->
+                doc.reference.delete().await()
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to delete invitation notification", e)
+        }
     }
 
     suspend fun removeMember(

@@ -90,7 +90,10 @@ fun FridgeListScreen(
             SidebarMenuItem(
                 icon = Icons.Default.Notifications,
                 label = "Notifications",
-                onClick = { showNotificationsDialog = true }
+                onClick = {
+                    isSidebarOpen = false
+                    onNotificationsClick()
+                }
             )
         )
         add(
