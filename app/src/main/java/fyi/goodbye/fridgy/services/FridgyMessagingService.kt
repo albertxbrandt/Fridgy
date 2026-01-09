@@ -32,10 +32,14 @@ class FridgyMessagingService : FirebaseMessagingService() {
 
     companion object {
         private const val TAG = "FridgyMessagingService"
-        private const val CHANNEL_ID = "fridgy_notifications"
-        private const val CHANNEL_NAME = "Fridgy Notifications"
         private const val NOTIFICATION_ID_COUNTER_START = 1000
     }
+
+    private val channelId: String
+        get() = getString(R.string.default_notification_channel_id)
+    
+    private val channelName: String
+        get() = getString(R.string.notification_channel_name)
 
     override fun onCreate() {
         super.onCreate()
@@ -72,7 +76,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
         remoteMessage.notification?.let { notification ->
             Log.d(TAG, "Notification payload: ${notification.title}")
             showNotification(
-                title = notification.title ?: "Fridgy",
+                title = notification.title ?: getString(R.string.app_name),
                 body = notification.body ?: "",
                 data = remoteMessage.data
             )
@@ -97,7 +101,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
         Log.d(TAG, "Handling data: type=$type, fridgeId=$fridgeId, itemId=$itemId")
 
         // Show notification with custom data
-        val title = data["title"] ?: "Fridgy"
+        val title = data["title"] ?: getString(R.string.app_name)
         val body = data["body"] ?: "You have a new notification"
         showNotification(title, body, data)
     }
@@ -126,7 +130,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
         )
 
         // Build notification
-        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notificationBuilder = NotificationCompat.Builder(this, channelId)
             .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with your app icon
             .setContentTitle(title)
             .setContentText(body)
@@ -146,8 +150,8 @@ class FridgyMessagingService : FirebaseMessagingService() {
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
-                CHANNEL_ID,
-                CHANNEL_NAME,
+                channelId,
+                channelName,
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notifications for fridge updates, invites, and more"

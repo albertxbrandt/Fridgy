@@ -50,7 +50,7 @@ class NotificationViewModel(
         }
         .catch { error ->
             Log.e(TAG, "Error loading notifications", error)
-            emit(NotificationUiState.Error(error.message ?: "Failed to load notifications"))
+            emit(NotificationUiState.Error(error.message ?: "Failed to load notifications")) // TODO: Pass context for string resources
         }
         .stateIn(
             scope = viewModelScope,

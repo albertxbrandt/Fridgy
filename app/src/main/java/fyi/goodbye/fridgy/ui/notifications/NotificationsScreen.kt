@@ -1,5 +1,6 @@
 package fyi.goodbye.fridgy.ui.notifications
 
+import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -47,8 +48,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Notification
 import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
@@ -74,6 +77,7 @@ fun NotificationsScreen(
     onNotificationClick: (Notification) -> Unit = {},
     viewModel: NotificationViewModel = viewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val unreadCount by viewModel.unreadCount.collectAsState()
 
@@ -82,10 +86,10 @@ fun NotificationsScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Notifications")
+                        Text(context.getString(R.string.notifications))
                         if (unreadCount > 0) {
                             Text(
-                                "$unreadCount unread",
+                                context.getString(R.string.unread_count, unreadCount),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                             )
@@ -94,13 +98,13 @@ fun NotificationsScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, context.getString(R.string.back))
                     }
                 },
                 actions = {
                     if (unreadCount > 0) {
                         IconButton(onClick = { viewModel.markAllAsRead() }) {
-                            Icon(Icons.Default.DoneAll, "Mark all as read")
+                            Icon(Icons.Default.DoneAll, context.getString(R.string.mark_all_as_read))
                         }
                     }
                 },
@@ -135,7 +139,7 @@ fun NotificationsScreen(
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
-                                "Error loading notifications",
+                                context.getString(R.string.error_loading_notifications),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.error
                             )
@@ -163,7 +167,7 @@ fun NotificationsScreen(
                                 )
                                 Spacer(modifier = Modifier.padding(8.dp))
                                 Text(
-                                    "No notifications yet",
+                                    context.getString(R.string.no_notifications_yet),
                                     style = MaterialTheme.typography.bodyLarge,
                                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                                 )

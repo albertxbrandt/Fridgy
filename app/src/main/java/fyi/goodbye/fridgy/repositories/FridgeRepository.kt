@@ -380,6 +380,9 @@ class FridgeRepository {
             .await()
         
         // Create notification for the invited user
+        // Note: Hardcoded strings are acceptable in Repository layer as it shouldn't have Context.
+        // These notification strings are stored in Firestore and read by Cloud Functions which
+        // will send them as push notifications. The UI reads from Firestore, not these strings.
         val currentUser = auth.currentUser
         val inviterName = currentUser?.displayName ?: "Someone"
         val notificationData = hashMapOf(

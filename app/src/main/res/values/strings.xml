@@ -232,4 +232,24 @@
     
     <!-- Push Notifications -->
     <string name="default_notification_channel_id">fridgy_notifications</string>
+    <string name="notification_channel_name">Fridgy Notifications</string>
+    <string name="notifications">Notifications</string>
+    <string name="unread_count">%d unread</string>
+    <string name="back">Back</string>
+    <string name="mark_all_as_read">Mark all as read</string>
+    <string name="error_loading_notifications">Error loading notifications</string>
+    <string name="failed_to_load_notifications">Failed to load notifications</string>
+    <string name="no_notifications_yet">No notifications yet</string>
+    <string name="fridge_invitation">Fridge Invitation</string>
+    <string name="invited_to_join_fridge">You were invited to join \'%1$s\'</string>
+    <string name="marked_as_read">Marked as read</string>
+    <string name="failed_to_mark_as_read">Failed to mark as read</string>
+    <string name="marked_all_as_read">All notifications marked as read</string>
+    <string name="failed_to_mark_all_as_read">Failed to mark all as read</string>
+    <string name="notification_deleted">Notification deleted</string>
+    <string name="failed_to_delete_notification">Failed to delete notification</string>
+    <string name="accepted_invite">Accepted fridge invitation</string>
+    <string name="failed_to_accept_invite">Failed to accept invitation</string>
+    <string name="declined_invite">Declined fridge invitation</string>
+    <string name="failed_to_decline_invite">Failed to decline invitation</string>
 </resources>
