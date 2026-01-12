@@ -228,10 +228,19 @@ class ProductRepository(private val context: Context? = null) {
     /**
      * Fetches product metadata from server, bypassing cache to get latest data.
      * Use this when you need guaranteed fresh data (e.g., after product updates).
+     * Includes retry logic for eventual consistency.
      */
     suspend fun getProductInfoFresh(upc: String): Product? {
         return try {
-            val doc = productsCollection.document(upc).get(Source.SERVER).await()
+            // First try: fetch from server
+            var doc = productsCollection.document(upc).get(Source.SERVER).await()
+            
+            // If not found on server, retry with DEFAULT source (includes cache)
+            // This helps with Firestore's eventual consistency
+            if (!doc.exists()) {
+                Log.d("ProductRepo", "Product $upc not found on server, trying default source")
+                doc = productsCollection.document(upc).get(Source.DEFAULT).await()
+            }
             
             if (doc.exists()) {
                 val product = doc.toObject(Product::class.java)?.copy(upc = doc.id)

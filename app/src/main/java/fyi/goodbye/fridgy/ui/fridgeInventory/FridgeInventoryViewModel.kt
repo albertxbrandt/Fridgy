@@ -27,10 +27,12 @@ import kotlinx.coroutines.launch
 
 /**
  * Combined model for displaying an item with its global product details.
+ * @property localImageUri Optional local URI for images that haven't been uploaded to Storage yet.
  */
 data class InventoryItem(
     val item: Item,
-    val product: Product
+    val product: Product,
+    val localImageUri: Uri? = null
 )
 
 /**
@@ -153,17 +155,28 @@ class FridgeInventoryViewModel(
                     fridgeRepository.getItemsForFridge(fridgeId),
                     optimisticItems
                 ) { remoteItems, optimistic ->
+                    // Create map of optimistic data by UPC for quick lookup
+                    val optimisticMap = optimistic.associateBy { it.item.upc }
+                    
                     // Filter out optimistic items that have now been confirmed by remote data
                     val remoteUpcs = remoteItems.map { it.upc }.toSet()
                     val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
 
-                    // Map remote items to products (always fetch fresh from server for remote updates)
+                    // Map remote items to products
                     val mappedRemote =
                         remoteItems.map { item ->
-                            // For remote items, force re-fetch from Firestore to get latest product data
-                            val product = productRepository.getProductInfoFresh(item.upc) 
-                                ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
-                            InventoryItem(item, product)
+                            // Check if we have optimistic data for this item
+                            val optimisticItem = optimisticMap[item.upc]
+                            
+                            if (optimisticItem != null) {
+                                // Use optimistic product data and local image until product is in Firestore
+                                InventoryItem(item, optimisticItem.product, optimisticItem.localImageUri)
+                            } else {
+                                // For normal remote items, fetch product from Firestore
+                                val product = productRepository.getProductInfoFresh(item.upc) 
+                                    ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
+                                InventoryItem(item, product)
+                            }
                         }
 
                     // Final display list: Remote items first, then any still-pending optimistic items
@@ -237,23 +250,24 @@ class FridgeInventoryViewModel(
 
             val optimisticItem =
                 Item(
-                    upc = "optimistic_$upc",
+                    upc = upc,
                     quantity = 1,
                     addedAt = System.currentTimeMillis()
                 )
 
             // Layer 1: Inject into ViewModel's local state immediately
-            optimisticItems.value = optimisticItems.value + InventoryItem(optimisticItem, optimisticProduct)
+            optimisticItems.value = optimisticItems.value + InventoryItem(optimisticItem, optimisticProduct, imageUri)
 
             try {
                 // Layer 2: Push to Repository Cache
                 productRepository.injectToCache(optimisticProduct)
 
-                // Background tasks
-                launch { productRepository.saveProductWithImage(optimisticProduct, imageUri) }
-                launch { fridgeRepository.addItemToFridge(fridgeId, upc) }
+                // Save product to Firestore FIRST, then add item to fridge
+                // This ensures other devices see the product data when the item appears
+                productRepository.saveProductWithImage(optimisticProduct, imageUri)
+                fridgeRepository.addItemToFridge(fridgeId, upc)
 
-                Log.d("FridgeInventoryVM", "Optimistic add successful for: $name")
+                Log.d("FridgeInventoryVM", "Product and item added successfully: $name")
             } catch (e: Exception) {
                 Log.e("FridgeInventoryVM", "Failed to create product: ${e.message}")
                 _addItemError.value = getApplication<Application>().getString(R.string.error_failed_to_add_item, e.message ?: "")

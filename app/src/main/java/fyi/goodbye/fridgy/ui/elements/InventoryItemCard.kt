@@ -42,10 +42,11 @@ fun InventoryItemCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Product Image as Background
-            if (product.imageUrl != null) {
+            // Product Image as Background - prioritize local URI for optimistic updates
+            val imageModel = inventoryItem.localImageUri ?: product.imageUrl
+            if (imageModel != null) {
                 AsyncImage(
-                    model = product.imageUrl,
+                    model = imageModel,
                     contentDescription = product.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

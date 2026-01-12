@@ -6,6 +6,7 @@ import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Source
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
@@ -498,10 +499,10 @@ class FridgeRepository {
 
     fun getItemsForFridge(fridgeId: String): Flow<List<Item>> =
         callbackFlow {
-            // Use SnapshotListener with local cache support
+            // Use SnapshotListener with metadata changes enabled for immediate updates
             val listener =
                 firestore.collection("fridges").document(fridgeId).collection("items")
-                    .addSnapshotListener { snapshot, e ->
+                    .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, e ->
                         if (e != null) {
                             // Gracefully handle permission errors (fridge deleted/left)
                             if (e.message?.contains("PERMISSION_DENIED") == true) {
@@ -514,6 +515,7 @@ class FridgeRepository {
                             return@addSnapshotListener
                         }
                         val items = snapshot?.documents?.mapNotNull { it.toObject(Item::class.java) } ?: emptyList()
+                        Log.d("FridgeRepo", "Items snapshot received for fridge $fridgeId: ${items.size} items")
                         trySend(items).isSuccess
                     }
             awaitClose { listener.remove() }
