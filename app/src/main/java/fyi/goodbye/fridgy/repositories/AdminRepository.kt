@@ -91,11 +91,14 @@ class AdminRepository {
     }
 
     /**
-     * Gets all products from the products collection.
+     * Gets all products from the products collection, sorted by most recently updated first.
      */
     suspend fun getAllProducts(): List<Product> {
         return try {
-            val snapshot = firestore.collection("products").get().await()
+            val snapshot = firestore.collection("products")
+                .orderBy("lastUpdated", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .get()
+                .await()
             snapshot.documents.mapNotNull { doc ->
                 doc.toObject(Product::class.java)?.copy(upc = doc.id)
             }
