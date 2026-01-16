@@ -416,6 +416,7 @@ fun ShoppingListScreen(
     if (showAddDialog) {
         AddShoppingListItemDialog(
             fridgeId = fridgeId,
+            initialItemName = searchQuery,
             onDismiss = { showAddDialog = false },
             onScanClick = {
                 showAddDialog = false
@@ -423,6 +424,7 @@ fun ShoppingListScreen(
             },
             onAddManual = { name, quantity, store ->
                 viewModel.addManualItem(name, quantity, store)
+                viewModel.updateSearchQuery("")
                 showAddDialog = false
             }
         )

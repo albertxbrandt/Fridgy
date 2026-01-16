@@ -39,11 +39,12 @@ import fyi.goodbye.fridgy.ui.shared.components.SquaredInput
 @Composable
 fun AddShoppingListItemDialog(
     fridgeId: String,
+    initialItemName: String = "",
     onDismiss: () -> Unit,
     onScanClick: () -> Unit,
     onAddManual: (String, Int, String) -> Unit
 ) {
-    var itemName by remember { mutableStateOf("") }
+    var itemName by remember { mutableStateOf(initialItemName) }
     var quantity by remember { mutableIntStateOf(1) }
     var store by remember { mutableStateOf("") }
 
