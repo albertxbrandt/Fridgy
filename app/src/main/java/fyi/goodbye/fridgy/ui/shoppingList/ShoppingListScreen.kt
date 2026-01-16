@@ -1,12 +1,15 @@
 package fyi.goodbye.fridgy.ui.shoppingList
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -15,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,10 +74,21 @@ fun ShoppingListScreen(
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
+    val activeViewers by viewModel.activeViewers.collectAsState()
     var showAddDialog by remember { mutableStateOf(false) }
     var showPickupDialog by remember { mutableStateOf<ShoppingListViewModel.ShoppingListItemWithProduct?>(null) }
     var productToAdd by remember { mutableStateOf<Product?>(null) }
     var scannedUpcForDialog by remember { mutableStateOf<String?>(null) }
+    var showDoneShoppingDialog by remember { mutableStateOf(false) }
+    var showViewersDropdown by remember { mutableStateOf(false) }
+
+    // Manage presence lifecycle
+    DisposableEffect(Unit) {
+        viewModel.startPresence()
+        onDispose {
+            viewModel.stopPresence()
+        }
+    }
 
     // Handle barcode scan result from BarcodeScannerScreen
     LaunchedEffect(navController.currentBackStackEntry) {
@@ -103,6 +118,80 @@ fun ShoppingListScreen(
                             contentDescription = stringResource(R.string.cd_back),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
+                    }
+                },
+                actions = {
+                    // Show active viewers count with dropdown
+                    if (activeViewers.isNotEmpty()) {
+                        Box {
+                            Surface(
+                                shape = MaterialTheme.shapes.small,
+                                color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
+                                modifier = Modifier
+                                    .padding(end = 8.dp),
+                                onClick = { showViewersDropdown = !showViewersDropdown }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(
+                                                color = Color(0xFF4CAF50),
+                                                shape = MaterialTheme.shapes.extraSmall
+                                            )
+                                    )
+                                    Text(
+                                        text = stringResource(
+                                            R.string.n_others_viewing,
+                                            activeViewers.size
+                                        ),
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onPrimary,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            
+                            DropdownMenu(
+                                expanded = showViewersDropdown,
+                                onDismissRequest = { showViewersDropdown = false }
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.currently_viewing),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                
+                                activeViewers.forEach { viewer ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = viewer.username,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        },
+                                        onClick = { /* Could navigate to user profile or do nothing */ },
+                                        leadingIcon = {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .background(
+                                                        color = Color(0xFF4CAF50),
+                                                        shape = MaterialTheme.shapes.extraSmall
+                                                    )
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.primary)
@@ -253,24 +342,55 @@ fun ShoppingListScreen(
                                 )
                             }
                         } else {
-                            LazyColumn(
-                                modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        .padding(horizontal = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                item { Spacer(modifier = Modifier.height(4.dp)) }
-                                items(state.items, key = { it.item.upc }) { itemWithProduct ->
-                                    ShoppingListItemCard(
-                                        itemWithProduct = itemWithProduct,
-                                        onCheckClick = {
-                                            showPickupDialog = itemWithProduct
-                                        },
-                                        onDeleteClick = { viewModel.removeItem(itemWithProduct.item.upc) }
-                                    )
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                LazyColumn(
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    item { Spacer(modifier = Modifier.height(4.dp)) }
+                                    items(state.items, key = { it.item.upc }) { itemWithProduct ->
+                                        ShoppingListItemCard(
+                                            itemWithProduct = itemWithProduct,
+                                            onCheckClick = {
+                                                showPickupDialog = itemWithProduct
+                                            },
+                                            onDeleteClick = { viewModel.removeItem(itemWithProduct.item.upc) }
+                                        )
+                                    }
+                                    item { Spacer(modifier = Modifier.height(88.dp)) }
                                 }
-                                item { Spacer(modifier = Modifier.height(8.dp)) }
+
+                                // Done Shopping Button - visible when any items have been picked up (partial or full)
+                                val hasPickedUpItems = state.items.any { (it.item.obtainedQuantity ?: 0) > 0 }
+                                if (hasPickedUpItems) {
+                                    FloatingActionButton(
+                                        onClick = { showDoneShoppingDialog = true },
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .padding(16.dp),
+                                        containerColor = MaterialTheme.colorScheme.primary
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = stringResource(R.string.done_shopping),
+                                                tint = MaterialTheme.colorScheme.onPrimary
+                                            )
+                                            Text(
+                                                text = stringResource(R.string.done_shopping),
+                                                color = MaterialTheme.colorScheme.onPrimary,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -348,6 +468,45 @@ fun ShoppingListScreen(
                 viewModel.addItem(upc, quantity, store)
                 scannedUpcForDialog = null
             }
+        )
+    }
+
+    // Done Shopping Confirmation Dialog
+    if (showDoneShoppingDialog) {
+        AlertDialog(
+            onDismissRequest = { showDoneShoppingDialog = false },
+            title = {
+                Text(
+                    text = stringResource(R.string.done_shopping),
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.done_shopping_confirmation),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            },
+            confirmButton = {
+                FilledTonalButton(
+                    onClick = {
+                        showDoneShoppingDialog = false
+                        viewModel.completeShopping {
+                            onBackClick()
+                        }
+                    }
+                ) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDoneShoppingDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+            shape = MaterialTheme.shapes.extraLarge,
+            containerColor = MaterialTheme.colorScheme.surface
         )
     }
 }

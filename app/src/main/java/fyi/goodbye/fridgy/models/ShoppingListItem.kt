@@ -14,6 +14,9 @@ import kotlinx.parcelize.Parcelize
  * @property store Optional store name where item should be purchased.
  * @property checked Whether the item has been checked off (fully or partially).
  * @property obtainedQuantity How many units were actually obtained (for partial pickup).
+ * @property obtainedBy Map of userId to quantity obtained by that user (for multi-user shopping).
+ * @property lastUpdatedBy User ID who last updated the item.
+ * @property lastUpdatedAt Timestamp of last update.
  * @property customName Optional custom name for manual entries (when product not in database).
  */
 @Parcelize
@@ -26,5 +29,8 @@ data class ShoppingListItem(
     val store: String = "",
     val checked: Boolean = false,
     val obtainedQuantity: Int? = null,
+    val obtainedBy: Map<String, Int> = emptyMap(),
+    val lastUpdatedBy: String = "",
+    val lastUpdatedAt: Long = System.currentTimeMillis(),
     val customName: String = "" // For manual entries without UPC
 ) : Parcelable

@@ -217,6 +217,16 @@
     <string name="increase_quantity">Increase quantity</string>
     <string name="decrease_quantity">Decrease quantity</string>
     <string name="confirm">Confirm</string>
+    <string name="done_shopping">Done Shopping</string>
+    <string name="done_shopping_confirmation">This will add the items you obtained to your fridge. Items picked up by others will remain on the list for them.</string>
+    <string name="you_obtained_x">You: %1$d</string>
+    <string name="others_obtained_x">Others: %1$d</string>
+    <string name="you_obtained_x_others_y">You: %1$d • Others: %2$d</string>
+    <string name="need_x_more">Need %1$d more</string>
+    <string name="all_obtained">All obtained ✓</string>
+    <string name="shopping_completed">Your items have been added to the fridge!</string>
+    <string name="n_others_viewing">%1$d viewing</string>
+    <string name="currently_viewing">Currently Viewing</string>
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
     <string name="product_brand_category">%1$s • %2$s</string>

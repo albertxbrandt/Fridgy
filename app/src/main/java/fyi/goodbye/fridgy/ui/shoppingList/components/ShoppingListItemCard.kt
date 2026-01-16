@@ -7,10 +7,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
 
@@ -39,13 +41,29 @@ fun ShoppingListItemCard(
     onDeleteClick: () -> Unit
 ) {
     val item = itemWithProduct.item
-    val isPartiallyPicked = item.obtainedQuantity != null && item.obtainedQuantity < item.quantity
-    val isFullyPicked = item.obtainedQuantity != null && item.obtainedQuantity >= item.quantity
+    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+    
+    // Calculate quantities
+    val myObtainedQty = item.obtainedBy[currentUserId] ?: 0
+    val totalObtainedQty = item.obtainedQuantity ?: 0
+    val othersObtainedQty = totalObtainedQty - myObtainedQty
+    val totalRemaining = item.quantity - totalObtainedQty
+    
+    val isPartiallyPicked = totalObtainedQty > 0 && totalObtainedQty < item.quantity
+    val isFullyPicked = totalObtainedQty >= item.quantity
+    
+    // Determine card color based on status
+    val cardColor = when {
+        isFullyPicked -> Color(0xFFE8F5E9) // Green tint - all obtained
+        othersObtainedQty > 0 -> Color(0xFFFFF8E1) // Yellow tint - others shopping
+        myObtainedQty > 0 -> Color(0xFFE3F2FD) // Blue tint - you're shopping
+        else -> MaterialTheme.colorScheme.surface
+    }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        colors = CardDefaults.cardColors(containerColor = cardColor),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
@@ -82,25 +100,44 @@ fun ShoppingListItemCard(
                     )
                 }
                 
-                when {
-                    isPartiallyPicked -> {
-                        Text(
-                            text = stringResource(R.string.picked_up_x_of_y, item.obtainedQuantity!!, item.quantity),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.padding(top = 4.dp)
-                        )
-                    }
-                    !isFullyPicked -> {
-                        Text(
-                            text = stringResource(R.string.quantity_label_shopping, item.quantity),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                    }
+                // Show multi-user shopping status
+                if (othersObtainedQty > 0 && myObtainedQty > 0) {
+                    Text(
+                        text = stringResource(R.string.you_obtained_x_others_y, myObtainedQty, othersObtainedQty),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                } else if (othersObtainedQty > 0) {
+                    Text(
+                        text = stringResource(R.string.others_obtained_x, othersObtainedQty),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.secondary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                } else if (myObtainedQty > 0) {
+                    Text(
+                        text = stringResource(R.string.you_obtained_x, myObtainedQty),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
+                
+                // Show remaining quantity needed
+                Text(
+                    text = if (isFullyPicked) {
+                        stringResource(R.string.all_obtained)
+                    } else {
+                        stringResource(R.string.need_x_more, totalRemaining)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isFullyPicked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(top = 2.dp)
+                )
             }
 
             IconButton(onClick = onDeleteClick) {
