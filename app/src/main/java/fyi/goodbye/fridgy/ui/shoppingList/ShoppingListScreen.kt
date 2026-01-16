@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,8 +32,12 @@ import fyi.goodbye.fridgy.ui.shoppingList.components.AddItemFromSearchDialog
 import fyi.goodbye.fridgy.ui.shoppingList.components.PartialPickupDialog
 import fyi.goodbye.fridgy.ui.shoppingList.components.ProductSearchResultCard
 import fyi.goodbye.fridgy.ui.shoppingList.components.ShoppingListItemCard
+import fyi.goodbye.fridgy.ui.shoppingList.components.UpcEntryDialog
+import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
+import android.net.Uri
 import fyi.goodbye.fridgy.ui.shared.components.SearchBar
 import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
+import kotlinx.coroutines.launch
 
 /**
  * Screen displaying the shopping list for a fridge.
@@ -75,12 +80,15 @@ fun ShoppingListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val activeViewers by viewModel.activeViewers.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
     var showPickupDialog by remember { mutableStateOf<ShoppingListViewModel.ShoppingListItemWithProduct?>(null) }
     var productToAdd by remember { mutableStateOf<Product?>(null) }
     var scannedUpcForDialog by remember { mutableStateOf<String?>(null) }
     var showDoneShoppingDialog by remember { mutableStateOf(false) }
     var showViewersDropdown by remember { mutableStateOf(false) }
+    var showUpcEntryDialog by remember { mutableStateOf<ShoppingListViewModel.ShoppingListItemWithProduct?>(null) }
+    var showNewProductDialog by remember { mutableStateOf<Pair<String, ShoppingListViewModel.ShoppingListItemWithProduct>?>(null) }
 
     // Manage presence lifecycle
     DisposableEffect(Unit) {
@@ -91,12 +99,63 @@ fun ShoppingListScreen(
     }
 
     // Handle barcode scan result from BarcodeScannerScreen
-    LaunchedEffect(navController.currentBackStackEntry) {
-        navController.currentBackStackEntry?.savedStateHandle?.get<String>("scannedUpc")?.let { scannedUpc ->
-            // Show dialog to get quantity and store for scanned item
-            scannedUpcForDialog = scannedUpc
-            // Clear the scanned result from saved state
+    LaunchedEffect(navController.currentBackStackEntry?.savedStateHandle?.get<String>("scannedUpc")) {
+        val scannedUpc = navController.currentBackStackEntry?.savedStateHandle?.get<String>("scannedUpc")
+        if (scannedUpc != null) {
+            // Clear the scanned result from saved state first
             navController.currentBackStackEntry?.savedStateHandle?.remove<String>("scannedUpc")
+            
+            // Check if we're scanning for a manual item link
+            val scanningForManualItem = navController.currentBackStackEntry?.savedStateHandle?.get<Boolean>("scanningForManualItem") ?: false
+            
+            if (scanningForManualItem) {
+                // Get manual item info from savedStateHandle
+                val manualItemUpc = navController.currentBackStackEntry?.savedStateHandle?.get<String>("manualItemUpc") ?: ""
+                val manualItemQuantity = navController.currentBackStackEntry?.savedStateHandle?.get<Int>("manualItemQuantity") ?: 1
+                val manualItemStore = navController.currentBackStackEntry?.savedStateHandle?.get<String>("manualItemStore") ?: ""
+                val manualItemName = navController.currentBackStackEntry?.savedStateHandle?.get<String>("manualItemName") ?: ""
+                
+                // Clear manual item flags
+                navController.currentBackStackEntry?.savedStateHandle?.apply {
+                    remove<Boolean>("scanningForManualItem")
+                    remove<String>("manualItemUpc")
+                    remove<Int>("manualItemQuantity")
+                    remove<String>("manualItemStore")
+                    remove<String>("manualItemName")
+                }
+                
+                // Check if product already exists in database
+                val existingProduct = viewModel.checkProductExists(scannedUpc)
+                
+                if (existingProduct != null) {
+                    // Product exists, link it directly
+                    viewModel.linkManualItemToProduct(
+                        oldManualUpc = manualItemUpc,
+                        newUpc = scannedUpc,
+                        quantity = manualItemQuantity,
+                        store = manualItemStore,
+                        customName = ""
+                    )
+                } else {
+                    // Product doesn't exist, show new product dialog
+                    val manualItem = ShoppingListViewModel.ShoppingListItemWithProduct(
+                        item = fyi.goodbye.fridgy.models.ShoppingListItem(
+                            upc = manualItemUpc,
+                            addedAt = 0,
+                            addedBy = "",
+                            quantity = manualItemQuantity,
+                            store = manualItemStore,
+                            customName = manualItemName
+                        ),
+                        productName = manualItemName,
+                        productBrand = ""
+                    )
+                    showNewProductDialog = Pair(scannedUpc, manualItem)
+                }
+            } else {
+                // Normal scan for adding new item
+                scannedUpcForDialog = scannedUpc
+            }
         }
     }
 
@@ -355,7 +414,12 @@ fun ShoppingListScreen(
                                         ShoppingListItemCard(
                                             itemWithProduct = itemWithProduct,
                                             onCheckClick = {
-                                                showPickupDialog = itemWithProduct
+                                                // Check if this is a manual item (starts with "manual_")
+                                                if (itemWithProduct.item.upc.startsWith("manual_")) {
+                                                    showUpcEntryDialog = itemWithProduct
+                                                } else {
+                                                    showPickupDialog = itemWithProduct
+                                                }
                                             },
                                             onDeleteClick = { viewModel.removeItem(itemWithProduct.item.upc) }
                                         )
@@ -509,6 +573,86 @@ fun ShoppingListScreen(
             },
             shape = MaterialTheme.shapes.extraLarge,
             containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
+
+    // UPC Entry Dialog for manual items
+    showUpcEntryDialog?.let { manualItem ->
+        UpcEntryDialog(
+            itemName = manualItem.productName,
+            onDismiss = { showUpcEntryDialog = null },
+            onScanClick = {
+                // Store manual item info in savedStateHandle before navigating to scanner
+                navController.currentBackStackEntry?.savedStateHandle?.apply {
+                    set("scanningForManualItem", true)
+                    set("manualItemUpc", manualItem.item.upc)
+                    set("manualItemQuantity", manualItem.item.quantity)
+                    set("manualItemStore", manualItem.item.store)
+                    set("manualItemName", manualItem.productName)
+                }
+                showUpcEntryDialog = null
+                onScanClick(fridgeId)
+            },
+            onConfirm = { upc ->
+                coroutineScope.launch {
+                    // Check if product already exists in database
+                    val existingProduct = viewModel.checkProductExists(upc)
+                    
+                    if (existingProduct != null) {
+                        // Product exists, link it directly
+                        viewModel.linkManualItemToProduct(
+                            oldManualUpc = manualItem.item.upc,
+                            newUpc = upc,
+                            quantity = manualItem.item.quantity,
+                            store = manualItem.item.store,
+                            customName = ""
+                        )
+                        showUpcEntryDialog = null
+                    } else {
+                        // Product doesn't exist, show new product dialog
+                        showUpcEntryDialog = null
+                        showNewProductDialog = Pair(upc, manualItem)
+                    }
+                }
+            }
+        )
+    }
+
+    // New Product Dialog for unknown UPCs
+    showNewProductDialog?.let { (upc, manualItem) ->
+        NewProductDialog(
+            upc = upc,
+            onDismiss = { showNewProductDialog = null },
+            onConfirm = { name, brand, category, imageUri ->
+                // Delegate product creation and linking to ViewModel
+                viewModel.createProductAndLink(
+                    oldManualUpc = manualItem.item.upc,
+                    newUpc = upc,
+                    name = name,
+                    brand = brand,
+                    category = category,
+                    imageUri = imageUri,
+                    quantity = manualItem.item.quantity,
+                    store = manualItem.item.store,
+                    onSuccess = {
+                        showNewProductDialog = null
+                        
+                        // Wait a moment for the item to be replaced, then show pickup dialog
+                        coroutineScope.launch {
+                            kotlinx.coroutines.delay(500)
+                            
+                            // Find the newly linked item in the current state and show pickup dialog
+                            val currentState = uiState
+                            if (currentState is ShoppingListViewModel.UiState.Success) {
+                                val newItem = currentState.items.find { it.item.upc == upc }
+                                if (newItem != null) {
+                                    showPickupDialog = newItem
+                                }
+                            }
+                        }
+                    }
+                )
+            }
         )
     }
 }

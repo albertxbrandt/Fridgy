@@ -227,6 +227,10 @@
     <string name="shopping_completed">Your items have been added to the fridge!</string>
     <string name="n_others_viewing">%1$d viewing</string>
     <string name="currently_viewing">Currently Viewing</string>
+    <string name="link_product">Link Product</string>
+    <string name="link_product_description">To complete picking up \"%1$s\", scan or enter its UPC code to link it to the product database.</string>
+    <string name="upc_code">UPC Code</string>
+    <string name="skip">Skip</string>
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
     <string name="product_brand_category">%1$s • %2$s</string>

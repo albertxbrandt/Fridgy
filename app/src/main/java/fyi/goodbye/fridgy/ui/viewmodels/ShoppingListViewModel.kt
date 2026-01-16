@@ -1,7 +1,10 @@
 package fyi.goodbye.fridgy.ui.viewmodels
 
+import android.app.Application
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.CreationExtras
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.ShoppingListItem
@@ -18,9 +21,11 @@ import kotlinx.coroutines.launch
 /**
  * ViewModel for managing shopping list UI state and operations.
  */
-class ShoppingListViewModel(private val fridgeId: String) : ViewModel() {
+class ShoppingListViewModel(
+    private val fridgeId: String,
+    private val productRepository: ProductRepository
+) : ViewModel() {
     private val repository = FridgeRepository()
-    private val productRepository = ProductRepository()
     private var presenceJob: Job? = null
 
     data class ShoppingListItemWithProduct(
@@ -219,12 +224,107 @@ class ShoppingListViewModel(private val fridgeId: String) : ViewModel() {
         }
     }
 
+    /**
+     * Checks if a UPC exists in the product database.
+     */
+    suspend fun checkProductExists(upc: String): Product? {
+        return try {
+            productRepository.getProductInfo(upc)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /**
+     * Links a manual shopping list item to a real product by updating its UPC.
+     * This removes the old manual entry and creates a new one with the real UPC.
+     */
+    fun linkManualItemToProduct(oldManualUpc: String, newUpc: String, quantity: Int, store: String, customName: String) {
+        viewModelScope.launch {
+            try {
+                // Remove old manual item
+                repository.removeShoppingListItem(fridgeId, oldManualUpc)
+                
+                // Add new item with real UPC
+                repository.addShoppingListItem(
+                    fridgeId = fridgeId,
+                    upc = newUpc,
+                    quantity = quantity,
+                    store = store,
+                    customName = "" // Clear custom name since we now have real product
+                )
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error("Failed to link product: ${e.message}")
+            }
+        }
+    }
+
+    /**
+     * Creates a new product in the database with image upload and links it to the manual shopping list item.
+     * 
+     * @param oldManualUpc The UPC of the manual item to replace
+     * @param newUpc The UPC for the new product
+     * @param name Product name
+     * @param brand Product brand (optional)
+     * @param category Product category
+     * @param imageUri URI of the product image to upload (optional)
+     * @param quantity Quantity needed
+     * @param store Store location (optional)
+     * @param onSuccess Callback invoked after successful creation and linking
+     */
+    fun createProductAndLink(
+        oldManualUpc: String,
+        newUpc: String,
+        name: String,
+        brand: String,
+        category: String,
+        imageUri: android.net.Uri?,
+        quantity: Int,
+        store: String,
+        onSuccess: () -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                // Create product object
+                val product = Product(
+                    upc = newUpc,
+                    name = name,
+                    brand = brand,
+                    category = category,
+                    imageUrl = "",
+                    lastUpdated = System.currentTimeMillis()
+                )
+                
+                // Save product with image to database
+                productRepository.saveProductWithImage(product, imageUri)
+                
+                // Link manual item to new product
+                linkManualItemToProduct(
+                    oldManualUpc = oldManualUpc,
+                    newUpc = newUpc,
+                    quantity = quantity,
+                    store = store,
+                    customName = ""
+                )
+                
+                onSuccess()
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error("Failed to create product: ${e.message}")
+            }
+        }
+    }
+
     companion object {
-        fun provideFactory(fridgeId: String): androidx.lifecycle.ViewModelProvider.Factory =
-            object : androidx.lifecycle.ViewModelProvider.Factory {
+        fun provideFactory(
+            fridgeId: String,
+            productRepository: ProductRepository? = null
+        ): ViewModelProvider.Factory =
+            object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                    return ShoppingListViewModel(fridgeId) as T
+                override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                    val app = extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
+                    val repo = productRepository ?: ProductRepository(app.applicationContext)
+                    return ShoppingListViewModel(fridgeId, repo) as T
                 }
             }
     }

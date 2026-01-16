@@ -3,7 +3,15 @@
 Fridgy is your **family’s fridge buddy** 🥕🥛🍕. It helps everyone know what’s in the fridge, what’s running low, and what to grab at the store — without sticky notes or endless group chats.
 
 ---
+## 📱 Screenshots
 
+<p align="center">
+  <img src="screenshots/fridgy_fridgelist.jpg" width="250" alt="Fridge List">
+  <img src="screenshots/fridgy_fridge.jpg" width="250" alt="Fridge Inventory">
+  <img src="screenshots/fridgy_shoppinglist.jpg" width="250" alt="Shopping List">
+</p>
+
+---
 ## ✨ What It Does
 
 * **Create Fridges** → one for the kitchen, one for the garage freezer, even one for the snack cupboard 🍫.
