@@ -241,6 +241,11 @@
         <item quantity="other">%d members</item>
     </plurals>
     
+    <plurals name="fridge_count">
+        <item quantity="one">%d fridge</item>
+        <item quantity="other">%d fridges</item>
+    </plurals>
+    
     <!-- Fridge Type -->
     <string name="fridge_type_label">Type</string>
     

@@ -39,6 +39,9 @@ import fyi.goodbye.fridgy.ui.fridgeInventory.BarcodeScannerScreen
 import fyi.goodbye.fridgy.ui.fridgeInventory.FridgeInventoryScreen
 import fyi.goodbye.fridgy.ui.fridgeList.FridgeListScreen
 import fyi.goodbye.fridgy.ui.fridgeSettings.FridgeSettingsScreen
+import fyi.goodbye.fridgy.ui.householdList.HouseholdListScreen
+import fyi.goodbye.fridgy.ui.householdList.JoinHouseholdScreen
+import fyi.goodbye.fridgy.ui.householdSettings.HouseholdSettingsScreen
 import fyi.goodbye.fridgy.ui.itemDetail.ItemDetailScreen
 import fyi.goodbye.fridgy.ui.notifications.NotificationsScreen
 import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListScreen
@@ -203,7 +206,7 @@ class MainActivity : ComponentActivity() {
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
-                                    navController.navigate("fridgeList") {
+                                    navController.navigate("householdList") {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
@@ -217,7 +220,7 @@ class MainActivity : ComponentActivity() {
                         composable("signup") {
                             SignupScreen(
                                 onSignupSuccess = {
-                                    navController.navigate("fridgeList") {
+                                    navController.navigate("householdList") {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
@@ -225,15 +228,57 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         
-                        // TODO: Add householdList route as the main screen after login
-                        // For now, FridgeListScreen is a placeholder that will show errors
-                        // until households are properly implemented
+                        // Household List - main screen after login
+                        composable("householdList") {
+                            HouseholdListScreen(
+                                onNavigateToHousehold = { household ->
+                                    navController.navigate("fridgeList/${household.id}") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateToJoinHousehold = {
+                                    navController.navigate("joinHousehold") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateToNotifications = {
+                                    navController.navigate("notifications") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateToAdminPanel = {
+                                    navController.navigate("adminPanel") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onLogout = {
+                                    navController.navigate("login") {
+                                        popUpTo(navController.graph.id) { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+                        
+                        // Join Household with invite code
+                        composable("joinHousehold") {
+                            JoinHouseholdScreen(
+                                onNavigateBack = { navController.popBackStack() },
+                                onJoinSuccess = { householdId ->
+                                    navController.navigate("fridgeList/$householdId") {
+                                        popUpTo("householdList") { inclusive = false }
+                                    }
+                                }
+                            )
+                        }
+                        
+                        // Fridge list for a specific household
                         composable(
                             route = "fridgeList/{householdId}",
                             arguments = listOf(
                                 navArgument("householdId") { type = NavType.StringType }
                             )
-                        ) {
+                        ) { backStackEntry ->
+                            val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
                             FridgeListScreen(
                                 onNavigateToFridgeInventory = { displayFridge ->
                                     navController.navigate(
@@ -243,7 +288,9 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onNavigateToHouseholdSettings = {
-                                    // TODO: Navigate to household settings
+                                    navController.navigate("householdSettings/$householdId") {
+                                        launchSingleTop = true
+                                    }
                                 },
                                 onNavigateBack = {
                                     navController.popBackStack()
@@ -251,22 +298,25 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         
-                        // Temporary route without householdId - redirects to error state
-                        composable("fridgeList") {
-                            FridgeListScreen(
-                                onNavigateToFridgeInventory = { displayFridge ->
-                                    navController.navigate(
-                                        "fridgeInventory/${displayFridge.id}/${Uri.encode(displayFridge.name)}"
-                                    ) {
-                                        launchSingleTop = true
+                        // Household settings
+                        composable(
+                            route = "householdSettings/{householdId}",
+                            arguments = listOf(
+                                navArgument("householdId") { type = NavType.StringType }
+                            )
+                        ) { backStackEntry ->
+                            val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
+                            HouseholdSettingsScreen(
+                                householdId = householdId,
+                                onBackClick = { navController.popBackStack() },
+                                onDeleteSuccess = {
+                                    navController.navigate("householdList") {
+                                        popUpTo("householdList") { inclusive = true }
                                     }
-                                },
-                                onNavigateToHouseholdSettings = { },
-                                onNavigateBack = {
-                                    navController.popBackStack()
                                 }
                             )
                         }
+                        
                         composable("adminPanel") {
                             AdminPanelScreen(
                                 onNavigateBack = { navController.popBackStack() }
