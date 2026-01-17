@@ -193,7 +193,7 @@ class MainActivity : ComponentActivity() {
                         permissionLauncher.launch(Manifest.permission.CAMERA)
                     }
 
-                    val startDestination = if (auth.currentUser != null) "fridgeList" else "login"
+                    val startDestination = if (auth.currentUser != null) "householdList" else "login"
 
                     NavHost(
                         navController = navController,
