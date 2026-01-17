@@ -266,4 +266,44 @@
     <string name="failed_to_accept_invite">Failed to accept invitation</string>
     <string name="declined_invite">Declined fridge invitation</string>
     <string name="failed_to_decline_invite">Failed to decline invitation</string>
+    
+    <!-- Households -->
+    <string name="my_households">My Households</string>
+    <string name="households">Households</string>
+    <string name="household">Household</string>
+    <string name="create_household">Create Household</string>
+    <string name="household_name">Household Name</string>
+    <string name="household_settings">Household Settings</string>
+    <string name="join_household">Join Household</string>
+    <string name="join">Join</string>
+    <string name="enter_invite_code">Enter Invite Code</string>
+    <string name="invite_code">Invite Code</string>
+    <string name="invite_codes">Invite Codes</string>
+    <string name="create_invite_code">Create Invite Code</string>
+    <string name="share_invite_code">Share Invite Code</string>
+    <string name="invite_code_expires">Expires: %1$s</string>
+    <string name="invite_code_never_expires">Never expires</string>
+    <string name="invite_code_used_by">Used by: %1$s</string>
+    <string name="invite_code_copied">Invite code copied to clipboard</string>
+    <string name="share_invite_message">Join my household "%1$s" on Fridgy! Use invite code: %2$s</string>
+    <string name="revoke">Revoke</string>
+    <string name="revoke_invite_code">Revoke Invite Code</string>
+    <string name="error_invalid_invite_code">Invalid or expired invite code</string>
+    <string name="error_invite_code_already_used">This invite code has already been used</string>
+    <string name="error_already_member">You are already a member of this household</string>
+    <string name="error_no_household_selected">No household selected</string>
+    <string name="error_failed_to_create_household">Failed to create household</string>
+    <string name="error_failed_to_join_household">Failed to join household</string>
+    <string name="leave_household">Leave Household</string>
+    <string name="leave_household_message">Are you sure you want to leave this household? You will need a new invite code to join again.</string>
+    <string name="delete_household">Delete Household</string>
+    <string name="delete_household_message">This action cannot be undone. All fridges and members will be removed from this household.</string>
+    <string name="no_households_yet">No households yet! Create one or join with an invite code.</string>
+    <string name="cd_navigate_back">Navigate back</string>
+    <string name="cd_household_settings">Household settings</string>
+    <string name="cd_create_household">Create household</string>
+    <string name="cd_join_household">Join household</string>
+    <string name="cd_share_invite">Share invite</string>
+    <string name="type">Type</string>
+    <string name="created_by">Created by</string>
 </resources>

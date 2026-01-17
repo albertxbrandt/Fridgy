@@ -52,10 +52,9 @@ class FridgeInventoryViewModel(
                     DisplayFridge(
                         id = fridgeId,
                         name = initialFridgeName,
+                        householdId = "",
                         createdByUid = "",
                         creatorDisplayName = "",
-                        memberUsers = emptyList(),
-                        pendingInviteUsers = emptyList(),
                         createdAt = 0L
                     )
                 )

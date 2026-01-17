@@ -224,6 +224,34 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToLogin = { navController.popBackStack() }
                             )
                         }
+                        
+                        // TODO: Add householdList route as the main screen after login
+                        // For now, FridgeListScreen is a placeholder that will show errors
+                        // until households are properly implemented
+                        composable(
+                            route = "fridgeList/{householdId}",
+                            arguments = listOf(
+                                navArgument("householdId") { type = NavType.StringType }
+                            )
+                        ) {
+                            FridgeListScreen(
+                                onNavigateToFridgeInventory = { displayFridge ->
+                                    navController.navigate(
+                                        "fridgeInventory/${displayFridge.id}/${Uri.encode(displayFridge.name)}"
+                                    ) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateToHouseholdSettings = {
+                                    // TODO: Navigate to household settings
+                                },
+                                onNavigateBack = {
+                                    navController.popBackStack()
+                                }
+                            )
+                        }
+                        
+                        // Temporary route without householdId - redirects to error state
                         composable("fridgeList") {
                             FridgeListScreen(
                                 onNavigateToFridgeInventory = { displayFridge ->
@@ -233,22 +261,9 @@ class MainActivity : ComponentActivity() {
                                         launchSingleTop = true
                                     }
                                 },
-                                onAddFridgeClick = { },
-                                onNotificationsClick = {
-                                    navController.navigate("notifications") {
-                                        launchSingleTop = true
-                                    }
-                                },
-                                onProfileClick = { },
-                                onNavigateToAdminPanel = {
-                                    navController.navigate("adminPanel") {
-                                        launchSingleTop = true
-                                    }
-                                },
-                                onLogout = {
-                                    navController.navigate("login") {
-                                        popUpTo(navController.graph.id) { inclusive = true }
-                                    }
+                                onNavigateToHouseholdSettings = { },
+                                onNavigateBack = {
+                                    navController.popBackStack()
                                 }
                             )
                         }

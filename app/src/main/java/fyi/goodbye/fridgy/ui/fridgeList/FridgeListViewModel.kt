@@ -1,10 +1,11 @@
 package fyi.goodbye.fridgy.ui.fridgeList
 
 import android.app.Application
-import android.util.Log
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -20,25 +21,30 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel responsible for managing the main list of fridges and user invitations.
+ * ViewModel responsible for managing the list of fridges within a household.
  *
- * It coordinates with the [FridgeRepository] to provide real-time updates for both
- * the fridges the user belongs to and any pending invites they have received.
+ * It coordinates with the [FridgeRepository] to provide real-time updates for
+ * the fridges belonging to a specific household.
+ *
+ * @param application The application context.
+ * @param savedStateHandle Handle for accessing navigation arguments.
+ * @param fridgeRepository Repository for fridge operations.
+ * @param adminRepository Repository for admin status checks.
  */
 class FridgeListViewModel(
     application: Application,
+    savedStateHandle: SavedStateHandle,
     private val fridgeRepository: FridgeRepository = FridgeRepository(),
     private val adminRepository: AdminRepository = AdminRepository()
 ) : AndroidViewModel(application) {
+    
+    /** The household ID this fridge list belongs to. */
+    val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
+    
     private val _fridgesUiState = MutableStateFlow<FridgeUiState>(FridgeUiState.Loading)
 
     /** The current state of the fridges list (Loading, Success, or Error). */
     val fridgesUiState: StateFlow<FridgeUiState> = _fridgesUiState.asStateFlow()
-
-    private val _invites = MutableStateFlow<List<DisplayFridge>>(emptyList())
-
-    /** A list of pending fridge invitations received by the current user. */
-    val invites: StateFlow<List<DisplayFridge>> = _invites.asStateFlow()
 
     private val auth = FirebaseAuth.getInstance()
 
@@ -61,6 +67,8 @@ class FridgeListViewModel(
         val currentUserId = auth.currentUser?.uid
         if (currentUserId == null) {
             _fridgesUiState.value = FridgeUiState.Error(getApplication<Application>().getString(R.string.error_user_not_logged_in))
+        } else if (householdId.isEmpty()) {
+            _fridgesUiState.value = FridgeUiState.Error(getApplication<Application>().getString(R.string.error_no_household_selected))
         } else {
             // Preload fridges from cache for instant display
             viewModelScope.launch {
@@ -72,111 +80,55 @@ class FridgeListViewModel(
                 _isAdmin.value = adminRepository.isCurrentUserAdmin()
             }
 
-            // Collect real-time stream of fridges the user is a member of
+            // Collect real-time stream of fridges in this household
             viewModelScope.launch {
-                fridgeRepository.getFridgesForCurrentUser().collectLatest { fridges ->
-                    // Fetch all user data for all fridges
-                    val allUserIds = fridges.flatMap { it.members + it.pendingInvites + listOf(it.createdBy) }.distinct()
-                    val usersMap = fridgeRepository.getUsersByIds(allUserIds)
+                fridgeRepository.getFridgesForHousehold(householdId).collectLatest { fridges ->
+                    // Fetch creator user data
+                    val creatorIds = fridges.map { it.createdBy }.distinct()
+                    val usersMap = fridgeRepository.getUsersByIds(creatorIds)
 
-                    val displayFridges =
-                        fridges.map { fridge ->
-                            val memberUsers = fridge.members.mapNotNull { usersMap[it] }
-                            val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
-                            val creatorName = usersMap[fridge.createdBy]?.username ?: getApplication<Application>().getString(R.string.unknown)
+                    val displayFridges = fridges.map { fridge ->
+                        val creatorName = usersMap[fridge.createdBy]?.username 
+                            ?: getApplication<Application>().getString(R.string.unknown)
 
-                            DisplayFridge(
-                                id = fridge.id,
-                                name = fridge.name,
-                                createdByUid = fridge.createdBy,
-                                creatorDisplayName = creatorName,
-                                memberUsers = memberUsers,
-                                pendingInviteUsers = inviteUsers,
-                                createdAt = fridge.createdAt,
-                                type = fridge.type
-                            )
-                        }
+                        DisplayFridge(
+                            id = fridge.id,
+                            name = fridge.name,
+                            type = fridge.type,
+                            householdId = fridge.householdId,
+                            createdByUid = fridge.createdBy,
+                            creatorDisplayName = creatorName,
+                            createdAt = fridge.createdAt
+                        )
+                    }
                     _fridgesUiState.value = FridgeUiState.Success(displayFridges)
-                }
-            }
-
-            // Collect real-time stream of pending invites for the current user
-            viewModelScope.launch {
-                fridgeRepository.getInvitesForCurrentUser().collectLatest { pendingInvites ->
-                    // Fetch all user data for invites
-                    val allUserIds = pendingInvites.flatMap { it.members + it.pendingInvites + listOf(it.createdBy) }.distinct()
-                    val usersMap = fridgeRepository.getUsersByIds(allUserIds)
-
-                    val displayInvites =
-                        pendingInvites.map { fridge ->
-                            val memberUsers = fridge.members.mapNotNull { usersMap[it] }
-                            val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
-                            val creatorName = usersMap[fridge.createdBy]?.username ?: getApplication<Application>().getString(R.string.unknown)
-
-                            DisplayFridge(
-                                id = fridge.id,
-                                name = fridge.name,
-                                createdByUid = fridge.createdBy,
-                                creatorDisplayName = creatorName,
-                                memberUsers = memberUsers,
-                                pendingInviteUsers = inviteUsers,
-                                createdAt = fridge.createdAt,
-                                type = fridge.type
-                            )
-                        }
-                    _invites.value = displayInvites
                 }
             }
         }
     }
 
     /**
-     * Creates a new fridge with the given name and adds it to the user's list.
+     * Creates a new fridge with the given name within the current household.
      *
      * @param name The name of the new fridge to create.
      * @param type The type of storage (fridge, freezer, pantry).
      * @param location Optional physical location description.
      */
     fun createNewFridge(name: String, type: String = "fridge", location: String = "") {
+        if (householdId.isEmpty()) {
+            createdFridgeError.value = getApplication<Application>().getString(R.string.error_no_household_selected)
+            return
+        }
+        
         createdFridgeError.value = null
         _isCreatingFridge.value = true
         viewModelScope.launch {
             try {
-                fridgeRepository.createFridge(name, type, location)
+                fridgeRepository.createFridge(name, householdId, type, location)
             } catch (e: Exception) {
                 createdFridgeError.value = e.message ?: getApplication<Application>().getString(R.string.error_failed_to_create_fridge)
             } finally {
                 _isCreatingFridge.value = false
-            }
-        }
-    }
-
-    /**
-     * Accepts a pending invitation to join a fridge.
-     *
-     * @param fridgeId The ID of the fridge to join.
-     */
-    fun acceptInvite(fridgeId: String) {
-        viewModelScope.launch {
-            try {
-                fridgeRepository.acceptInvite(fridgeId)
-            } catch (e: Exception) {
-                Log.e("FridgeListVM", "Error accepting invite: ${e.message}")
-            }
-        }
-    }
-
-    /**
-     * Declines a pending invitation to join a fridge.
-     *
-     * @param fridgeId The ID of the fridge invitation to reject.
-     */
-    fun declineInvite(fridgeId: String) {
-        viewModelScope.launch {
-            try {
-                fridgeRepository.declineInvite(fridgeId)
-            } catch (e: Exception) {
-                Log.e("FridgeListVM", "Error declining invite: ${e.message}")
             }
         }
     }
@@ -195,7 +147,8 @@ class FridgeListViewModel(
             viewModelFactory {
                 initializer {
                     val app = this[APPLICATION_KEY]!!
-                    FridgeListViewModel(app)
+                    val savedStateHandle = createSavedStateHandle()
+                    FridgeListViewModel(app, savedStateHandle)
                 }
             }
     }

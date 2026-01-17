@@ -21,7 +21,6 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -94,14 +93,14 @@ fun FridgeCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Items chip
+                    // Type chip
                     Surface(
                         shape = MaterialTheme.shapes.small,
                         color = MaterialTheme.colorScheme.primaryContainer,
                         modifier = Modifier
                     ) {
                         Text(
-                            text = pluralStringResource(R.plurals.member_count, fridge.memberUsers.size, fridge.memberUsers.size),
+                            text = fridge.type.replaceFirstChar { it.uppercase() },
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer,

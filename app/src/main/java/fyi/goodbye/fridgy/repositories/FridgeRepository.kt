@@ -357,57 +357,60 @@ class FridgeRepository {
     }
 
     /**
-     * Converts a Firestore document to a Fridge, handling both old Map and new List formats.
+     * Converts a Firestore document to a Fridge, handling both old and new formats.
      * This provides backward compatibility during data migration.
      */
     private fun DocumentSnapshot.toFridgeCompat(): Fridge? {
         try {
-            // Try to parse as new format first
-            return this.toObject(Fridge::class.java)?.copy(id = this.id)
+            val id = this.id
+            val name = this.getString("name") ?: ""
+            val type = this.getString("type") ?: "fridge"
+            val location = this.getString("location") ?: ""
+            val householdId = this.getString("householdId") ?: ""
+            val createdBy = this.getString("createdBy") ?: ""
+            val createdAt = this.getLong("createdAt") ?: System.currentTimeMillis()
+
+            return Fridge(
+                id = id,
+                name = name,
+                type = type,
+                location = location,
+                householdId = householdId,
+                createdBy = createdBy,
+                createdAt = createdAt
+            )
         } catch (e: Exception) {
-            // Fallback: manually parse for old Map format
-            try {
-                val id = this.id
-                val name = this.getString("name") ?: ""
-                val createdBy = this.getString("createdBy") ?: ""
-                val createdAt = this.getLong("createdAt") ?: System.currentTimeMillis()
-
-                // Handle members - can be Map or List
-                val members =
-                    when (val membersField = this.get("members")) {
-                        is List<*> -> membersField.filterIsInstance<String>()
-                        is Map<*, *> -> membersField.keys.filterIsInstance<String>()
-                        else -> emptyList()
-                    }
-
-                // Handle pendingInvites - can be Map or List
-                val pendingInvites =
-                    when (val invitesField = this.get("pendingInvites")) {
-                        is List<*> -> invitesField.filterIsInstance<String>()
-                        is Map<*, *> -> invitesField.keys.filterIsInstance<String>()
-                        else -> emptyList()
-                    }
-
-                return Fridge(
-                    id = id,
-                    name = name,
-                    createdBy = createdBy,
-                    members = members,
-                    pendingInvites = pendingInvites,
-                    createdAt = createdAt
-                )
-            } catch (e2: Exception) {
-                Log.e("FridgeRepo", "Error parsing fridge document: ${e2.message}")
-                return null
-            }
+            Log.e("FridgeRepo", "Error parsing fridge document: ${e.message}")
+            return null
         }
     }
 
+    fun getFridgesForHousehold(householdId: String): Flow<List<Fridge>> =
+        callbackFlow {
+            val fridgesListenerRegistration =
+                firestore.collection("fridges")
+                    .whereEqualTo("householdId", householdId)
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            close(e)
+                            return@addSnapshotListener
+                        }
+                        val fridgesList = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
+                        fridgeCache = fridgesList
+                        trySend(fridgesList).isSuccess
+                    }
+            awaitClose { fridgesListenerRegistration.remove() }
+        }
+
+    /**
+     * @deprecated Use getFridgesForHousehold instead. This is kept for migration compatibility.
+     */
+    @Deprecated("Use getFridgesForHousehold with householdId", ReplaceWith("getFridgesForHousehold(householdId)"))
     fun getFridgesForCurrentUser(): Flow<List<Fridge>> =
         callbackFlow {
             val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
 
-            // Optimized query using whereArrayContains (all data migrated to List format)
+            // Legacy query - will find fridges without householdId
             val fridgesListenerRegistration =
                 firestore.collection("fridges")
                     .whereArrayContains("members", currentUserId)
@@ -423,23 +426,15 @@ class FridgeRepository {
             awaitClose { fridgesListenerRegistration.remove() }
         }
 
+    /**
+     * @deprecated Invites are now handled at household level via invite codes.
+     */
+    @Deprecated("Invites moved to HouseholdRepository with invite codes")
     fun getInvitesForCurrentUser(): Flow<List<Fridge>> =
         callbackFlow {
-            val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
-
-            // Optimized query using whereArrayContains (all data migrated to List format)
-            val invitesListener =
-                firestore.collection("fridges")
-                    .whereArrayContains("pendingInvites", currentUserId)
-                    .addSnapshotListener { snapshot, e ->
-                        if (e != null) {
-                            close(e)
-                            return@addSnapshotListener
-                        }
-                        val invites = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
-                        trySend(invites).isSuccess
-                    }
-            awaitClose { invitesListener.remove() }
+            // Return empty flow - invites are now handled at household level
+            trySend(emptyList()).isSuccess
+            awaitClose { }
         }
 
     suspend fun getRawFridgeById(fridgeId: String): Fridge? {
@@ -482,41 +477,31 @@ class FridgeRepository {
                 }
             } ?: return null
 
-        // OPTIMIZATION: Skip expensive user fetching if not needed (e.g., inventory screen)
-        if (!fetchUserDetails) {
-            return DisplayFridge(
-                id = fridge.id,
-                name = fridge.name,
-                createdByUid = fridge.createdBy,
-                creatorDisplayName = "",
-                memberUsers = emptyList(),
-                pendingInviteUsers = emptyList(),
-                createdAt = fridge.createdAt,
-                type = fridge.type
-            )
+        // Fetch creator display name if needed
+        val creatorName = if (fetchUserDetails && fridge.createdBy.isNotEmpty()) {
+            val usersMap = getUsersByIds(listOf(fridge.createdBy))
+            usersMap[fridge.createdBy]?.username ?: "Unknown"
+        } else {
+            ""
         }
-
-        // Fetch all user data for members and invites
-        val allUserIds = (fridge.members + fridge.pendingInvites + listOf(fridge.createdBy)).distinct()
-        val usersMap = getUsersByIds(allUserIds)
-
-        val memberUsers = fridge.members.mapNotNull { usersMap[it] }
-        val inviteUsers = fridge.pendingInvites.mapNotNull { usersMap[it] }
-        val creatorName = usersMap[fridge.createdBy]?.username ?: "Unknown"
 
         return DisplayFridge(
             id = fridge.id,
             name = fridge.name,
+            type = fridge.type,
+            householdId = fridge.householdId,
             createdByUid = fridge.createdBy,
             creatorDisplayName = creatorName,
-            memberUsers = memberUsers,
-            pendingInviteUsers = inviteUsers,
-            createdAt = fridge.createdAt,
-            type = fridge.type
+            createdAt = fridge.createdAt
         )
     }
 
-    suspend fun createFridge(fridgeName: String, fridgeType: String = "fridge", fridgeLocation: String = ""): Fridge {
+    suspend fun createFridge(
+        fridgeName: String, 
+        householdId: String,
+        fridgeType: String = "fridge", 
+        fridgeLocation: String = ""
+    ): Fridge {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
 
         val newFridgeDocRef = firestore.collection("fridges").document()
@@ -528,8 +513,8 @@ class FridgeRepository {
                 name = fridgeName,
                 type = fridgeType,
                 location = fridgeLocation,
+                householdId = householdId,
                 createdBy = currentUser.uid,
-                members = listOf(currentUser.uid),
                 createdAt = System.currentTimeMillis()
             )
 
@@ -537,121 +522,52 @@ class FridgeRepository {
         return newFridge
     }
 
-    suspend fun inviteUserByEmail(
-        fridgeId: String,
-        email: String
-    ) {
-        // Changed to invite by username since emails should remain private
-        // This method name is kept for compatibility but now searches by username
-        val snapshot = firestore.collection("userProfiles").whereEqualTo("username", email).get().await()
-        val userDoc = snapshot.documents.firstOrNull() ?: throw Exception("User not found.")
-        val userUid = userDoc.id
-        val username = userDoc.getString("username") ?: email
-
-        val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
-        val fridge = fridgeDoc.toObject(Fridge::class.java) ?: throw Exception("Fridge not found.")
-
-        if (fridge.members.contains(userUid)) throw Exception("User is already a member.")
-        if (fridge.pendingInvites.contains(userUid)) throw Exception("Invitation already sent.")
-
-        // Update fridge with pending invite
-        firestore.collection("fridges").document(fridgeId)
-            .update("pendingInvites", FieldValue.arrayUnion(userUid))
-            .await()
-        
-        // Create notification for the invited user
-        // Note: Hardcoded strings are acceptable in Repository layer as it shouldn't have Context.
-        // These notification strings are stored in Firestore and read by Cloud Functions which
-        // will send them as push notifications. The UI reads from Firestore, not these strings.
-        val currentUser = auth.currentUser
-        val inviterName = currentUser?.displayName ?: "Someone"
-        val notificationData = hashMapOf(
-            "userId" to userUid,
-            "title" to "Fridge Invitation",
-            "body" to "You were invited to join '${fridge.name}'",
-            "type" to "FRIDGE_INVITE",
-            "relatedFridgeId" to fridgeId,
-            "isRead" to false,
-            "createdAt" to FieldValue.serverTimestamp()
-        )
-        
-        firestore.collection("notifications")
-            .add(notificationData)
-            .await()
+    /**
+     * @deprecated Member management moved to HouseholdRepository with invite codes.
+     */
+    @Deprecated("Use HouseholdRepository.createInviteCode instead")
+    suspend fun inviteUserByEmail(fridgeId: String, email: String) {
+        throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
     }
 
+    /**
+     * @deprecated Member management moved to HouseholdRepository with invite codes.
+     */
+    @Deprecated("Use HouseholdRepository.redeemInviteCode instead")
     suspend fun acceptInvite(fridgeId: String) {
-        val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in.")
-
-        val fridgeRef = firestore.collection("fridges").document(fridgeId)
-
-        firestore.runTransaction { transaction ->
-            transaction.update(fridgeRef, "members", FieldValue.arrayUnion(currentUserId))
-            transaction.update(fridgeRef, "pendingInvites", FieldValue.arrayRemove(currentUserId))
-        }.await()
-        
-        // Mark related invitation notification as read
-        try {
-            val notificationQuery = firestore.collection("notifications")
-                .whereEqualTo("userId", currentUserId)
-                .whereEqualTo("type", "FRIDGE_INVITE")
-                .whereEqualTo("relatedFridgeId", fridgeId)
-                .get()
-                .await()
-            
-            notificationQuery.documents.forEach { doc ->
-                doc.reference.update("isRead", true).await()
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to mark invitation notification as read", e)
-        }
+        throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
     }
 
+    /**
+     * @deprecated Member management moved to HouseholdRepository with invite codes.
+     */
+    @Deprecated("Invites handled at household level")
     suspend fun declineInvite(fridgeId: String) {
-        val currentUserId = auth.currentUser?.uid ?: throw Exception("User not logged in.")
-        firestore.collection("fridges").document(fridgeId)
-            .update("pendingInvites", FieldValue.arrayRemove(currentUserId)).await()
-        
-        // Delete related invitation notification
-        try {
-            val notificationQuery = firestore.collection("notifications")
-                .whereEqualTo("userId", currentUserId)
-                .whereEqualTo("type", "FRIDGE_INVITE")
-                .whereEqualTo("relatedFridgeId", fridgeId)
-                .get()
-                .await()
-            
-            notificationQuery.documents.forEach { doc ->
-                doc.reference.delete().await()
-            }
-        } catch (e: Exception) {
-            Log.w(TAG, "Failed to delete invitation notification", e)
-        }
+        throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
     }
 
-    suspend fun removeMember(
-        fridgeId: String,
-        userId: String
-    ) {
-        firestore.collection("fridges").document(fridgeId)
-            .update("members", FieldValue.arrayRemove(userId))
-            .await()
+    /**
+     * @deprecated Member management moved to HouseholdRepository.
+     */
+    @Deprecated("Use HouseholdRepository.removeMember instead")
+    suspend fun removeMember(fridgeId: String, userId: String) {
+        throw UnsupportedOperationException("Member management is now at household level")
     }
 
-    suspend fun revokeInvite(
-        fridgeId: String,
-        userId: String
-    ) {
-        firestore.collection("fridges").document(fridgeId)
-            .update("pendingInvites", FieldValue.arrayRemove(userId))
-            .await()
+    /**
+     * @deprecated Member management moved to HouseholdRepository.
+     */
+    @Deprecated("Invites handled at household level")
+    suspend fun revokeInvite(fridgeId: String, userId: String) {
+        throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
     }
 
+    /**
+     * @deprecated Member management moved to HouseholdRepository.
+     */
+    @Deprecated("Use HouseholdRepository.leaveHousehold instead")
     suspend fun leaveFridge(fridgeId: String) {
-        val uid = auth.currentUser?.uid ?: return
-        firestore.collection("fridges").document(fridgeId)
-            .update("members", FieldValue.arrayRemove(uid))
-            .await()
+        throw UnsupportedOperationException("Member management is now at household level")
     }
 
     /**
