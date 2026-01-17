@@ -39,23 +39,37 @@ class HouseholdRepository {
 
     /**
      * Returns a Flow of households the current user is a member of.
+     * Returns an empty list if user has no households or if there's a permission error.
      */
     fun getHouseholdsForCurrentUser(): Flow<List<Household>> = callbackFlow {
-        val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
+        val currentUserId = auth.currentUser?.uid ?: run {
+            Log.d(TAG, "No current user, sending empty list")
+            trySend(emptyList()).isSuccess
+            close()
+            return@callbackFlow
+        }
+        
+        Log.d(TAG, "Starting households listener for user: $currentUserId")
 
         val listener = firestore.collection("households")
             .whereArrayContains("members", currentUserId)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
-                    close(e)
+                    Log.e(TAG, "Error fetching households: ${e.message}")
+                    // Send empty list on error instead of closing with exception
+                    trySend(emptyList()).isSuccess
                     return@addSnapshotListener
                 }
                 val households = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(Household::class.java)?.copy(id = doc.id)
                 } ?: emptyList()
+                Log.d(TAG, "Fetched ${households.size} households")
                 trySend(households).isSuccess
             }
-        awaitClose { listener.remove() }
+        awaitClose { 
+            Log.d(TAG, "Closing households listener")
+            listener.remove() 
+        }
     }
 
     /**
@@ -661,25 +675,15 @@ class HouseholdRepository {
     /**
      * Checks if the current user has any fridges without a householdId (legacy fridges).
      * Used for first-run migration flow.
+     * 
+     * Note: This is disabled in the new architecture since fridges no longer have
+     * a members field. Migration from the old model should be handled via a 
+     * separate admin tool or Cloud Function if needed.
      */
     suspend fun hasOrphanFridges(): Boolean {
-        val currentUserId = auth.currentUser?.uid ?: return false
-        
-        return try {
-            // Query fridges where user is a member but householdId is empty or missing
-            val snapshot = firestore.collection("fridges")
-                .whereArrayContains("members", currentUserId)
-                .get()
-                .await()
-            
-            snapshot.documents.any { doc ->
-                val householdId = doc.getString("householdId")
-                householdId.isNullOrEmpty()
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error checking for orphan fridges: ${e.message}")
-            false
-        }
+        // Disabled - the new architecture doesn't support querying fridges
+        // by member since membership is now at the household level
+        return false
     }
 
     /**

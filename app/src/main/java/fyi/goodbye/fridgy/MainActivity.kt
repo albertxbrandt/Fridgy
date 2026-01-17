@@ -373,8 +373,8 @@ class MainActivity : ComponentActivity() {
                                         launchSingleTop = true
                                     }
                                 },
-                                onShoppingListClick = { currentFridgeId ->
-                                    navController.navigate("shoppingList/$currentFridgeId") {
+                                onShoppingListClick = { householdId ->
+                                    navController.navigate("shoppingList/$householdId") {
                                         launchSingleTop = true
                                     }
                                 }
@@ -397,18 +397,19 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(
-                            route = "shoppingList/{fridgeId}",
+                            route = "shoppingList/{householdId}",
                             arguments =
                                 listOf(
-                                    navArgument("fridgeId") { type = NavType.StringType }
+                                    navArgument("householdId") { type = NavType.StringType }
                                 )
                         ) { backStackEntry ->
-                            val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
+                            val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
                             ShoppingListScreen(
-                                fridgeId = fridgeId,
+                                householdId = householdId,
                                 onBackClick = { navController.popBackStack() },
-                                onScanClick = { currentFridgeId ->
-                                    navController.navigate("barcodeScanner/$currentFridgeId") {
+                                onScanClick = { currentHouseholdId ->
+                                    // TODO: barcode scanner needs to be updated to work with householdId
+                                    navController.navigate("barcodeScanner/$currentHouseholdId") {
                                         launchSingleTop = true
                                     }
                                 },

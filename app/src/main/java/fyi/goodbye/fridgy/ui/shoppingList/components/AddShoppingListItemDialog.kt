@@ -31,14 +31,14 @@ import fyi.goodbye.fridgy.ui.shared.components.SquaredInput
  * - Item name must not be blank to enable Add button
  * - Quantity falls back to 1 if invalid input provided
  * 
- * @param fridgeId The ID of the fridge (currently unused but available for future features)
+ * @param householdId The ID of the household (currently unused but available for future features)
  * @param onDismiss Callback invoked when dialog is cancelled or dismissed
  * @param onScanClick Callback to switch to barcode scanning (currently unused)
  * @param onAddManual Callback invoked with (itemName, quantity, store) when Add button is pressed
  */
 @Composable
 fun AddShoppingListItemDialog(
-    fridgeId: String,
+    householdId: String,
     initialItemName: String = "",
     onDismiss: () -> Unit,
     onScanClick: () -> Unit,

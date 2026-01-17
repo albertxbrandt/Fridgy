@@ -40,7 +40,7 @@ import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
 import kotlinx.coroutines.launch
 
 /**
- * Screen displaying the shopping list for a fridge.
+ * Screen displaying the shopping list for a household.
  * 
  * This screen allows users to:
  * - View all items on their shopping list with real-time updates
@@ -57,24 +57,26 @@ import kotlinx.coroutines.launch
  * - Manual item creation for products not in database
  * - Visual indication of checked/completed items (strikethrough)
  * 
+ * **Note:** Shopping lists are now at the household level, shared across all fridges.
+ * 
  * **Keyboard Handling:**
  * Uses `adjustNothing` with manual `imePadding()` and `consumeWindowInsets()` to prevent
  * extra padding above keyboard while maintaining proper content visibility.
  * 
- * @param fridgeId The ID of the fridge whose shopping list is being displayed
+ * @param householdId The ID of the household whose shopping list is being displayed
  * @param onBackClick Callback invoked when back button is pressed
- * @param onScanClick Callback to navigate to barcode scanner, receives fridgeId
+ * @param onScanClick Callback to navigate to barcode scanner, receives householdId
  * @param navController Navigation controller for handling barcode scan results via savedStateHandle
  * @param viewModel ViewModel managing shopping list state and operations, auto-provided with factory
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShoppingListScreen(
-    fridgeId: String,
+    householdId: String,
     onBackClick: () -> Unit,
     onScanClick: (String) -> Unit,
     navController: NavController,
-    viewModel: ShoppingListViewModel = viewModel(factory = ShoppingListViewModel.provideFactory(fridgeId))
+    viewModel: ShoppingListViewModel = viewModel(factory = ShoppingListViewModel.provideFactory(householdId))
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
@@ -272,7 +274,7 @@ fun ShoppingListScreen(
                 onValueChange = { viewModel.updateSearchQuery(it) },
                 placeholder = stringResource(R.string.search_products),
                 onClearClick = { viewModel.updateSearchQuery("") },
-                onScanClick = { onScanClick(fridgeId) }
+                onScanClick = { onScanClick(householdId) }
             )
 
             // Show search results or shopping list
@@ -479,12 +481,12 @@ fun ShoppingListScreen(
     // Add Item Dialog
     if (showAddDialog) {
         AddShoppingListItemDialog(
-            fridgeId = fridgeId,
+            householdId = householdId,
             initialItemName = searchQuery,
             onDismiss = { showAddDialog = false },
             onScanClick = {
                 showAddDialog = false
-                onScanClick(fridgeId)
+                onScanClick(householdId)
             },
             onAddManual = { name, quantity, store ->
                 viewModel.addManualItem(name, quantity, store)
@@ -591,7 +593,7 @@ fun ShoppingListScreen(
                     set("manualItemName", manualItem.productName)
                 }
                 showUpcEntryDialog = null
-                onScanClick(fridgeId)
+                onScanClick(householdId)
             },
             onConfirm = { upc ->
                 coroutineScope.launch {

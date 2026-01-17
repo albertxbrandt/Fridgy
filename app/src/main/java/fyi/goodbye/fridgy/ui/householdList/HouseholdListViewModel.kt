@@ -86,7 +86,9 @@ class HouseholdListViewModel(
 
             // Collect real-time stream of households the user is a member of
             viewModelScope.launch {
+                Log.d("HouseholdListVM", "Starting to collect households flow")
                 householdRepository.getHouseholdsForCurrentUser().collectLatest { households ->
+                    Log.d("HouseholdListVM", "Received ${households.size} households from flow")
                     val displayHouseholds = households.mapNotNull { household ->
                         try {
                             householdRepository.getDisplayHouseholdById(household.id)
@@ -95,6 +97,7 @@ class HouseholdListViewModel(
                             null
                         }
                     }
+                    Log.d("HouseholdListVM", "Setting UI state to Success with ${displayHouseholds.size} display households")
                     _householdsUiState.value = HouseholdUiState.Success(displayHouseholds)
                 }
             }

@@ -64,6 +64,10 @@ class FridgeInventoryViewModel(
         )
     val displayFridgeState: StateFlow<FridgeDetailUiState> = _displayFridgeState.asStateFlow()
 
+    /** The householdId of the current fridge, or null if not loaded yet. */
+    val householdId: String?
+        get() = (_displayFridgeState.value as? FridgeDetailUiState.Success)?.fridge?.householdId
+
     private val _itemsUiState = MutableStateFlow<ItemsUiState>(ItemsUiState.Loading)
     val itemsUiState: StateFlow<ItemsUiState> = _itemsUiState.asStateFlow()
 

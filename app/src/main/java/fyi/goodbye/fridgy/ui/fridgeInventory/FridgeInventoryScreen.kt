@@ -66,6 +66,13 @@ fun FridgeInventoryScreen(
     val errorLoadingString = stringResource(R.string.error_loading_fridge)
     val loadingString = stringResource(R.string.loading_fridge)
 
+    // Get the householdId from the loaded fridge state
+    val householdId by remember {
+        derivedStateOf {
+            (fridgeDetailUiState as? FridgeInventoryViewModel.FridgeDetailUiState.Success)?.fridge?.householdId ?: ""
+        }
+    }
+
     // OPTIMIZATION: Use derivedStateOf to prevent re-calculating name on every recomposition
     // unless the underlying state object actually changes.
     val fridgeName by remember {
@@ -177,7 +184,11 @@ fun FridgeInventoryScreen(
                     .padding(horizontal = 16.dp)
             ) {
                 FloatingActionButton(
-                    onClick = { onShoppingListClick(fridgeId) },
+                    onClick = { 
+                        if (householdId.isNotEmpty()) {
+                            onShoppingListClick(householdId)
+                        }
+                    },
                     containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onSecondary
                 ) {
