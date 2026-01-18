@@ -27,22 +27,20 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.ui.shoppingList.components.AddShoppingListItemDialog
+import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
+import fyi.goodbye.fridgy.ui.shared.components.SearchBar
 import fyi.goodbye.fridgy.ui.shoppingList.components.AddItemFromSearchDialog
+import fyi.goodbye.fridgy.ui.shoppingList.components.AddShoppingListItemDialog
 import fyi.goodbye.fridgy.ui.shoppingList.components.PartialPickupDialog
 import fyi.goodbye.fridgy.ui.shoppingList.components.ProductSearchResultCard
 import fyi.goodbye.fridgy.ui.shoppingList.components.ShoppingListItemCard
 import fyi.goodbye.fridgy.ui.shoppingList.components.UpcEntryDialog
-import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
-import android.net.Uri
-import com.google.firebase.auth.FirebaseAuth
-import fyi.goodbye.fridgy.ui.shared.components.SearchBar
 import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
 import kotlinx.coroutines.launch
 
 /**
  * Screen displaying the shopping list for a household.
- * 
+ *
  * This screen allows users to:
  * - View all items on their shopping list with real-time updates
  * - Check off items as they're purchased
@@ -50,20 +48,20 @@ import kotlinx.coroutines.launch
  * - Add items manually if not found in the database
  * - Scan barcodes to quickly add products
  * - Remove items from the shopping list
- * 
+ *
  * **Features:**
  * - Real-time synchronization with Firestore
  * - Barcode scanning integration via navigation
  * - Product search with dynamic results from global products collection
  * - Manual item creation for products not in database
  * - Visual indication of checked/completed items (strikethrough)
- * 
+ *
  * **Note:** Shopping lists are now at the household level, shared across all fridges.
- * 
+ *
  * **Keyboard Handling:**
  * Uses `adjustNothing` with manual `imePadding()` and `consumeWindowInsets()` to prevent
  * extra padding above keyboard while maintaining proper content visibility.
- * 
+ *
  * @param householdId The ID of the household whose shopping list is being displayed
  * @param onBackClick Callback invoked when back button is pressed
  * @param onScanClick Callback to navigate to barcode scanner, receives householdId
@@ -92,7 +90,9 @@ fun ShoppingListScreen(
     var showDoneShoppingDialog by remember { mutableStateOf(false) }
     var showViewersDropdown by remember { mutableStateOf(false) }
     var showUpcEntryDialog by remember { mutableStateOf<ShoppingListViewModel.ShoppingListItemWithProduct?>(null) }
-    var showNewProductDialog by remember { mutableStateOf<Pair<String, ShoppingListViewModel.ShoppingListItemWithProduct>?>(null) }
+    var showNewProductDialog by remember {
+        mutableStateOf<Pair<String, ShoppingListViewModel.ShoppingListItemWithProduct>?>(null)
+    }
 
     // Manage presence lifecycle
     DisposableEffect(Unit) {
@@ -108,17 +108,17 @@ fun ShoppingListScreen(
         if (scannedUpc != null) {
             // Clear the scanned result from saved state first
             navController.currentBackStackEntry?.savedStateHandle?.remove<String>("scannedUpc")
-            
+
             // Check if we're scanning for a manual item link
             val scanningForManualItem = navController.currentBackStackEntry?.savedStateHandle?.get<Boolean>("scanningForManualItem") ?: false
-            
+
             if (scanningForManualItem) {
                 // Get manual item info from savedStateHandle
                 val manualItemUpc = navController.currentBackStackEntry?.savedStateHandle?.get<String>("manualItemUpc") ?: ""
                 val manualItemQuantity = navController.currentBackStackEntry?.savedStateHandle?.get<Int>("manualItemQuantity") ?: 1
                 val manualItemStore = navController.currentBackStackEntry?.savedStateHandle?.get<String>("manualItemStore") ?: ""
                 val manualItemName = navController.currentBackStackEntry?.savedStateHandle?.get<String>("manualItemName") ?: ""
-                
+
                 // Clear manual item flags
                 navController.currentBackStackEntry?.savedStateHandle?.apply {
                     remove<Boolean>("scanningForManualItem")
@@ -127,10 +127,10 @@ fun ShoppingListScreen(
                     remove<String>("manualItemStore")
                     remove<String>("manualItemName")
                 }
-                
+
                 // Check if product already exists in database
                 val existingProduct = viewModel.checkProductExists(scannedUpc)
-                
+
                 if (existingProduct != null) {
                     // Product exists, link it directly
                     viewModel.linkManualItemToProduct(
@@ -142,18 +142,20 @@ fun ShoppingListScreen(
                     )
                 } else {
                     // Product doesn't exist, show new product dialog
-                    val manualItem = ShoppingListViewModel.ShoppingListItemWithProduct(
-                        item = fyi.goodbye.fridgy.models.ShoppingListItem(
-                            upc = manualItemUpc,
-                            addedAt = 0,
-                            addedBy = "",
-                            quantity = manualItemQuantity,
-                            store = manualItemStore,
-                            customName = manualItemName
-                        ),
-                        productName = manualItemName,
-                        productBrand = ""
-                    )
+                    val manualItem =
+                        ShoppingListViewModel.ShoppingListItemWithProduct(
+                            item =
+                                fyi.goodbye.fridgy.models.ShoppingListItem(
+                                    upc = manualItemUpc,
+                                    addedAt = 0,
+                                    addedBy = "",
+                                    quantity = manualItemQuantity,
+                                    store = manualItemStore,
+                                    customName = manualItemName
+                                ),
+                            productName = manualItemName,
+                            productBrand = ""
+                        )
                     showNewProductDialog = Pair(scannedUpc, manualItem)
                 }
             } else {
@@ -190,8 +192,9 @@ fun ShoppingListScreen(
                             Surface(
                                 shape = MaterialTheme.shapes.small,
                                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.2f),
-                                modifier = Modifier
-                                    .padding(end = 8.dp),
+                                modifier =
+                                    Modifier
+                                        .padding(end = 8.dp),
                                 onClick = { showViewersDropdown = !showViewersDropdown }
                             ) {
                                 Row(
@@ -200,25 +203,27 @@ fun ShoppingListScreen(
                                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                                 ) {
                                     Box(
-                                        modifier = Modifier
-                                            .size(8.dp)
-                                            .background(
-                                                color = Color(0xFF4CAF50),
-                                                shape = MaterialTheme.shapes.extraSmall
-                                            )
+                                        modifier =
+                                            Modifier
+                                                .size(8.dp)
+                                                .background(
+                                                    color = Color(0xFF4CAF50),
+                                                    shape = MaterialTheme.shapes.extraSmall
+                                                )
                                     )
                                     Text(
-                                        text = stringResource(
-                                            R.string.n_others_viewing,
-                                            activeViewers.size
-                                        ),
+                                        text =
+                                            stringResource(
+                                                R.string.n_others_viewing,
+                                                activeViewers.size
+                                            ),
                                         style = MaterialTheme.typography.labelMedium,
                                         color = MaterialTheme.colorScheme.onPrimary,
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
                             }
-                            
+
                             DropdownMenu(
                                 expanded = showViewersDropdown,
                                 onDismissRequest = { showViewersDropdown = false }
@@ -230,7 +235,7 @@ fun ShoppingListScreen(
                                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                                     color = MaterialTheme.colorScheme.primary
                                 )
-                                
+
                                 activeViewers.forEach { viewer ->
                                     DropdownMenuItem(
                                         text = {
@@ -243,12 +248,13 @@ fun ShoppingListScreen(
                                         onClick = { /* Could navigate to user profile or do nothing */ },
                                         leadingIcon = {
                                             Box(
-                                                modifier = Modifier
-                                                    .size(8.dp)
-                                                    .background(
-                                                        color = Color(0xFF4CAF50),
-                                                        shape = MaterialTheme.shapes.extraSmall
-                                                    )
+                                                modifier =
+                                                    Modifier
+                                                        .size(8.dp)
+                                                        .background(
+                                                            color = Color(0xFF4CAF50),
+                                                            shape = MaterialTheme.shapes.extraSmall
+                                                        )
                                             )
                                         }
                                     )
@@ -263,96 +269,48 @@ fun ShoppingListScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .consumeWindowInsets(paddingValues)
-                .imePadding()
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .consumeWindowInsets(paddingValues)
+                    .imePadding()
         ) {
             Column {
                 // Search Bar
-            SearchBar(
-                value = searchQuery,
-                onValueChange = { viewModel.updateSearchQuery(it) },
-                placeholder = stringResource(R.string.search_products),
-                onClearClick = { viewModel.updateSearchQuery("") },
-                onScanClick = { onScanClick(householdId) }
-            )
+                SearchBar(
+                    value = searchQuery,
+                    onValueChange = { viewModel.updateSearchQuery(it) },
+                    placeholder = stringResource(R.string.search_products),
+                    onClearClick = { viewModel.updateSearchQuery("") },
+                    onScanClick = { onScanClick(householdId) }
+                )
 
-            // Show search results or shopping list
-            if (searchQuery.isNotEmpty()) {
-                // Search Results
-                if (searchResults.isEmpty()) {
-                    Column(
-                        modifier = Modifier.fillMaxSize(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = stringResource(R.string.no_products_found),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 32.dp),
-                            shape = MaterialTheme.shapes.medium,
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                            )
+                // Show search results or shopping list
+                if (searchQuery.isNotEmpty()) {
+                    // Search Results
+                    if (searchResults.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            TextButton(
-                                onClick = { showAddDialog = true },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.padding(vertical = 8.dp)
-                                ) {
-                                    Text(
-                                        text = stringResource(R.string.cant_find_product),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = stringResource(R.string.click_add_manually),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    LazyColumn(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        item { Spacer(modifier = Modifier.height(4.dp)) }
-                        items(searchResults, key = { it.upc }) { product ->
-                            ProductSearchResultCard(
-                                product = product,
-                                onAddClick = {
-                                    productToAdd = product
-                                }
+                            Text(
+                                text = stringResource(R.string.no_products_found),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        }
-                        item {
+                            Spacer(modifier = Modifier.height(24.dp))
                             Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 8.dp),
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 32.dp),
                                 shape = MaterialTheme.shapes.medium,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                                )
+                                colors =
+                                    CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                                    )
                             ) {
                                 TextButton(
                                     onClick = { showAddDialog = true },
@@ -363,13 +321,13 @@ fun ShoppingListScreen(
                                         modifier = Modifier.padding(vertical = 8.dp)
                                     ) {
                                         Text(
-                                            text = "Can't find what you're looking for?",
+                                            text = stringResource(R.string.cant_find_product),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                         )
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = "Click here to add a product manually",
+                                            text = stringResource(R.string.click_add_manually),
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.SemiBold,
                                             color = MaterialTheme.colorScheme.primary
@@ -378,104 +336,161 @@ fun ShoppingListScreen(
                                 }
                             }
                         }
-                        item { Spacer(modifier = Modifier.height(8.dp)) }
-                    }
-                }
-            } else {
-                // Shopping List Content
-                when (val state = uiState) {
-                    is ShoppingListViewModel.UiState.Loading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                    } else {
+                        LazyColumn(
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            CircularProgressIndicator()
-                        }
-                    }
-                    is ShoppingListViewModel.UiState.Success -> {
-                        if (state.items.isEmpty()) {
-                            Box(
-                                modifier = Modifier.fillMaxSize(),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.no_items_in_shopping_list),
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                            item { Spacer(modifier = Modifier.height(4.dp)) }
+                            items(searchResults, key = { it.upc }) { product ->
+                                ProductSearchResultCard(
+                                    product = product,
+                                    onAddClick = {
+                                        productToAdd = product
+                                    }
                                 )
                             }
-                        } else {
-                            Box(modifier = Modifier.fillMaxSize()) {
-                                LazyColumn(
+                            item {
+                                Card(
                                     modifier =
                                         Modifier
-                                            .fillMaxSize()
-                                            .padding(horizontal = 16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    item { Spacer(modifier = Modifier.height(4.dp)) }
-                                    items(state.items, key = { it.item.upc }) { itemWithProduct ->
-                                        ShoppingListItemCard(
-                                            itemWithProduct = itemWithProduct,
-                                            onCheckClick = {
-                                                // Check if this is a manual item (starts with "manual_")
-                                                if (itemWithProduct.item.upc.startsWith("manual_")) {
-                                                    showUpcEntryDialog = itemWithProduct
-                                                } else {
-                                                    showPickupDialog = itemWithProduct
-                                                }
-                                            },
-                                            onDeleteClick = { viewModel.removeItem(itemWithProduct.item.upc) }
+                                            .fillMaxWidth()
+                                            .padding(vertical = 8.dp),
+                                    shape = MaterialTheme.shapes.medium,
+                                    colors =
+                                        CardDefaults.cardColors(
+                                            containerColor =
+                                                MaterialTheme.colorScheme.primaryContainer.copy(
+                                                    alpha = 0.3f
+                                                )
                                         )
-                                    }
-                                    item { Spacer(modifier = Modifier.height(88.dp)) }
-                                }
-
-                                // Done Shopping Button - visible when any items have been picked up (partial or full)
-                                val hasPickedUpItems = state.items.any { (it.item.obtainedQuantity ?: 0) > 0 }
-                                if (hasPickedUpItems) {
-                                    FloatingActionButton(
-                                        onClick = { showDoneShoppingDialog = true },
-                                        modifier = Modifier
-                                            .align(Alignment.BottomEnd)
-                                            .padding(16.dp),
-                                        containerColor = MaterialTheme.colorScheme.primary
+                                ) {
+                                    TextButton(
+                                        onClick = { showAddDialog = true },
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier.padding(vertical = 8.dp)
                                         ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Check,
-                                                contentDescription = stringResource(R.string.done_shopping),
-                                                tint = MaterialTheme.colorScheme.onPrimary
-                                            )
                                             Text(
-                                                text = stringResource(R.string.done_shopping),
-                                                color = MaterialTheme.colorScheme.onPrimary,
-                                                fontWeight = FontWeight.Bold
+                                                text = "Can't find what you're looking for?",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = "Click here to add a product manually",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.primary
                                             )
                                         }
                                     }
                                 }
                             }
+                            item { Spacer(modifier = Modifier.height(8.dp)) }
                         }
                     }
-                    is ShoppingListViewModel.UiState.Error -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = state.message,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyLarge
-                            )
+                } else {
+                    // Shopping List Content
+                    when (val state = uiState) {
+                        is ShoppingListViewModel.UiState.Loading -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator()
+                            }
+                        }
+                        is ShoppingListViewModel.UiState.Success -> {
+                            if (state.items.isEmpty()) {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.no_items_in_shopping_list),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            } else {
+                                Box(modifier = Modifier.fillMaxSize()) {
+                                    LazyColumn(
+                                        modifier =
+                                            Modifier
+                                                .fillMaxSize()
+                                                .padding(horizontal = 16.dp),
+                                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        item { Spacer(modifier = Modifier.height(4.dp)) }
+                                        items(state.items, key = { it.item.upc }) { itemWithProduct ->
+                                            ShoppingListItemCard(
+                                                itemWithProduct = itemWithProduct,
+                                                onCheckClick = {
+                                                    // Check if this is a manual item (starts with "manual_")
+                                                    if (itemWithProduct.item.upc.startsWith("manual_")) {
+                                                        showUpcEntryDialog = itemWithProduct
+                                                    } else {
+                                                        showPickupDialog = itemWithProduct
+                                                    }
+                                                },
+                                                onDeleteClick = { viewModel.removeItem(itemWithProduct.item.upc) }
+                                            )
+                                        }
+                                        item { Spacer(modifier = Modifier.height(88.dp)) }
+                                    }
+
+                                    // Done Shopping Button - visible when any items have been picked up (partial or full)
+                                    val hasPickedUpItems = state.items.any { (it.item.obtainedQuantity ?: 0) > 0 }
+                                    if (hasPickedUpItems) {
+                                        FloatingActionButton(
+                                            onClick = { showDoneShoppingDialog = true },
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.BottomEnd)
+                                                    .padding(16.dp),
+                                            containerColor = MaterialTheme.colorScheme.primary
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = stringResource(R.string.done_shopping),
+                                                    tint = MaterialTheme.colorScheme.onPrimary
+                                                )
+                                                Text(
+                                                    text = stringResource(R.string.done_shopping),
+                                                    color = MaterialTheme.colorScheme.onPrimary,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        is ShoppingListViewModel.UiState.Error -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = state.message,
+                                    color = MaterialTheme.colorScheme.error,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
                         }
                     }
                 }
-            }
             }
         }
     }
@@ -497,7 +512,7 @@ fun ShoppingListScreen(
             }
         )
     }
-    
+
     // Add Item From Search Dialog
     productToAdd?.let { product ->
         AddItemFromSearchDialog(
@@ -510,12 +525,11 @@ fun ShoppingListScreen(
             }
         )
     }
-    
+
     // Partial Pickup Dialog
     showPickupDialog?.let { itemWithProduct ->
-        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-        val currentTargetFridgeId = itemWithProduct.item.targetFridgeId[currentUserId] ?: ""
-        
+        val currentTargetFridgeId = itemWithProduct.item.targetFridgeId[viewModel.currentUserId] ?: ""
+
         PartialPickupDialog(
             itemName = itemWithProduct.productName,
             requestedQuantity = itemWithProduct.item.quantity,
@@ -534,7 +548,7 @@ fun ShoppingListScreen(
             }
         )
     }
-    
+
     // Scanned Item Dialog - prompt for quantity and store
     scannedUpcForDialog?.let { upc ->
         AddItemFromSearchDialog(
@@ -607,7 +621,7 @@ fun ShoppingListScreen(
                 coroutineScope.launch {
                     // Check if product already exists in database
                     val existingProduct = viewModel.checkProductExists(upc)
-                    
+
                     if (existingProduct != null) {
                         // Product exists, link it directly
                         viewModel.linkManualItemToProduct(
@@ -646,11 +660,11 @@ fun ShoppingListScreen(
                     store = manualItem.item.store,
                     onSuccess = {
                         showNewProductDialog = null
-                        
+
                         // Wait a moment for the item to be replaced, then show pickup dialog
                         coroutineScope.launch {
                             kotlinx.coroutines.delay(500)
-                            
+
                             // Find the newly linked item in the current state and show pickup dialog
                             val currentState = uiState
                             if (currentState is ShoppingListViewModel.UiState.Success) {

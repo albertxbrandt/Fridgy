@@ -34,5 +34,6 @@ data class ShoppingListItem(
     val targetFridgeId: Map<String, String> = emptyMap(),
     val lastUpdatedBy: String = "",
     val lastUpdatedAt: Long = System.currentTimeMillis(),
-    val customName: String = "" // For manual entries without UPC
+    // For manual entries without UPC
+    val customName: String = ""
 ) : Parcelable

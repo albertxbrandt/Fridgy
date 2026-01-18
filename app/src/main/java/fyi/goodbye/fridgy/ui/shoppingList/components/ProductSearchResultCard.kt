@@ -15,16 +15,16 @@ import fyi.goodbye.fridgy.models.Product
 
 /**
  * Modern card displaying a product search result from the global products database.
- * 
+ *
  * Features clean typography, subtle elevation, and prominent add button.
  * Used when users search for products to add to their shopping list.
- * 
+ *
  * **Display Information:**
  * - Product name (primary text)
  * - Brand (secondary text, if available)
  * - UPC barcode (tertiary text)
  * - Add button with icon
- * 
+ *
  * @param product The product data from the search results
  * @param onAddClick Callback invoked when the Add button is pressed to add product to shopping list
  */
@@ -73,10 +73,11 @@ fun ProductSearchResultCard(
 
             FilledTonalButton(
                 onClick = onAddClick,
-                colors = ButtonDefaults.filledTonalButtonColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ),
+                colors =
+                    ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    ),
                 shape = MaterialTheme.shapes.small
             ) {
                 Icon(

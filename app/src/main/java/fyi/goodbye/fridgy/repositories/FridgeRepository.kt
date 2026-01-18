@@ -50,13 +50,16 @@ class FridgeRepository {
      */
     suspend fun setShoppingListPresence(fridgeId: String) {
         val currentUserId = auth.currentUser?.uid ?: return
-        val presenceRef = firestore.collection("fridges").document(fridgeId)
-            .collection("shoppingListPresence").document(currentUserId)
-        
-        presenceRef.set(mapOf(
-            "userId" to currentUserId,
-            "lastSeen" to FieldValue.serverTimestamp()
-        )).await()
+        val presenceRef =
+            firestore.collection("fridges").document(fridgeId)
+                .collection("shoppingListPresence").document(currentUserId)
+
+        presenceRef.set(
+            mapOf(
+                "userId" to currentUserId,
+                "lastSeen" to FieldValue.serverTimestamp()
+            )
+        ).await()
     }
 
     /**
@@ -79,45 +82,48 @@ class FridgeRepository {
      * Returns a Flow of detailed viewer information for users currently viewing the shopping list.
      * Filters out presence older than 30 seconds (stale sessions).
      */
-    fun getShoppingListPresence(fridgeId: String): Flow<List<ActiveViewer>> = callbackFlow {
-        val presenceRef = firestore.collection("fridges").document(fridgeId)
-            .collection("shoppingListPresence")
-        
-        val listener = presenceRef.addSnapshotListener { snapshot, e ->
-            if (e != null) {
-                close(e)
-                return@addSnapshotListener
-            }
-            
-            val currentTime = System.currentTimeMillis()
-            val activeViewers = mutableListOf<ActiveViewer>()
-            
-            snapshot?.documents?.forEach { doc ->
-                val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
-                val userId = doc.getString("userId")
-                
-                // Consider active if seen within last 30 seconds
-                if (userId != null && (currentTime - lastSeen) < 30_000) {
-                    // Fetch username from userProfiles collection
-                    firestore.collection("userProfiles").document(userId)
-                        .get()
-                        .addOnSuccessListener { userDoc ->
-                            val username = userDoc.getString("username") ?: "Unknown User"
-                            activeViewers.add(ActiveViewer(userId, username, lastSeen))
-                            // Send updated list after each username is fetched
-                            trySend(activeViewers.toList()).isSuccess
+    fun getShoppingListPresence(fridgeId: String): Flow<List<ActiveViewer>> =
+        callbackFlow {
+            val presenceRef =
+                firestore.collection("fridges").document(fridgeId)
+                    .collection("shoppingListPresence")
+
+            val listener =
+                presenceRef.addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        close(e)
+                        return@addSnapshotListener
+                    }
+
+                    val currentTime = System.currentTimeMillis()
+                    val activeViewers = mutableListOf<ActiveViewer>()
+
+                    snapshot?.documents?.forEach { doc ->
+                        val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+                        val userId = doc.getString("userId")
+
+                        // Consider active if seen within last 30 seconds
+                        if (userId != null && (currentTime - lastSeen) < 30_000) {
+                            // Fetch username from userProfiles collection
+                            firestore.collection("userProfiles").document(userId)
+                                .get()
+                                .addOnSuccessListener { userDoc ->
+                                    val username = userDoc.getString("username") ?: "Unknown User"
+                                    activeViewers.add(ActiveViewer(userId, username, lastSeen))
+                                    // Send updated list after each username is fetched
+                                    trySend(activeViewers.toList()).isSuccess
+                                }
                         }
+                    }
+
+                    // Send empty list if no active viewers
+                    if (snapshot?.documents?.isEmpty() == true) {
+                        trySend(emptyList()).isSuccess
+                    }
                 }
-            }
-            
-            // Send empty list if no active viewers
-            if (snapshot?.documents?.isEmpty() == true) {
-                trySend(emptyList()).isSuccess
-            }
+
+            awaitClose { listener.remove() }
         }
-        
-        awaitClose { listener.remove() }
-    }
 
     /**
      * Adds a UPC to the fridge's shopping list subcollection, with quantity and store.
@@ -165,13 +171,14 @@ class FridgeRepository {
         totalQuantity: Int
     ) {
         val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in.")
-        val itemRef = firestore.collection("fridges").document(fridgeId)
-            .collection("shoppingList").document(upc)
-        
+        val itemRef =
+            firestore.collection("fridges").document(fridgeId)
+                .collection("shoppingList").document(upc)
+
         firestore.runTransaction { transaction ->
             val snapshot = transaction.get(itemRef)
             val currentObtainedBy = snapshot.get("obtainedBy") as? Map<String, Long> ?: emptyMap()
-            
+
             // Update the map with current user's quantity
             val updatedObtainedBy = currentObtainedBy.toMutableMap()
             if (obtainedQuantity > 0) {
@@ -179,18 +186,21 @@ class FridgeRepository {
             } else {
                 updatedObtainedBy.remove(currentUserId)
             }
-            
+
             // Calculate new total from all users
             val newTotal = updatedObtainedBy.values.sum().toInt()
             val checked = newTotal >= totalQuantity
-            
-            transaction.update(itemRef, mapOf(
-                "obtainedBy" to updatedObtainedBy,
-                "obtainedQuantity" to newTotal,
-                "checked" to checked,
-                "lastUpdatedBy" to currentUserId,
-                "lastUpdatedAt" to System.currentTimeMillis()
-            ))
+
+            transaction.update(
+                itemRef,
+                mapOf(
+                    "obtainedBy" to updatedObtainedBy,
+                    "obtainedQuantity" to newTotal,
+                    "checked" to checked,
+                    "lastUpdatedBy" to currentUserId,
+                    "lastUpdatedAt" to System.currentTimeMillis()
+                )
+            )
         }.await()
     }
 
@@ -204,73 +214,81 @@ class FridgeRepository {
         val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in.")
         val shoppingListRef = firestore.collection("fridges").document(fridgeId).collection("shoppingList")
         val itemsRef = firestore.collection("fridges").document(fridgeId).collection("items")
-        
+
         try {
             // Get all shopping list items
             val snapshot = shoppingListRef.get().await()
-            val items = snapshot.documents.mapNotNull { 
-                it.toObject(fyi.goodbye.fridgy.models.ShoppingListItem::class.java)
-            }
-            
+            val items =
+                snapshot.documents.mapNotNull {
+                    it.toObject(fyi.goodbye.fridgy.models.ShoppingListItem::class.java)
+                }
+
             // Process in a batch
             val batch = firestore.batch()
-            
+
             items.forEach { item ->
                 val userQuantity = item.obtainedBy[currentUserId] ?: 0
-                
+
                 if (userQuantity > 0) {
                     // Add user's obtained quantity to fridge inventory
                     val itemRef = itemsRef.document(item.upc)
                     val fridgeItemSnapshot = itemRef.get().await()
-                    
+
                     if (fridgeItemSnapshot.exists()) {
                         // Item exists, increment quantity
                         val currentQty = fridgeItemSnapshot.getLong("quantity") ?: 0L
-                        batch.update(itemRef, mapOf(
-                            "quantity" to currentQty + userQuantity,
-                            "lastUpdatedBy" to currentUserId,
-                            "lastUpdatedAt" to System.currentTimeMillis()
-                        ))
+                        batch.update(
+                            itemRef,
+                            mapOf(
+                                "quantity" to currentQty + userQuantity,
+                                "lastUpdatedBy" to currentUserId,
+                                "lastUpdatedAt" to System.currentTimeMillis()
+                            )
+                        )
                     } else {
                         // Item doesn't exist, create new
-                        val newItem = Item(
-                            upc = item.upc,
-                            quantity = userQuantity,
-                            addedBy = currentUserId,
-                            addedAt = System.currentTimeMillis(),
-                            lastUpdatedBy = currentUserId,
-                            lastUpdatedAt = System.currentTimeMillis()
-                        )
+                        val newItem =
+                            Item(
+                                upc = item.upc,
+                                quantity = userQuantity,
+                                addedBy = currentUserId,
+                                addedAt = System.currentTimeMillis(),
+                                lastUpdatedBy = currentUserId,
+                                lastUpdatedAt = System.currentTimeMillis()
+                            )
                         batch.set(itemRef, newItem)
                     }
-                    
+
                     // Update shopping list item
                     val shoppingItemRef = shoppingListRef.document(item.upc)
                     val remainingObtainedBy = item.obtainedBy.toMutableMap()
                     remainingObtainedBy.remove(currentUserId)
-                    
+
                     // Calculate remaining quantity needed after removing current user's contribution
                     val totalObtainedByAllUsers = item.obtainedBy.values.sum()
                     val remainingQuantityNeeded = item.quantity - userQuantity
                     val newTotalObtained = remainingObtainedBy.values.sum()
-                    
+
                     if (remainingQuantityNeeded <= 0) {
                         // Current user got all remaining items - delete from shopping list
                         batch.delete(shoppingItemRef)
                     } else {
                         // Still need more items - update quantity and reset obtained tracking
-                        batch.update(shoppingItemRef, mapOf(
-                            "quantity" to remainingQuantityNeeded,
-                            "obtainedBy" to remainingObtainedBy,
-                            "obtainedQuantity" to newTotalObtained,
-                            "checked" to false,
-                            "lastUpdatedBy" to currentUserId,
-                            "lastUpdatedAt" to System.currentTimeMillis()
-                        ))
+                        batch.update(
+                            shoppingItemRef,
+                            mapOf(
+                                "quantity" to remainingQuantityNeeded,
+                                "obtainedBy" to remainingObtainedBy,
+                                "obtainedQuantity" to newTotalObtained,
+                                "checked" to false,
+                                "lastUpdatedBy" to currentUserId,
+                                "lastUpdatedAt" to System.currentTimeMillis()
+                            )
+                        )
                     }
                 }
             }
-            
+
             batch.commit().await()
         } catch (e: Exception) {
             Log.e(TAG, "Error completing shopping session", e)
@@ -331,11 +349,12 @@ class FridgeRepository {
     suspend fun preloadFridgesFromCache() {
         try {
             val currentUserId = auth.currentUser?.uid ?: return
-            val snapshot = firestore.collection("fridges")
-                .whereArrayContains("members", currentUserId)
-                .get(Source.CACHE)
-                .await()
-            
+            val snapshot =
+                firestore.collection("fridges")
+                    .whereArrayContains("members", currentUserId)
+                    .get(Source.CACHE)
+                    .await()
+
             fridgeCache = snapshot.documents.mapNotNull { it.toFridgeCompat() }
             Log.d("FridgeRepo", "Preloaded ${fridgeCache.size} fridges from cache")
         } catch (e: Exception) {
@@ -345,7 +364,7 @@ class FridgeRepository {
 
     companion object {
         private const val TAG = "FridgeRepository"
-        
+
         /** Maximum number of user profiles to cache. */
         private const val USER_PROFILE_CACHE_SIZE = 100
 
@@ -478,12 +497,13 @@ class FridgeRepository {
             } ?: return null
 
         // Fetch creator display name if needed
-        val creatorName = if (fetchUserDetails && fridge.createdBy.isNotEmpty()) {
-            val usersMap = getUsersByIds(listOf(fridge.createdBy))
-            usersMap[fridge.createdBy]?.username ?: "Unknown"
-        } else {
-            ""
-        }
+        val creatorName =
+            if (fetchUserDetails && fridge.createdBy.isNotEmpty()) {
+                val usersMap = getUsersByIds(listOf(fridge.createdBy))
+                usersMap[fridge.createdBy]?.username ?: "Unknown"
+            } else {
+                ""
+            }
 
         return DisplayFridge(
             id = fridge.id,
@@ -497,9 +517,9 @@ class FridgeRepository {
     }
 
     suspend fun createFridge(
-        fridgeName: String, 
+        fridgeName: String,
         householdId: String,
-        fridgeType: String = "fridge", 
+        fridgeType: String = "fridge",
         fridgeLocation: String = ""
     ): Fridge {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
@@ -526,7 +546,10 @@ class FridgeRepository {
      * @deprecated Member management moved to HouseholdRepository with invite codes.
      */
     @Deprecated("Use HouseholdRepository.createInviteCode instead")
-    suspend fun inviteUserByEmail(fridgeId: String, email: String) {
+    suspend fun inviteUserByEmail(
+        fridgeId: String,
+        email: String
+    ) {
         throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
     }
 
@@ -550,7 +573,10 @@ class FridgeRepository {
      * @deprecated Member management moved to HouseholdRepository.
      */
     @Deprecated("Use HouseholdRepository.removeMember instead")
-    suspend fun removeMember(fridgeId: String, userId: String) {
+    suspend fun removeMember(
+        fridgeId: String,
+        userId: String
+    ) {
         throw UnsupportedOperationException("Member management is now at household level")
     }
 
@@ -558,7 +584,10 @@ class FridgeRepository {
      * @deprecated Member management moved to HouseholdRepository.
      */
     @Deprecated("Invites handled at household level")
-    suspend fun revokeInvite(fridgeId: String, userId: String) {
+    suspend fun revokeInvite(
+        fridgeId: String,
+        userId: String
+    ) {
         throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
     }
 
@@ -577,12 +606,13 @@ class FridgeRepository {
      */
     suspend fun preloadItemsFromCache(fridgeId: String): List<Item> {
         return try {
-            val snapshot = firestore.collection("fridges")
-                .document(fridgeId)
-                .collection("items")
-                .get(Source.CACHE)
-                .await()
-            
+            val snapshot =
+                firestore.collection("fridges")
+                    .document(fridgeId)
+                    .collection("items")
+                    .get(Source.CACHE)
+                    .await()
+
             val items = snapshot.documents.mapNotNull { it.toObject(Item::class.java) }
             Log.d("FridgeRepo", "Preloaded ${items.size} items from cache for fridge $fridgeId")
             items
@@ -617,8 +647,21 @@ class FridgeRepository {
         }
 
     /**
-     * Adds or increments an item in the fridge.
-     * Uses a non-blocking Firestore update to ensure instant local response.
+     * Adds an item to a fridge or increments its quantity if it already exists.
+     *
+     * This function uses an optimistic approach:
+     * 1. Checks local cache first for instant response
+     * 2. Increments existing item quantities using FieldValue.increment()
+     * 3. Creates new items with full metadata including householdId (required for security rules)
+     * 4. Falls back to a transaction if cache operations fail
+     *
+     * The householdId is fetched from the fridge document and included in new items
+     * to enable efficient Firebase security rule validation during batch operations.
+     *
+     * @param fridgeId The ID of the fridge to add the item to
+     * @param upc The Universal Product Code (barcode) of the item to add
+     * @throws IllegalStateException if user is not logged in or fridge has no householdId
+     * @throws Exception if Firestore operations fail
      */
     suspend fun addItemToFridge(
         fridgeId: String,
@@ -626,12 +669,13 @@ class FridgeRepository {
     ) {
         Log.d("FridgeRepo", "Starting addItemToFridge for UPC: $upc")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
-        
-        // Get the fridge to access householdId
+
+        // Get the fridge to access householdId (required for security rules)
         val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
-        val householdId = fridgeDoc.getString("householdId") 
-            ?: throw IllegalStateException("Fridge has no householdId")
-        
+        val householdId =
+            fridgeDoc.getString("householdId")
+                ?: throw IllegalStateException("Fridge has no householdId")
+
         val itemRef =
             firestore.collection("fridges").document(fridgeId)
                 .collection("items").document(upc)

@@ -5,7 +5,6 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -58,74 +57,78 @@ fun CollapsibleSidebar(
     Box(modifier = Modifier.fillMaxSize()) {
         // Main content - pushed left when sidebar opens
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .offset(x = contentOffset)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .offset(x = contentOffset)
         ) {
             content()
         }
 
         // Sidebar - slides in from right
         Surface(
-            modifier = Modifier
-                .width(sidebarWidth)
-                .fillMaxHeight()
-                .align(Alignment.CenterEnd)
-                .offset(x = sidebarOffset),
+            modifier =
+                Modifier
+                    .width(sidebarWidth)
+                    .fillMaxHeight()
+                    .align(Alignment.CenterEnd)
+                    .offset(x = sidebarOffset),
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = 8.dp
         ) {
-                Column(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    // Sidebar Header
-                    Box(
-                        modifier = Modifier
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+                // Sidebar Header
+                Box(
+                    modifier =
+                        Modifier
                             .fillMaxWidth()
                             .background(MaterialTheme.colorScheme.primary)
                             .padding(24.dp),
-                        contentAlignment = Alignment.CenterStart
-                    ) {
-                        Text(
-                            text = "Menu",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // Menu Items
-                    menuItems.forEach { item ->
-                        NavigationDrawerItem(
-                            icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.label
-                                )
-                            },
-                            label = {
-                                Text(text = item.label)
-                            },
-                            selected = false,
-                            onClick = {
-                                item.onClick()
-                                onDismiss()
-                            },
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-                        )
-                    }
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Text(
+                        text = "Menu",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Menu Items
+                menuItems.forEach { item ->
+                    NavigationDrawerItem(
+                        icon = {
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = item.label
+                            )
+                        },
+                        label = {
+                            Text(text = item.label)
+                        },
+                        selected = false,
+                        onClick = {
+                            item.onClick()
+                            onDismiss()
+                        },
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
+                }
+            }
         }
 
         // Scrim overlay - dismiss when clicked
         if (isOpen) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .offset(x = contentOffset)
-                    .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
-                    .clickable(onClick = onDismiss)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .offset(x = contentOffset)
+                        .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.32f))
+                        .clickable(onClick = onDismiss)
             )
         }
     }

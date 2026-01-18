@@ -27,7 +27,6 @@ class NotificationViewModel(
     private val repository: NotificationRepository = NotificationRepository(),
     private val fridgeRepository: FridgeRepository = FridgeRepository()
 ) : ViewModel() {
-
     companion object {
         private const val TAG = "NotificationViewModel"
     }
@@ -37,48 +36,57 @@ class NotificationViewModel(
      */
     sealed interface NotificationUiState {
         data object Loading : NotificationUiState
+
         data class Success(val notifications: List<Notification>) : NotificationUiState
+
         data class Error(val message: String) : NotificationUiState
     }
 
     /**
      * UI state for the notifications screen.
      */
-    val uiState: StateFlow<NotificationUiState> = repository.getNotificationsFlow()
-        .map<List<Notification>, NotificationUiState> { notifications ->
-            NotificationUiState.Success(notifications)
-        }
-        .catch { error ->
-            Log.e(TAG, "Error loading notifications", error)
-            emit(NotificationUiState.Error(error.message ?: "Failed to load notifications")) // TODO: Pass context for string resources
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = NotificationUiState.Loading
-        )
+    val uiState: StateFlow<NotificationUiState> =
+        repository.getNotificationsFlow()
+            .map<List<Notification>, NotificationUiState> { notifications ->
+                NotificationUiState.Success(notifications)
+            }
+            .catch { error ->
+                Log.e(TAG, "Error loading notifications", error)
+                emit(
+                    NotificationUiState.Error(error.message ?: "Failed to load notifications")
+                ) // TODO: Pass context for string resources
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = NotificationUiState.Loading
+            )
 
     /**
      * Unread notification count for badge display.
      */
-    val unreadCount: StateFlow<Int> = repository.getUnreadCountFlow()
-        .catch { error ->
-            Log.e(TAG, "Error loading unread count", error)
-            emit(0)
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = 0
-        )
+    val unreadCount: StateFlow<Int> =
+        repository.getUnreadCountFlow()
+            .catch { error ->
+                Log.e(TAG, "Error loading unread count", error)
+                emit(0)
+            }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = 0
+            )
 
     private val _operationState = MutableStateFlow<OperationState>(OperationState.Idle)
     val operationState: StateFlow<OperationState> = _operationState.asStateFlow()
 
     sealed interface OperationState {
         data object Idle : OperationState
+
         data object Processing : OperationState
+
         data class Success(val message: String) : OperationState
+
         data class Error(val message: String) : OperationState
     }
 
@@ -142,11 +150,14 @@ class NotificationViewModel(
     fun resetOperationState() {
         _operationState.value = OperationState.Idle
     }
-    
+
     /**
      * Accept a fridge invitation from a notification.
      */
-    fun acceptFridgeInvite(fridgeId: String, notificationId: String) {
+    fun acceptFridgeInvite(
+        fridgeId: String,
+        notificationId: String
+    ) {
         viewModelScope.launch {
             _operationState.value = OperationState.Processing
             try {
@@ -161,11 +172,14 @@ class NotificationViewModel(
             }
         }
     }
-    
+
     /**
      * Decline a fridge invitation from a notification.
      */
-    fun declineFridgeInvite(fridgeId: String, notificationId: String) {
+    fun declineFridgeInvite(
+        fridgeId: String,
+        notificationId: String
+    ) {
         viewModelScope.launch {
             _operationState.value = OperationState.Processing
             try {

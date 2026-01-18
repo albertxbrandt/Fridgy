@@ -76,9 +76,8 @@ import kotlinx.coroutines.launch
  * @see FridgyTheme for the app's Material 3 theme configuration
  */
 class MainActivity : ComponentActivity() {
-    
     private val notificationRepository = NotificationRepository()
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -90,8 +89,9 @@ class MainActivity : ComponentActivity() {
         // Explicitly configure cache size for better performance
         val firestore = FirebaseFirestore.getInstance()
         try {
-            val settings = FirebaseFirestoreSettings.Builder()
-                .build()
+            val settings =
+                FirebaseFirestoreSettings.Builder()
+                    .build()
             firestore.firestoreSettings = settings
             Log.d("Fridgy_Firestore", "Firestore configured with offline persistence (default)")
         } catch (e: Exception) {
@@ -133,20 +133,23 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    
+
                     // Handle deep linking from notifications
                     LaunchedEffect(Unit) {
                         intent?.let { notificationIntent ->
                             val notificationType = notificationIntent.getStringExtra("notificationType")
                             val fridgeId = notificationIntent.getStringExtra("fridgeId")
                             val itemId = notificationIntent.getStringExtra("itemId")
-                            
+
                             if (notificationType != null) {
-                                Log.d("Fridgy_DeepLink", "Handling notification: type=$notificationType, fridgeId=$fridgeId, itemId=$itemId")
-                                
+                                Log.d(
+                                    "Fridgy_DeepLink",
+                                    "Handling notification: type=$notificationType, fridgeId=$fridgeId, itemId=$itemId"
+                                )
+
                                 // Wait a bit for auth state to settle
                                 kotlinx.coroutines.delay(500)
-                                
+
                                 when (notificationType) {
                                     "FRIDGE_INVITE" -> {
                                         navController.navigate("fridgeList") {
@@ -196,27 +199,29 @@ class MainActivity : ComponentActivity() {
                     androidx.compose.runtime.LaunchedEffect(Unit) {
                         permissionLauncher.launch(Manifest.permission.CAMERA)
                     }
-                    
+
                     // Get user preferences for last selected household
                     val userPreferences = remember { UserPreferences.getInstance(this@MainActivity) }
                     val householdRepository = remember { HouseholdRepository() }
-                    
+
                     // Determine start destination:
                     // - If not logged in: login
                     // - If logged in with last household: fridgeList/{householdId}
                     // - If logged in with no last household: householdList
                     val lastHouseholdId = remember { userPreferences.getLastSelectedHouseholdId() }
-                    val startDestination = remember {
-                        when {
-                            auth.currentUser == null -> "login"
-                            lastHouseholdId != null -> "fridgeList/$lastHouseholdId"
-                            else -> "householdList"
+                    val startDestination =
+                        remember {
+                            when {
+                                auth.currentUser == null -> "login"
+                                lastHouseholdId != null -> "fridgeList/$lastHouseholdId"
+                                else -> "householdList"
+                            }
                         }
-                    }
-                    
+
                     // Validate that the last household still exists and user is still a member
-                    val needsHouseholdValidation = remember { mutableStateOf(lastHouseholdId != null && auth.currentUser != null) }
-                    
+                    val needsHouseholdValidation =
+                        remember { mutableStateOf(lastHouseholdId != null && auth.currentUser != null) }
+
                     LaunchedEffect(needsHouseholdValidation.value) {
                         if (needsHouseholdValidation.value && lastHouseholdId != null) {
                             try {
@@ -274,7 +279,7 @@ class MainActivity : ComponentActivity() {
                                 onNavigateToLogin = { navController.popBackStack() }
                             )
                         }
-                        
+
                         // Household List - main screen after login
                         composable("householdList") {
                             HouseholdListScreen(
@@ -307,7 +312,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        
+
                         // Join Household with invite code
                         composable("joinHousehold") {
                             JoinHouseholdScreen(
@@ -319,13 +324,14 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        
+
                         // Fridge list for a specific household
                         composable(
                             route = "fridgeList/{householdId}",
-                            arguments = listOf(
-                                navArgument("householdId") { type = NavType.StringType }
-                            )
+                            arguments =
+                                listOf(
+                                    navArgument("householdId") { type = NavType.StringType }
+                                )
                         ) { backStackEntry ->
                             val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
                             FridgeListScreen(
@@ -356,13 +362,14 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        
+
                         // Household settings
                         composable(
                             route = "householdSettings/{householdId}",
-                            arguments = listOf(
-                                navArgument("householdId") { type = NavType.StringType }
-                            )
+                            arguments =
+                                listOf(
+                                    navArgument("householdId") { type = NavType.StringType }
+                                )
                         ) { backStackEntry ->
                             val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
                             HouseholdSettingsScreen(
@@ -377,7 +384,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
-                        
+
                         composable("adminPanel") {
                             AdminPanelScreen(
                                 onNavigateBack = { navController.popBackStack() }
@@ -390,12 +397,16 @@ class MainActivity : ComponentActivity() {
                                     // Handle notification click - navigate based on type
                                     when {
                                         notification.relatedFridgeId != null && notification.relatedItemId != null -> {
-                                            navController.navigate("itemDetail/${notification.relatedFridgeId}/${notification.relatedItemId}") {
+                                            navController.navigate(
+                                                "itemDetail/${notification.relatedFridgeId}/${notification.relatedItemId}"
+                                            ) {
                                                 launchSingleTop = true
                                             }
                                         }
                                         notification.relatedFridgeId != null -> {
-                                            navController.navigate("fridgeInventory/${notification.relatedFridgeId}/Fridge") {
+                                            navController.navigate(
+                                                "fridgeInventory/${notification.relatedFridgeId}/Fridge"
+                                            ) {
                                                 launchSingleTop = true
                                             }
                                         }
@@ -487,7 +498,9 @@ class MainActivity : ComponentActivity() {
                                     // Navigate back to fridge list and clear everything above it to prevent
                                     // permission errors from lingering Firestore listeners
                                     navController.navigate("fridgeList") {
-                                        popUpTo(0) { inclusive = false } // Clear entire back stack except initial destination
+                                        popUpTo(
+                                            0
+                                        ) { inclusive = false } // Clear entire back stack except initial destination
                                         launchSingleTop = true
                                     }
                                 }
@@ -519,7 +532,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     /**
      * Request notification permission (Android 13+) and initialize FCM token.
      * For Android 12 and below, FCM token is initialized immediately.
@@ -557,7 +570,7 @@ class MainActivity : ComponentActivity() {
             initializeFCMToken()
         }
     }
-    
+
     /**
      * Initialize FCM token and save to Firestore.
      * This should be called after notification permission is granted (Android 13+)
@@ -569,11 +582,11 @@ class MainActivity : ComponentActivity() {
             Log.d("Fridgy_FCM", "User not authenticated - skipping FCM token initialization")
             return
         }
-        
+
         lifecycleScope.launch {
             Log.d("Fridgy_FCM", "Initializing FCM token for user: ${currentUser.uid}")
             notificationRepository.refreshFcmToken()
-                .onSuccess { 
+                .onSuccess {
                     Log.d("Fridgy_FCM", "FCM token initialized successfully")
                 }
                 .onFailure { error ->

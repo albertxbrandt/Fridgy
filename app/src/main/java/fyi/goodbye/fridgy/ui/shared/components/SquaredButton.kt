@@ -21,7 +21,7 @@ import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 
 /**
  * Modern styled button with rounded corners and consistent elevation.
- * 
+ *
  * Uses Material 3 design language with the app's color scheme.
  */
 @Composable
@@ -30,17 +30,19 @@ fun SquaredButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     shape: Shape = MaterialTheme.shapes.small,
-    colors: ButtonColors = ButtonDefaults.buttonColors(
-        containerColor = MaterialTheme.colorScheme.primary,
-        contentColor = MaterialTheme.colorScheme.onPrimary,
-        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-    ),
-    elevation: ButtonElevation? = ButtonDefaults.buttonElevation(
-        defaultElevation = 2.dp,
-        pressedElevation = 6.dp,
-        hoveredElevation = 4.dp
-    ),
+    colors: ButtonColors =
+        ButtonDefaults.buttonColors(
+            containerColor = MaterialTheme.colorScheme.primary,
+            contentColor = MaterialTheme.colorScheme.onPrimary,
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+        ),
+    elevation: ButtonElevation? =
+        ButtonDefaults.buttonElevation(
+            defaultElevation = 2.dp,
+            pressedElevation = 6.dp,
+            hoveredElevation = 4.dp
+        ),
     border: BorderStroke? = null,
     contentPadding: PaddingValues = PaddingValues(horizontal = 24.dp, vertical = 12.dp),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
@@ -76,10 +78,11 @@ fun SquaredOutlinedButton(
         modifier = modifier,
         enabled = enabled,
         shape = shape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-            contentColor = MaterialTheme.colorScheme.primary
-        ),
+        colors =
+            ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.primary
+            ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 0.dp),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
         content = content

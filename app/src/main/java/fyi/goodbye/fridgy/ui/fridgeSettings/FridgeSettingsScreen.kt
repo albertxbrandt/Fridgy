@@ -83,19 +83,23 @@ fun FridgeSettingsScreen(
                 val isCreator = fridge.createdByUid == viewModel.currentUserId
 
                 LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     item {
                         SettingsSection(title = stringResource(R.string.general_info)) {
                             Column {
                                 SettingsItem(label = stringResource(R.string.name), value = fridge.name)
-                                SettingsItem(label = stringResource(R.string.created_by), value = fridge.creatorDisplayName)
                                 SettingsItem(
-                                    label = stringResource(R.string.type), 
+                                    label = stringResource(R.string.created_by),
+                                    value = fridge.creatorDisplayName
+                                )
+                                SettingsItem(
+                                    label = stringResource(R.string.type),
                                     value = state.fridgeData.type.replaceFirstChar { it.uppercase() }
                                 )
                                 if (state.fridgeData.location.isNotBlank()) {
@@ -179,9 +183,10 @@ fun FridgeSettingsScreen(
                         }
                     },
                     enabled = confirmText == "CONFIRM",
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
                 ) {
                     Text(stringResource(R.string.delete))
                 }
@@ -248,9 +253,10 @@ fun SettingsItem(
     value: String
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)

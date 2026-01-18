@@ -18,18 +18,18 @@ import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
 
 /**
  * Modern card displaying a single item in the shopping list.
- * 
+ *
  * Features clean typography, subtle elevation, and intuitive controls.
  * Shows product information including name, brand (if available), store location (if specified),
  * quantity, and provides controls to check off or delete the item.
- * 
+ *
  * **Visual Features:**
  * - Checked items display with strikethrough text decoration
  * - Brand and store information shown as secondary text when available
  * - Quantity always displayed
  * - Delete button with outlined icon for consistency
  * - Checkbox for marking items as purchased
- * 
+ *
  * @param itemWithProduct Combined data containing the shopping list item and associated product details
  * @param onCheckClick Callback invoked when checkbox is clicked to open pickup dialog
  * @param onDeleteClick Callback invoked when delete button is pressed to remove item from list
@@ -42,24 +42,25 @@ fun ShoppingListItemCard(
 ) {
     val item = itemWithProduct.item
     val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
-    
+
     // Calculate quantities
     val myObtainedQty = item.obtainedBy[currentUserId] ?: 0
     val totalObtainedQty = item.obtainedQuantity ?: 0
     val othersObtainedQty = totalObtainedQty - myObtainedQty
     val totalRemaining = item.quantity - totalObtainedQty
-    
+
     val isPartiallyPicked = totalObtainedQty > 0 && totalObtainedQty < item.quantity
     val isFullyPicked = totalObtainedQty >= item.quantity
-    
+
     // Determine card color based on status
-    val cardColor = when {
-        isFullyPicked -> Color(0xFFE8F5E9) // Green tint - all obtained
-        othersObtainedQty > 0 -> Color(0xFFFFF8E1) // Yellow tint - others shopping
-        myObtainedQty > 0 -> Color(0xFFE3F2FD) // Blue tint - you're shopping
-        else -> MaterialTheme.colorScheme.surface
-    }
-    
+    val cardColor =
+        when {
+            isFullyPicked -> Color(0xFFE8F5E9) // Green tint - all obtained
+            othersObtainedQty > 0 -> Color(0xFFFFF8E1) // Yellow tint - others shopping
+            myObtainedQty > 0 -> Color(0xFFE3F2FD) // Blue tint - you're shopping
+            else -> MaterialTheme.colorScheme.surface
+        }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -99,7 +100,7 @@ fun ShoppingListItemCard(
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-                
+
                 // Show multi-user shopping status
                 if (othersObtainedQty > 0 && myObtainedQty > 0) {
                     Text(
@@ -126,14 +127,15 @@ fun ShoppingListItemCard(
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
-                
+
                 // Show remaining quantity needed
                 Text(
-                    text = if (isFullyPicked) {
-                        stringResource(R.string.all_obtained)
-                    } else {
-                        stringResource(R.string.need_x_more, totalRemaining)
-                    },
+                    text =
+                        if (isFullyPicked) {
+                            stringResource(R.string.all_obtained)
+                        } else {
+                            stringResource(R.string.need_x_more, totalRemaining)
+                        },
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isFullyPicked) MaterialTheme.colorScheme.tertiary else MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(top = 2.dp)

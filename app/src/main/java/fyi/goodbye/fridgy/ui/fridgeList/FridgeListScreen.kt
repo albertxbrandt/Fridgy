@@ -53,7 +53,7 @@ fun FridgeListScreen(
     var newFridgeName by remember { mutableStateOf("") }
     var newFridgeType by remember { mutableStateOf("fridge") }
     var newFridgeLocation by remember { mutableStateOf("") }
-    
+
     // Helper function to reset dialog state
     fun resetDialogState() {
         newFridgeName = ""
@@ -75,9 +75,10 @@ fun FridgeListScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
                 navigationIcon = {
                     IconButton(onClick = onSwitchHousehold) {
                         Icon(
@@ -101,16 +102,20 @@ fun FridgeListScreen(
         floatingActionButton = {
             Row(
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
             ) {
                 FloatingActionButton(
                     onClick = { onShoppingListClick(viewModel.householdId) },
                     containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onSecondary
                 ) {
-                    Icon(Icons.Default.ShoppingCart, contentDescription = stringResource(R.string.cd_open_shopping_list))
+                    Icon(
+                        Icons.Default.ShoppingCart,
+                        contentDescription = stringResource(R.string.cd_open_shopping_list)
+                    )
                 }
                 FloatingActionButton(
                     onClick = { showAddFridgeDialog = true },
@@ -133,10 +138,11 @@ fun FridgeListScreen(
             }
             is FridgeListViewModel.FridgeUiState.Error -> {
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(horizontal = 24.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(horizontal = 24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -158,19 +164,21 @@ fun FridgeListScreen(
                     )
                 } else {
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         contentPadding = PaddingValues(bottom = 80.dp)
                     ) {
                         // OPTIMIZATION: Add key for item identity
                         items(fridges, key = { it.id }) { fridge ->
                             // OPTIMIZATION: Stable callback reference prevents recomposition
-                            val onCardClick = remember(fridge.id) {
-                                { _: DisplayFridge -> onNavigateToFridgeInventory(fridge) }
-                            }
+                            val onCardClick =
+                                remember(fridge.id) {
+                                    { _: DisplayFridge -> onNavigateToFridgeInventory(fridge) }
+                                }
                             FridgeCard(fridge = fridge, onClick = onCardClick)
                         }
                     }
@@ -205,7 +213,7 @@ fun FridgeListScreen(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium
                     )
-                    
+
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -223,7 +231,7 @@ fun FridgeListScreen(
                                 FilterChip(
                                     selected = newFridgeType == type,
                                     onClick = { newFridgeType = type },
-                                    label = { 
+                                    label = {
                                         Text(
                                             text = type.replaceFirstChar { it.uppercase() },
                                             style = MaterialTheme.typography.labelLarge
@@ -233,7 +241,7 @@ fun FridgeListScreen(
                             }
                         }
                     }
-                    
+
                     OutlinedTextField(
                         value = newFridgeLocation,
                         onValueChange = { newFridgeLocation = it },

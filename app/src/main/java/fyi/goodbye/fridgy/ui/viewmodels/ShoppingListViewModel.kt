@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 
 /**
  * ViewModel for managing shopping list UI state and operations.
- * 
+ *
  * The shopping list is now at the household level, shared across all fridges.
  */
 class ShoppingListViewModel(
@@ -62,6 +62,13 @@ class ShoppingListViewModel(
     private val _availableFridges = MutableStateFlow<List<Fridge>>(emptyList())
     val availableFridges: StateFlow<List<Fridge>> = _availableFridges.asStateFlow()
 
+    /**
+     * The current authenticated user's ID, or empty string if not logged in.
+     * Exposed for UI to determine user-specific data like target fridges.
+     */
+    val currentUserId: String
+        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+
     init {
         loadShoppingList()
         observeActiveViewers()
@@ -73,16 +80,17 @@ class ShoppingListViewModel(
      */
     fun startPresence() {
         presenceJob?.cancel()
-        presenceJob = viewModelScope.launch {
-            // Set initial presence
-            repository.setShoppingListPresence(householdId)
-            
-            // Update presence every 15 seconds to keep it fresh
-            while (isActive) {
-                delay(15_000)
+        presenceJob =
+            viewModelScope.launch {
+                // Set initial presence
                 repository.setShoppingListPresence(householdId)
+
+                // Update presence every 15 seconds to keep it fresh
+                while (isActive) {
+                    delay(15_000)
+                    repository.setShoppingListPresence(householdId)
+                }
             }
-        }
     }
 
     /**
@@ -117,23 +125,24 @@ class ShoppingListViewModel(
         viewModelScope.launch {
             repository.getShoppingListItems(householdId).collect { items ->
                 // Fetch product names for each item
-                val itemsWithProducts = items.map { item ->
-                    // Use custom name if available (manual entry), otherwise fetch from DB
-                    if (item.customName.isNotEmpty()) {
-                        ShoppingListItemWithProduct(
-                            item = item,
-                            productName = item.customName,
-                            productBrand = ""
-                        )
-                    } else {
-                        val product = productRepository.getProductInfo(item.upc)
-                        ShoppingListItemWithProduct(
-                            item = item,
-                            productName = product?.name ?: "Unknown Product",
-                            productBrand = product?.brand ?: ""
-                        )
+                val itemsWithProducts =
+                    items.map { item ->
+                        // Use custom name if available (manual entry), otherwise fetch from DB
+                        if (item.customName.isNotEmpty()) {
+                            ShoppingListItemWithProduct(
+                                item = item,
+                                productName = item.customName,
+                                productBrand = ""
+                            )
+                        } else {
+                            val product = productRepository.getProductInfo(item.upc)
+                            ShoppingListItemWithProduct(
+                                item = item,
+                                productName = product?.name ?: "Unknown Product",
+                                productBrand = product?.brand ?: ""
+                            )
+                        }
                     }
-                }
                 _uiState.value = UiState.Success(itemsWithProducts)
             }
         }
@@ -254,19 +263,26 @@ class ShoppingListViewModel(
      * Links a manual shopping list item to a real product by updating its UPC.
      * This removes the old manual entry and creates a new one with the real UPC.
      */
-    fun linkManualItemToProduct(oldManualUpc: String, newUpc: String, quantity: Int, store: String, customName: String) {
+    fun linkManualItemToProduct(
+        oldManualUpc: String,
+        newUpc: String,
+        quantity: Int,
+        store: String,
+        customName: String
+    ) {
         viewModelScope.launch {
             try {
                 // Remove old manual item
                 repository.removeShoppingListItem(householdId, oldManualUpc)
-                
+
                 // Add new item with real UPC
+                // Clear custom name since we now have real product
                 repository.addShoppingListItem(
                     householdId = householdId,
                     upc = newUpc,
                     quantity = quantity,
                     store = store,
-                    customName = "" // Clear custom name since we now have real product
+                    customName = ""
                 )
             } catch (e: Exception) {
                 _uiState.value = UiState.Error("Failed to link product: ${e.message}")
@@ -276,7 +292,7 @@ class ShoppingListViewModel(
 
     /**
      * Creates a new product in the database with image upload and links it to the manual shopping list item.
-     * 
+     *
      * @param oldManualUpc The UPC of the manual item to replace
      * @param newUpc The UPC for the new product
      * @param name Product name
@@ -301,18 +317,19 @@ class ShoppingListViewModel(
         viewModelScope.launch {
             try {
                 // Create product object
-                val product = Product(
-                    upc = newUpc,
-                    name = name,
-                    brand = brand,
-                    category = category,
-                    imageUrl = "",
-                    lastUpdated = System.currentTimeMillis()
-                )
-                
+                val product =
+                    Product(
+                        upc = newUpc,
+                        name = name,
+                        brand = brand,
+                        category = category,
+                        imageUrl = "",
+                        lastUpdated = System.currentTimeMillis()
+                    )
+
                 // Save product with image to database
                 productRepository.saveProductWithImage(product, imageUri)
-                
+
                 // Link manual item to new product
                 linkManualItemToProduct(
                     oldManualUpc = oldManualUpc,
@@ -321,7 +338,7 @@ class ShoppingListViewModel(
                     store = store,
                     customName = ""
                 )
-                
+
                 onSuccess()
             } catch (e: Exception) {
                 _uiState.value = UiState.Error("Failed to create product: ${e.message}")
@@ -336,7 +353,10 @@ class ShoppingListViewModel(
         ): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T {
+                override fun <T : ViewModel> create(
+                    modelClass: Class<T>,
+                    extras: CreationExtras
+                ): T {
                     val app = extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
                     val repo = productRepository ?: ProductRepository(app.applicationContext)
                     return ShoppingListViewModel(householdId, repo) as T

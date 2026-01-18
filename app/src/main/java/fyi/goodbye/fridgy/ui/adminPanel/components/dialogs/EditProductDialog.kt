@@ -40,7 +40,7 @@ fun EditProductDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
                 stringResource(R.string.edit_product),
                 style = MaterialTheme.typography.headlineSmall,

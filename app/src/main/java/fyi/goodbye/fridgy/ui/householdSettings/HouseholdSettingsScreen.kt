@@ -3,8 +3,6 @@ package fyi.goodbye.fridgy.ui.householdSettings
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -47,9 +45,10 @@ fun HouseholdSettingsScreen(
     householdId: String,
     onBackClick: () -> Unit,
     onDeleteSuccess: () -> Unit,
-    viewModel: HouseholdSettingsViewModel = viewModel(
-        factory = HouseholdSettingsViewModel.provideFactory(householdId)
-    )
+    viewModel: HouseholdSettingsViewModel =
+        viewModel(
+            factory = HouseholdSettingsViewModel.provideFactory(householdId)
+        )
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val inviteCodes by viewModel.inviteCodes.collectAsState()
@@ -57,21 +56,22 @@ fun HouseholdSettingsScreen(
     val newInviteCode by viewModel.newInviteCode.collectAsState()
     val isDeletingOrLeaving by viewModel.isDeletingOrLeaving.collectAsState()
     val actionError by viewModel.actionError.collectAsState()
-    
+
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var confirmText by remember { mutableStateOf("") }
     var showLeaveConfirmDialog by remember { mutableStateOf(false) }
     var showCreateInviteDialog by remember { mutableStateOf(false) }
     var showNewCodeDialog by remember { mutableStateOf(false) }
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
-    
-    val dateFormatter = remember {
-        SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    }
-    
+
+    val dateFormatter =
+        remember {
+            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        }
+
     // Show new code dialog when a code is created
     LaunchedEffect(newInviteCode) {
         if (newInviteCode != null) {
@@ -79,7 +79,7 @@ fun HouseholdSettingsScreen(
             showNewCodeDialog = true
         }
     }
-    
+
     // Show error snackbar
     LaunchedEffect(actionError) {
         if (actionError != null) {
@@ -87,7 +87,7 @@ fun HouseholdSettingsScreen(
             viewModel.clearError()
         }
     }
-    
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -109,9 +109,10 @@ fun HouseholdSettingsScreen(
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    )
             )
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -129,12 +130,13 @@ fun HouseholdSettingsScreen(
             is HouseholdSettingsViewModel.HouseholdSettingsUiState.Success -> {
                 val household = state.household
                 val isOwner = household.createdByUid == viewModel.currentUserId
-                
+
                 Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // General Info
@@ -154,20 +156,22 @@ fun HouseholdSettingsScreen(
                             )
                         }
                     }
-                    
+
                     // Members (scrollable if many)
                     SettingsSection(title = stringResource(R.string.members)) {
                         Column(
-                            modifier = Modifier.heightIn(max = 120.dp)
-                                .verticalScroll(rememberScrollState())
+                            modifier =
+                                Modifier.heightIn(max = 120.dp)
+                                    .verticalScroll(rememberScrollState())
                         ) {
                             household.memberUsers.forEach { member ->
                                 SwipeToDismissMember(
-                                    name = if (member.uid == household.createdByUid) {
-                                        "${member.username} (Owner)"
-                                    } else {
-                                        member.username
-                                    },
+                                    name =
+                                        if (member.uid == household.createdByUid) {
+                                            "${member.username} (Owner)"
+                                        } else {
+                                            member.username
+                                        },
                                     isOwner = isOwner,
                                     canRemove = member.uid != household.createdByUid,
                                     onRemove = { viewModel.removeMember(member.uid) }
@@ -175,7 +179,7 @@ fun HouseholdSettingsScreen(
                             }
                         }
                     }
-                    
+
                     // Invite Codes (Owner only) - fills remaining space
                     if (isOwner) {
                         SettingsSection(
@@ -210,9 +214,10 @@ fun HouseholdSettingsScreen(
                             } else {
                                 // Scrollable invite codes list
                                 Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .verticalScroll(rememberScrollState()),
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .verticalScroll(rememberScrollState()),
                                     verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     inviteCodes.forEach { code ->
@@ -223,15 +228,17 @@ fun HouseholdSettingsScreen(
                                                 clipboardManager.setText(AnnotatedString(code.code))
                                             },
                                             onShare = {
-                                                val shareText = context.getString(
-                                                    R.string.share_invite_message,
-                                                    household.name,
-                                                    code.code
-                                                )
-                                                val intent = Intent(Intent.ACTION_SEND).apply {
-                                                    type = "text/plain"
-                                                    putExtra(Intent.EXTRA_TEXT, shareText)
-                                                }
+                                                val shareText =
+                                                    context.getString(
+                                                        R.string.share_invite_message,
+                                                        household.name,
+                                                        code.code
+                                                    )
+                                                val intent =
+                                                    Intent(Intent.ACTION_SEND).apply {
+                                                        type = "text/plain"
+                                                        putExtra(Intent.EXTRA_TEXT, shareText)
+                                                    }
                                                 context.startActivity(
                                                     Intent.createChooser(intent, "Share Invite Code")
                                                 )
@@ -246,7 +253,7 @@ fun HouseholdSettingsScreen(
                         // Non-owner: add spacer to push button to bottom
                         Spacer(modifier = Modifier.weight(1f))
                     }
-                    
+
                     // Leave/Delete button
                     Button(
                         onClick = {
@@ -257,9 +264,10 @@ fun HouseholdSettingsScreen(
                             }
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        ),
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            ),
                         shape = RoundedCornerShape(8.dp),
                         enabled = !isDeletingOrLeaving
                     ) {
@@ -271,11 +279,12 @@ fun HouseholdSettingsScreen(
                             )
                         } else {
                             Text(
-                                text = if (isOwner) {
-                                    stringResource(R.string.delete_household)
-                                } else {
-                                    stringResource(R.string.leave_household)
-                                },
+                                text =
+                                    if (isOwner) {
+                                        stringResource(R.string.delete_household)
+                                    } else {
+                                        stringResource(R.string.leave_household)
+                                    },
                                 color = MaterialTheme.colorScheme.onError
                             )
                         }
@@ -284,7 +293,7 @@ fun HouseholdSettingsScreen(
             }
         }
     }
-    
+
     // Create Invite Dialog
     if (showCreateInviteDialog) {
         CreateInviteCodeDialog(
@@ -294,7 +303,7 @@ fun HouseholdSettingsScreen(
             }
         )
     }
-    
+
     // New Code Created Dialog
     if (showNewCodeDialog && newInviteCode != null) {
         AlertDialog(
@@ -325,10 +334,11 @@ fun HouseholdSettingsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     if (newInviteCode!!.expiresAt != null) {
                         Text(
-                            text = stringResource(
-                                R.string.invite_code_expires,
-                                dateFormatter.format(Date(newInviteCode!!.expiresAt!!))
-                            ),
+                            text =
+                                stringResource(
+                                    R.string.invite_code_expires,
+                                    dateFormatter.format(Date(newInviteCode!!.expiresAt!!))
+                                ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -343,21 +353,26 @@ fun HouseholdSettingsScreen(
             },
             confirmButton = {
                 val state = uiState
-                val householdName = if (state is HouseholdSettingsViewModel.HouseholdSettingsUiState.Success) {
-                    state.household.name
-                } else ""
-                
+                val householdName =
+                    if (state is HouseholdSettingsViewModel.HouseholdSettingsUiState.Success) {
+                        state.household.name
+                    } else {
+                        ""
+                    }
+
                 FilledTonalButton(
                     onClick = {
-                        val shareText = context.getString(
-                            R.string.share_invite_message,
-                            householdName,
-                            newInviteCode!!.code
-                        )
-                        val intent = Intent(Intent.ACTION_SEND).apply {
-                            type = "text/plain"
-                            putExtra(Intent.EXTRA_TEXT, shareText)
-                        }
+                        val shareText =
+                            context.getString(
+                                R.string.share_invite_message,
+                                householdName,
+                                newInviteCode!!.code
+                            )
+                        val intent =
+                            Intent(Intent.ACTION_SEND).apply {
+                                type = "text/plain"
+                                putExtra(Intent.EXTRA_TEXT, shareText)
+                            }
                         context.startActivity(Intent.createChooser(intent, "Share Invite Code"))
                     }
                 ) {
@@ -389,7 +404,7 @@ fun HouseholdSettingsScreen(
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
-    
+
     // Delete Confirmation Dialog
     if (showDeleteConfirmDialog) {
         AlertDialog(
@@ -432,9 +447,10 @@ fun HouseholdSettingsScreen(
                         }
                     },
                     enabled = confirmText == "CONFIRM",
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
                 ) {
                     Text(stringResource(R.string.delete))
                 }
@@ -451,7 +467,7 @@ fun HouseholdSettingsScreen(
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
-    
+
     // Leave Confirmation Dialog
     if (showLeaveConfirmDialog) {
         AlertDialog(
@@ -477,9 +493,10 @@ fun HouseholdSettingsScreen(
                             onDeleteSuccess()
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
                 ) {
                     Text(stringResource(R.string.leave))
                 }
@@ -501,7 +518,7 @@ fun CreateInviteCodeDialog(
     onCreate: (Int?) -> Unit
 ) {
     var selectedExpiry by remember { mutableStateOf(7) } // Default 7 days
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -517,7 +534,7 @@ fun CreateInviteCodeDialog(
                     "How long should this invite code be valid?",
                     style = MaterialTheme.typography.bodyMedium
                 )
-                
+
                 Column {
                     listOf(
                         1 to "1 day",
@@ -572,20 +589,22 @@ fun InviteCodeItem(
 ) {
     val isExpired = inviteCode.isExpired()
     val isUsed = inviteCode.usedBy != null
-    
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.small,
-        color = if (isExpired || isUsed || !inviteCode.isActive) {
-            MaterialTheme.colorScheme.surfaceContainerLow
-        } else {
-            MaterialTheme.colorScheme.surfaceContainerHigh
-        }
+        color =
+            if (isExpired || isUsed || !inviteCode.isActive) {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerHigh
+            }
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
@@ -593,13 +612,14 @@ fun InviteCodeItem(
                     text = inviteCode.code,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = if (isExpired || isUsed || !inviteCode.isActive) {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    } else {
-                        MaterialTheme.colorScheme.primary
-                    }
+                    color =
+                        if (isExpired || isUsed || !inviteCode.isActive) {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        }
                 )
-                
+
                 when {
                     isUsed -> {
                         Text(
@@ -638,7 +658,7 @@ fun InviteCodeItem(
                     }
                 }
             }
-            
+
             if (inviteCode.isValid()) {
                 IconButton(onClick = onCopy, modifier = Modifier.size(36.dp)) {
                     Icon(
@@ -682,30 +702,33 @@ fun SwipeToDismissMember(
         return
     }
 
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = {
-            if (it == SwipeToDismissBoxValue.EndToStart) {
-                onRemove()
-                true
-            } else {
-                false
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = {
+                if (it == SwipeToDismissBoxValue.EndToStart) {
+                    onRemove()
+                    true
+                } else {
+                    false
+                }
             }
-        }
-    )
+        )
 
     SwipeToDismissBox(
         state = dismissState,
         enableDismissFromStartToEnd = false,
         backgroundContent = {
-            val color = when (dismissState.dismissDirection) {
-                SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
-                else -> Color.Transparent
-            }
+            val color =
+                when (dismissState.dismissDirection) {
+                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
+                    else -> Color.Transparent
+                }
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(color, RoundedCornerShape(8.dp))
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(color, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(

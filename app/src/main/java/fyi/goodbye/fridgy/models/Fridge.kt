@@ -23,7 +23,8 @@ data class Fridge(
     @DocumentId
     val id: String = "",
     val name: String = "",
-    val type: String = "fridge", // fridge, freezer, or pantry
+    // fridge, freezer, or pantry
+    val type: String = "fridge",
     val location: String = "",
     val householdId: String = "",
     val createdBy: String = "",

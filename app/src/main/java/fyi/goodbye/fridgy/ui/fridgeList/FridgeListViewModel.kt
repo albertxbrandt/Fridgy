@@ -37,10 +37,9 @@ class FridgeListViewModel(
     private val fridgeRepository: FridgeRepository = FridgeRepository(),
     private val adminRepository: AdminRepository = AdminRepository()
 ) : AndroidViewModel(application) {
-    
     /** The household ID this fridge list belongs to. */
     val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
-    
+
     private val _fridgesUiState = MutableStateFlow<FridgeUiState>(FridgeUiState.Loading)
 
     /** The current state of the fridges list (Loading, Success, or Error). */
@@ -87,20 +86,22 @@ class FridgeListViewModel(
                     val creatorIds = fridges.map { it.createdBy }.distinct()
                     val usersMap = fridgeRepository.getUsersByIds(creatorIds)
 
-                    val displayFridges = fridges.map { fridge ->
-                        val creatorName = usersMap[fridge.createdBy]?.username 
-                            ?: getApplication<Application>().getString(R.string.unknown)
+                    val displayFridges =
+                        fridges.map { fridge ->
+                            val creatorName =
+                                usersMap[fridge.createdBy]?.username
+                                    ?: getApplication<Application>().getString(R.string.unknown)
 
-                        DisplayFridge(
-                            id = fridge.id,
-                            name = fridge.name,
-                            type = fridge.type,
-                            householdId = fridge.householdId,
-                            createdByUid = fridge.createdBy,
-                            creatorDisplayName = creatorName,
-                            createdAt = fridge.createdAt
-                        )
-                    }
+                            DisplayFridge(
+                                id = fridge.id,
+                                name = fridge.name,
+                                type = fridge.type,
+                                householdId = fridge.householdId,
+                                createdByUid = fridge.createdBy,
+                                creatorDisplayName = creatorName,
+                                createdAt = fridge.createdAt
+                            )
+                        }
                     _fridgesUiState.value = FridgeUiState.Success(displayFridges)
                 }
             }
@@ -114,12 +115,16 @@ class FridgeListViewModel(
      * @param type The type of storage (fridge, freezer, pantry).
      * @param location Optional physical location description.
      */
-    fun createNewFridge(name: String, type: String = "fridge", location: String = "") {
+    fun createNewFridge(
+        name: String,
+        type: String = "fridge",
+        location: String = ""
+    ) {
         if (householdId.isEmpty()) {
             createdFridgeError.value = getApplication<Application>().getString(R.string.error_no_household_selected)
             return
         }
-        
+
         createdFridgeError.value = null
         _isCreatingFridge.value = true
         viewModelScope.launch {

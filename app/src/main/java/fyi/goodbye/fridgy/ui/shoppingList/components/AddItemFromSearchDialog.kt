@@ -14,16 +14,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.ui.shared.components.SquaredButton
 import fyi.goodbye.fridgy.ui.shared.components.SquaredInput
 
 /**
  * Dialog for adding a searched product to the shopping list with quantity and store.
- * 
+ *
  * Shown when user clicks "Add" on a product search result. Allows specifying:
  * - Quantity needed (with +/- picker)
  * - Store where to buy (optional text field)
- * 
+ *
  * @param product The product to be added to shopping list
  * @param onDismiss Callback when dialog is cancelled
  * @param onConfirm Callback with (quantity, store) when Add button is pressed
@@ -39,10 +38,13 @@ fun AddItemFromSearchDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
-                if (product.name.isNotEmpty()) "Add ${product.name}" 
-                else "Add Scanned Item",
+                if (product.name.isNotEmpty()) {
+                    "Add ${product.name}"
+                } else {
+                    "Add Scanned Item"
+                },
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold
             )
@@ -55,9 +57,10 @@ fun AddItemFromSearchDialog(
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -99,7 +102,7 @@ fun AddItemFromSearchDialog(
                         }
                     }
                 }
-                
+
                 SquaredInput(
                     value = store,
                     onValueChange = { store = it },

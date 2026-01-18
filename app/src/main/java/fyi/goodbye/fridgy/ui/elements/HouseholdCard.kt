@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**
@@ -32,24 +31,28 @@ fun HouseholdCard(
     household: DisplayHousehold,
     onClick: (DisplayHousehold) -> Unit
 ) {
-    val dateFormatter = remember {
-        SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-    }
-    
+    val dateFormatter =
+        remember {
+            SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
+        }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick(household) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickable { onClick(household) },
         shape = MaterialTheme.shapes.medium,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Icon
@@ -61,15 +64,16 @@ fun HouseholdCard(
                 Icon(
                     imageVector = Icons.Default.Home,
                     contentDescription = null,
-                    modifier = Modifier
-                        .padding(12.dp)
-                        .size(32.dp),
+                    modifier =
+                        Modifier
+                            .padding(12.dp)
+                            .size(32.dp),
                     tint = MaterialTheme.colorScheme.primary
                 )
             }
-            
+
             Spacer(modifier = Modifier.width(16.dp))
-            
+
             // Content
             Column(
                 modifier = Modifier.weight(1f)
@@ -82,9 +86,9 @@ fun HouseholdCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 // Member count and fridge count
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -102,16 +106,17 @@ fun HouseholdCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = pluralStringResource(
-                                R.plurals.member_count,
-                                household.memberUsers.size,
-                                household.memberUsers.size
-                            ),
+                            text =
+                                pluralStringResource(
+                                    R.plurals.member_count,
+                                    household.memberUsers.size,
+                                    household.memberUsers.size
+                                ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     // Fridges
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -124,19 +129,20 @@ fun HouseholdCard(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = pluralStringResource(
-                                R.plurals.fridge_count,
-                                household.fridgeCount,
-                                household.fridgeCount
-                            ),
+                            text =
+                                pluralStringResource(
+                                    R.plurals.fridge_count,
+                                    household.fridgeCount,
+                                    household.fridgeCount
+                                ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(4.dp))
-                
+
                 // Owner info
                 Text(
                     text = "Owner: ${household.ownerDisplayName}",

@@ -59,7 +59,7 @@ class FridgeSettingsViewModel(
             try {
                 val displayFridge = fridgeRepository.getFridgeById(fridgeId)
                 val rawFridge = fridgeRepository.getRawFridgeById(fridgeId)
-                
+
                 if (displayFridge != null && rawFridge != null) {
                     _uiState.value = FridgeSettingsUiState.Success(displayFridge, rawFridge)
                 } else {

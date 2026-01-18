@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
@@ -64,7 +63,7 @@ fun HouseholdListScreen(
     var newHouseholdName by remember { mutableStateOf("") }
     var isSidebarOpen by remember { mutableStateOf(false) }
     var showMigrationDialog by remember { mutableStateOf(false) }
-    
+
     val householdsUiState by viewModel.householdsUiState.collectAsState()
     val isAdmin by viewModel.isAdmin.collectAsState()
     val isCreatingHousehold by viewModel.isCreatingHousehold.collectAsState()
@@ -72,7 +71,7 @@ fun HouseholdListScreen(
     val needsMigration by viewModel.needsMigration.collectAsState()
     val isMigrating by viewModel.isMigrating.collectAsState()
     val auth = remember { FirebaseAuth.getInstance() }
-    
+
     // Show migration dialog when needed
     LaunchedEffect(needsMigration) {
         if (needsMigration) {
@@ -81,57 +80,58 @@ fun HouseholdListScreen(
     }
 
     // Define sidebar menu items
-    val sidebarMenuItems = buildList {
-        add(
-            SidebarMenuItem(
-                icon = Icons.Default.Notifications,
-                label = "Notifications",
-                onClick = {
-                    isSidebarOpen = false
-                    onNavigateToNotifications()
-                }
-            )
-        )
-        add(
-            SidebarMenuItem(
-                icon = Icons.Default.Link,
-                label = "Join Household",
-                onClick = {
-                    isSidebarOpen = false
-                    onNavigateToJoinHousehold()
-                }
-            )
-        )
-        add(
-            SidebarMenuItem(
-                icon = Icons.Default.AccountCircle,
-                label = "Account",
-                onClick = { isSidebarOpen = false }
-            )
-        )
-        add(
-            SidebarMenuItem(
-                icon = Icons.AutoMirrored.Filled.Logout,
-                label = "Logout",
-                onClick = {
-                    auth.signOut()
-                    onLogout()
-                }
-            )
-        )
-        if (isAdmin) {
+    val sidebarMenuItems =
+        buildList {
             add(
                 SidebarMenuItem(
-                    icon = Icons.Default.AdminPanelSettings,
-                    label = "Admin Panel",
+                    icon = Icons.Default.Notifications,
+                    label = "Notifications",
                     onClick = {
                         isSidebarOpen = false
-                        onNavigateToAdminPanel()
+                        onNavigateToNotifications()
                     }
                 )
             )
+            add(
+                SidebarMenuItem(
+                    icon = Icons.Default.Link,
+                    label = "Join Household",
+                    onClick = {
+                        isSidebarOpen = false
+                        onNavigateToJoinHousehold()
+                    }
+                )
+            )
+            add(
+                SidebarMenuItem(
+                    icon = Icons.Default.AccountCircle,
+                    label = "Account",
+                    onClick = { isSidebarOpen = false }
+                )
+            )
+            add(
+                SidebarMenuItem(
+                    icon = Icons.AutoMirrored.Filled.Logout,
+                    label = "Logout",
+                    onClick = {
+                        auth.signOut()
+                        onLogout()
+                    }
+                )
+            )
+            if (isAdmin) {
+                add(
+                    SidebarMenuItem(
+                        icon = Icons.Default.AdminPanelSettings,
+                        label = "Admin Panel",
+                        onClick = {
+                            isSidebarOpen = false
+                            onNavigateToAdminPanel()
+                        }
+                    )
+                )
+            }
         }
-    }
 
     Scaffold(
         topBar = {
@@ -144,9 +144,10 @@ fun HouseholdListScreen(
                         fontWeight = FontWeight.Bold
                     )
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
                 actions = {
                     IconButton(onClick = { isSidebarOpen = !isSidebarOpen }) {
                         Icon(
@@ -183,10 +184,11 @@ fun HouseholdListScreen(
                 }
                 is HouseholdListViewModel.HouseholdUiState.Error -> {
                     Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(horizontal = 24.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .padding(paddingValues)
+                                .padding(horizontal = 24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
@@ -200,10 +202,11 @@ fun HouseholdListScreen(
                     val households = state.households
                     if (households.isEmpty()) {
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(paddingValues)
-                                .padding(horizontal = 24.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(paddingValues)
+                                    .padding(horizontal = 24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
@@ -211,9 +214,9 @@ fun HouseholdListScreen(
                                 message = stringResource(R.string.no_households_yet),
                                 modifier = Modifier.weight(1f)
                             )
-                            
+
                             Spacer(modifier = Modifier.height(16.dp))
-                            
+
                             // Quick action buttons for empty state
                             Row(
                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -245,17 +248,19 @@ fun HouseholdListScreen(
                         }
                     } else {
                         LazyColumn(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(paddingValues)
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxSize()
+                                    .padding(paddingValues)
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
                             verticalArrangement = Arrangement.spacedBy(12.dp),
                             contentPadding = PaddingValues(bottom = 80.dp)
                         ) {
                             items(households, key = { it.id }) { household ->
-                                val onCardClick = remember(household.id) {
-                                    { _: DisplayHousehold -> onNavigateToHousehold(household) }
-                                }
+                                val onCardClick =
+                                    remember(household.id) {
+                                        { _: DisplayHousehold -> onNavigateToHousehold(household) }
+                                    }
                                 HouseholdCard(household = household, onClick = onCardClick)
                             }
                         }
@@ -296,7 +301,7 @@ fun HouseholdListScreen(
                         shape = MaterialTheme.shapes.medium,
                         enabled = !isCreatingHousehold
                     )
-                    
+
                     if (createHouseholdError != null) {
                         Text(
                             text = createHouseholdError!!,
@@ -343,7 +348,7 @@ fun HouseholdListScreen(
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
-    
+
     // Migration Dialog
     if (showMigrationDialog) {
         AlertDialog(

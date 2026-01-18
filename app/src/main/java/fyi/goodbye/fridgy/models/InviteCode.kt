@@ -33,7 +33,6 @@ data class InviteCode(
     val usedAt: Long? = null,
     val isActive: Boolean = true
 ) : Parcelable {
-    
     /**
      * Checks if this invite code is currently valid for use.
      * A code is valid if it is active, has not been used, and has not expired.
@@ -44,7 +43,7 @@ data class InviteCode(
         if (expiresAt != null && System.currentTimeMillis() > expiresAt) return false
         return true
     }
-    
+
     /**
      * Checks if this invite code has expired.
      */

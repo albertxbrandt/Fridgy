@@ -30,7 +30,6 @@ class HouseholdListViewModel(
     private val householdRepository: HouseholdRepository = HouseholdRepository(),
     private val adminRepository: AdminRepository = AdminRepository()
 ) : AndroidViewModel(application) {
-    
     private val _householdsUiState = MutableStateFlow<HouseholdUiState>(HouseholdUiState.Loading)
 
     /** The current state of the households list (Loading, Success, or Error). */
@@ -52,29 +51,30 @@ class HouseholdListViewModel(
 
     /** Any error message resulting from a failed household creation attempt. */
     val createHouseholdError: StateFlow<String?> = _createHouseholdError.asStateFlow()
-    
+
     private val _needsMigration = MutableStateFlow(false)
-    
+
     /** Indicates if the user has orphan fridges that need migration. */
     val needsMigration: StateFlow<Boolean> = _needsMigration.asStateFlow()
-    
+
     private val _isMigrating = MutableStateFlow(false)
-    
+
     /** Indicates if migration is in progress. */
     val isMigrating: StateFlow<Boolean> = _isMigrating.asStateFlow()
 
     init {
         val currentUserId = auth.currentUser?.uid
         if (currentUserId == null) {
-            _householdsUiState.value = HouseholdUiState.Error(
-                getApplication<Application>().getString(R.string.error_user_not_logged_in)
-            )
+            _householdsUiState.value =
+                HouseholdUiState.Error(
+                    getApplication<Application>().getString(R.string.error_user_not_logged_in)
+                )
         } else {
             // Check admin status
             viewModelScope.launch {
                 _isAdmin.value = adminRepository.isCurrentUserAdmin()
             }
-            
+
             // Check for orphan fridges that need migration
             viewModelScope.launch {
                 try {
@@ -89,15 +89,19 @@ class HouseholdListViewModel(
                 Log.d("HouseholdListVM", "Starting to collect households flow")
                 householdRepository.getHouseholdsForCurrentUser().collectLatest { households ->
                     Log.d("HouseholdListVM", "Received ${households.size} households from flow")
-                    val displayHouseholds = households.mapNotNull { household ->
-                        try {
-                            householdRepository.getDisplayHouseholdById(household.id)
-                        } catch (e: Exception) {
-                            Log.e("HouseholdListVM", "Error fetching display household: ${e.message}")
-                            null
+                    val displayHouseholds =
+                        households.mapNotNull { household ->
+                            try {
+                                householdRepository.getDisplayHouseholdById(household.id)
+                            } catch (e: Exception) {
+                                Log.e("HouseholdListVM", "Error fetching display household: ${e.message}")
+                                null
+                            }
                         }
-                    }
-                    Log.d("HouseholdListVM", "Setting UI state to Success with ${displayHouseholds.size} display households")
+                    Log.d(
+                        "HouseholdListVM",
+                        "Setting UI state to Success with ${displayHouseholds.size} display households"
+                    )
                     _householdsUiState.value = HouseholdUiState.Success(displayHouseholds)
                 }
             }
@@ -114,21 +118,21 @@ class HouseholdListViewModel(
             _createHouseholdError.value = getApplication<Application>().getString(R.string.error_please_fill_all_fields)
             return
         }
-        
+
         _createHouseholdError.value = null
         _isCreatingHousehold.value = true
         viewModelScope.launch {
             try {
                 householdRepository.createHousehold(name)
             } catch (e: Exception) {
-                _createHouseholdError.value = e.message 
+                _createHouseholdError.value = e.message
                     ?: getApplication<Application>().getString(R.string.error_failed_to_create_household)
             } finally {
                 _isCreatingHousehold.value = false
             }
         }
     }
-    
+
     /**
      * Migrates orphan fridges (fridges without a householdId) to a new household.
      */
@@ -146,7 +150,7 @@ class HouseholdListViewModel(
             }
         }
     }
-    
+
     /** Clears the create household error. */
     fun clearError() {
         _createHouseholdError.value = null

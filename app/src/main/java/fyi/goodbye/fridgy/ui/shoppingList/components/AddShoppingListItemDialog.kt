@@ -13,24 +13,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.ui.shared.components.SquaredButton
 import fyi.goodbye.fridgy.ui.shared.components.SquaredInput
 
 /**
  * Dialog for manually adding an item to the shopping list.
- * 
+ *
  * This dialog is shown when users can't find a product in the search results and need to
  * add a custom item. The item will be added with a generic name (not linked to the products
  * database) along with the specified quantity.
- * 
+ *
  * **Input Fields:**
  * - Item Name: Required text field for the product/item name
  * - Quantity: Numeric field defaulting to 1
- * 
+ *
  * **Validation:**
  * - Item name must not be blank to enable Add button
  * - Quantity falls back to 1 if invalid input provided
- * 
+ *
  * @param householdId The ID of the household (currently unused but available for future features)
  * @param onDismiss Callback invoked when dialog is cancelled or dismissed
  * @param onScanClick Callback to switch to barcode scanning (currently unused)
@@ -50,7 +49,7 @@ fun AddShoppingListItemDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
                 stringResource(R.string.add_item_manually),
                 style = MaterialTheme.typography.headlineSmall,
@@ -66,16 +65,17 @@ fun AddShoppingListItemDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
                 ) {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -117,7 +117,7 @@ fun AddShoppingListItemDialog(
                         }
                     }
                 }
-                
+
                 SquaredInput(
                     value = store,
                     onValueChange = { store = it },

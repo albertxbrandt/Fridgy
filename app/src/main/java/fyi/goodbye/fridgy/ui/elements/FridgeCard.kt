@@ -13,19 +13,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.BlurredEdgeTreatment
-import androidx.compose.ui.draw.blur
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.theme.FridgeTypeColors
 import java.text.SimpleDateFormat
@@ -45,13 +39,14 @@ fun FridgeCard(
     onClick: (DisplayFridge) -> Unit
 ) {
     val dateFormatter = remember { SimpleDateFormat("MMM dd", Locale.getDefault()) }
-    
+
     // Determine icon and gradient colors based on fridge type
-    val (fridgeIcon, iconGradient) = when (fridge.type.lowercase()) {
-        "freezer" -> Icons.Default.AcUnit to FridgeTypeColors.FreezerGradient
-        "pantry" -> Icons.Default.Inventory to FridgeTypeColors.PantryGradient
-        else -> Icons.Default.Kitchen to FridgeTypeColors.FridgeGradient
-    }
+    val (fridgeIcon, iconGradient) =
+        when (fridge.type.lowercase()) {
+            "freezer" -> Icons.Default.AcUnit to FridgeTypeColors.FreezerGradient
+            "pantry" -> Icons.Default.Inventory to FridgeTypeColors.PantryGradient
+            else -> Icons.Default.Kitchen to FridgeTypeColors.FridgeGradient
+        }
 
     Card(
         modifier =
@@ -59,19 +54,22 @@ fun FridgeCard(
                 .fillMaxWidth()
                 .clickable { onClick(fridge) },
         shape = MaterialTheme.shapes.large,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Box(
             modifier = Modifier.fillMaxWidth()
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-                    .padding(end = 44.dp) // Make room for icon
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp)
+                        // Make room for icon
+                        .padding(end = 44.dp)
             ) {
                 Column(
                     modifier = Modifier.weight(1f),
@@ -86,74 +84,77 @@ fun FridgeCard(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-            
-                // Bottom info section with chips
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Type chip
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        modifier = Modifier
+
+                    // Bottom info section with chips
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(
-                            text = fridge.type.replaceFirstChar { it.uppercase() },
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                        )
-                    }
-                    
-                    // Divider
-                    Box(
-                        modifier = Modifier
-                            .size(4.dp)
-                            .background(
-                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                                MaterialTheme.shapes.small
+                        // Type chip
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            modifier = Modifier
+                        ) {
+                            Text(
+                                text = fridge.type.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                             )
-                    )
-                    
-                    // Creator info
-                    Column(
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = fridge.creatorDisplayName,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                        }
+
+                        // Divider
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(4.dp)
+                                    .background(
+                                        MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                                        MaterialTheme.shapes.small
+                                    )
                         )
-                        Text(
-                            text = dateFormatter.format(Date(fridge.createdAt)),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                        )
+
+                        // Creator info
+                        Column(
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text(
+                                text = fridge.creatorDisplayName,
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Text(
+                                text = dateFormatter.format(Date(fridge.createdAt)),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
                     }
                 }
             }
-            }
-            
+
             // Type icon on the right with shadow and gradient
             Box(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(end = 20.dp)
-                    .size(64.dp)
-                    .shadow(8.dp, CircleShape)
-                    .drawBehind {
-                        drawCircle(
-                            brush = Brush.linearGradient(
-                                colors = iconGradient
+                modifier =
+                    Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 20.dp)
+                        .size(64.dp)
+                        .shadow(8.dp, CircleShape)
+                        .drawBehind {
+                            drawCircle(
+                                brush =
+                                    Brush.linearGradient(
+                                        colors = iconGradient
+                                    )
                             )
-                        )
-                    },
+                        },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -163,22 +164,25 @@ fun FridgeCard(
                     modifier = Modifier.size(40.dp)
                 )
             }
-            
+
             // Decorative accent bar
             Box(
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .fillMaxWidth()
-                    .height(4.dp)
-                    .background(
-                        brush = Brush.horizontalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.primary,
-                                MaterialTheme.colorScheme.tertiary,
-                                Color.Transparent
-                            )
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomStart)
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .background(
+                            brush =
+                                Brush.horizontalGradient(
+                                    colors =
+                                        listOf(
+                                            MaterialTheme.colorScheme.primary,
+                                            MaterialTheme.colorScheme.tertiary,
+                                            Color.Transparent
+                                        )
+                                )
                         )
-                    )
             )
         }
     }

@@ -37,17 +37,19 @@ class NotificationRepository(
      */
     suspend fun refreshFcmToken(): Result<String> {
         return try {
-            val userId = auth.currentUser?.uid
-                ?: return Result.failure(Exception("User not authenticated"))
+            val userId =
+                auth.currentUser?.uid
+                    ?: return Result.failure(Exception("User not authenticated"))
 
             val token = messaging.token.await()
             Log.d(TAG, "FCM Token retrieved: $token")
 
             // Save token to Firestore
-            val fcmToken = FcmToken(
-                userId = userId,
-                token = token
-            )
+            val fcmToken =
+                FcmToken(
+                    userId = userId,
+                    token = token
+                )
 
             firestore.collection(COLLECTION_FCM_TOKENS)
                 .document(userId)
@@ -95,60 +97,65 @@ class NotificationRepository(
      * Get a real-time stream of notifications for the current user.
      * Sorted by creation time (newest first).
      */
-    fun getNotificationsFlow(): Flow<List<Notification>> = callbackFlow {
-        val userId = auth.currentUser?.uid
-        if (userId == null) {
-            close(Exception("User not authenticated"))
-            return@callbackFlow
-        }
-
-        val listenerRegistration = firestore.collection(COLLECTION_NOTIFICATIONS)
-            .whereEqualTo("userId", userId)
-            .orderBy("createdAt", Query.Direction.DESCENDING)
-            .limit(50) // Limit to 50 most recent notifications
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.e(TAG, "Error listening to notifications", error)
-                    close(error)
-                    return@addSnapshotListener
-                }
-
-                val notifications = snapshot?.documents?.mapNotNull { doc ->
-                    doc.toObject(Notification::class.java)
-                } ?: emptyList()
-
-                trySend(notifications)
+    fun getNotificationsFlow(): Flow<List<Notification>> =
+        callbackFlow {
+            val userId = auth.currentUser?.uid
+            if (userId == null) {
+                close(Exception("User not authenticated"))
+                return@callbackFlow
             }
 
-        awaitClose { listenerRegistration.remove() }
-    }
+            val listenerRegistration =
+                firestore.collection(COLLECTION_NOTIFICATIONS)
+                    .whereEqualTo("userId", userId)
+                    .orderBy("createdAt", Query.Direction.DESCENDING)
+                    .limit(50) // Limit to 50 most recent notifications
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.e(TAG, "Error listening to notifications", error)
+                            close(error)
+                            return@addSnapshotListener
+                        }
+
+                        val notifications =
+                            snapshot?.documents?.mapNotNull { doc ->
+                                doc.toObject(Notification::class.java)
+                            } ?: emptyList()
+
+                        trySend(notifications)
+                    }
+
+            awaitClose { listenerRegistration.remove() }
+        }
 
     /**
      * Get unread notification count for the current user.
      */
-    fun getUnreadCountFlow(): Flow<Int> = callbackFlow {
-        val userId = auth.currentUser?.uid
-        if (userId == null) {
-            close(Exception("User not authenticated"))
-            return@callbackFlow
-        }
-
-        val listenerRegistration = firestore.collection(COLLECTION_NOTIFICATIONS)
-            .whereEqualTo("userId", userId)
-            .whereEqualTo("isRead", false)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    Log.e(TAG, "Error listening to unread count", error)
-                    close(error)
-                    return@addSnapshotListener
-                }
-
-                val count = snapshot?.size() ?: 0
-                trySend(count)
+    fun getUnreadCountFlow(): Flow<Int> =
+        callbackFlow {
+            val userId = auth.currentUser?.uid
+            if (userId == null) {
+                close(Exception("User not authenticated"))
+                return@callbackFlow
             }
 
-        awaitClose { listenerRegistration.remove() }
-    }
+            val listenerRegistration =
+                firestore.collection(COLLECTION_NOTIFICATIONS)
+                    .whereEqualTo("userId", userId)
+                    .whereEqualTo("isRead", false)
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.e(TAG, "Error listening to unread count", error)
+                            close(error)
+                            return@addSnapshotListener
+                        }
+
+                        val count = snapshot?.size() ?: 0
+                        trySend(count)
+                    }
+
+            awaitClose { listenerRegistration.remove() }
+        }
 
     /**
      * Mark a notification as read.
@@ -173,14 +180,16 @@ class NotificationRepository(
      */
     suspend fun markAllAsRead(): Result<Unit> {
         return try {
-            val userId = auth.currentUser?.uid
-                ?: return Result.failure(Exception("User not authenticated"))
+            val userId =
+                auth.currentUser?.uid
+                    ?: return Result.failure(Exception("User not authenticated"))
 
-            val unreadNotifications = firestore.collection(COLLECTION_NOTIFICATIONS)
-                .whereEqualTo("userId", userId)
-                .whereEqualTo("isRead", false)
-                .get()
-                .await()
+            val unreadNotifications =
+                firestore.collection(COLLECTION_NOTIFICATIONS)
+                    .whereEqualTo("userId", userId)
+                    .whereEqualTo("isRead", false)
+                    .get()
+                    .await()
 
             val batch = firestore.batch()
             unreadNotifications.documents.forEach { doc ->
