@@ -20,17 +20,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
+import fyi.goodbye.fridgy.models.UserProfile
 import fyi.goodbye.fridgy.ui.elements.HouseholdCard
 import fyi.goodbye.fridgy.ui.shared.components.CollapsibleSidebar
 import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SidebarMenuItem
+import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 
 /**
  * The main screen displaying a list of the user's households.
@@ -59,18 +62,56 @@ fun HouseholdListScreen(
     onLogout: () -> Unit,
     viewModel: HouseholdListViewModel = viewModel(factory = HouseholdListViewModel.provideFactory())
 ) {
-    var showAddHouseholdDialog by remember { mutableStateOf(false) }
-    var newHouseholdName by remember { mutableStateOf("") }
-    var isSidebarOpen by remember { mutableStateOf(false) }
-    var showMigrationDialog by remember { mutableStateOf(false) }
-
     val householdsUiState by viewModel.householdsUiState.collectAsState()
     val isAdmin by viewModel.isAdmin.collectAsState()
     val isCreatingHousehold by viewModel.isCreatingHousehold.collectAsState()
     val createHouseholdError by viewModel.createHouseholdError.collectAsState()
     val needsMigration by viewModel.needsMigration.collectAsState()
     val isMigrating by viewModel.isMigrating.collectAsState()
-    val auth = remember { FirebaseAuth.getInstance() }
+
+    HouseholdListContent(
+        householdsUiState = householdsUiState,
+        isAdmin = isAdmin,
+        isCreatingHousehold = isCreatingHousehold,
+        createHouseholdError = createHouseholdError,
+        needsMigration = needsMigration,
+        isMigrating = isMigrating,
+        onNavigateToHousehold = onNavigateToHousehold,
+        onNavigateToJoinHousehold = onNavigateToJoinHousehold,
+        onNavigateToNotifications = onNavigateToNotifications,
+        onNavigateToAdminPanel = onNavigateToAdminPanel,
+        onLogout = {
+            FirebaseAuth.getInstance().signOut()
+            onLogout()
+        },
+        onCreateHousehold = { name -> viewModel.createNewHousehold(name) },
+        onClearError = { viewModel.clearError() },
+        onMigrateOrphanFridges = { viewModel.migrateOrphanFridges() }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HouseholdListContent(
+    householdsUiState: HouseholdListViewModel.HouseholdUiState,
+    isAdmin: Boolean,
+    isCreatingHousehold: Boolean,
+    createHouseholdError: String?,
+    needsMigration: Boolean,
+    isMigrating: Boolean,
+    onNavigateToHousehold: (DisplayHousehold) -> Unit,
+    onNavigateToJoinHousehold: () -> Unit,
+    onNavigateToNotifications: () -> Unit,
+    onNavigateToAdminPanel: () -> Unit,
+    onLogout: () -> Unit,
+    onCreateHousehold: (String) -> Unit,
+    onClearError: () -> Unit,
+    onMigrateOrphanFridges: () -> Unit
+) {
+    var showAddHouseholdDialog by remember { mutableStateOf(false) }
+    var newHouseholdName by remember { mutableStateOf("") }
+    var isSidebarOpen by remember { mutableStateOf(false) }
+    var showMigrationDialog by remember { mutableStateOf(false) }
 
     // Show migration dialog when needed
     LaunchedEffect(needsMigration) {
@@ -113,10 +154,7 @@ fun HouseholdListScreen(
                 SidebarMenuItem(
                     icon = Icons.AutoMirrored.Filled.Logout,
                     label = "Logout",
-                    onClick = {
-                        auth.signOut()
-                        onLogout()
-                    }
+                    onClick = onLogout
                 )
             )
             if (isAdmin) {
@@ -277,7 +315,7 @@ fun HouseholdListScreen(
                 if (!isCreatingHousehold) {
                     showAddHouseholdDialog = false
                     newHouseholdName = ""
-                    viewModel.clearError()
+                    onClearError()
                 }
             },
             title = {
@@ -314,7 +352,7 @@ fun HouseholdListScreen(
             confirmButton = {
                 FilledTonalButton(
                     onClick = {
-                        viewModel.createNewHousehold(newHouseholdName)
+                        onCreateHousehold(newHouseholdName)
                         if (createHouseholdError == null) {
                             showAddHouseholdDialog = false
                             newHouseholdName = ""
@@ -337,7 +375,7 @@ fun HouseholdListScreen(
                     onClick = {
                         showAddHouseholdDialog = false
                         newHouseholdName = ""
-                        viewModel.clearError()
+                        onClearError()
                     },
                     enabled = !isCreatingHousehold
                 ) {
@@ -376,7 +414,7 @@ fun HouseholdListScreen(
             confirmButton = {
                 FilledTonalButton(
                     onClick = {
-                        viewModel.migrateOrphanFridges()
+                        onMigrateOrphanFridges()
                         showMigrationDialog = false
                     },
                     enabled = !isMigrating
@@ -393,6 +431,145 @@ fun HouseholdListScreen(
             },
             shape = MaterialTheme.shapes.extraLarge,
             containerColor = MaterialTheme.colorScheme.surface
+        )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun HouseholdListPreviewLoading() {
+    FridgyTheme {
+        HouseholdListContent(
+            householdsUiState = HouseholdListViewModel.HouseholdUiState.Loading,
+            isAdmin = false,
+            isCreatingHousehold = false,
+            createHouseholdError = null,
+            needsMigration = false,
+            isMigrating = false,
+            onNavigateToHousehold = {},
+            onNavigateToJoinHousehold = {},
+            onNavigateToNotifications = {},
+            onNavigateToAdminPanel = {},
+            onLogout = {},
+            onCreateHousehold = {},
+            onClearError = {},
+            onMigrateOrphanFridges = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun HouseholdListPreviewEmpty() {
+    FridgyTheme {
+        HouseholdListContent(
+            householdsUiState = HouseholdListViewModel.HouseholdUiState.Success(emptyList()),
+            isAdmin = false,
+            isCreatingHousehold = false,
+            createHouseholdError = null,
+            needsMigration = false,
+            isMigrating = false,
+            onNavigateToHousehold = {},
+            onNavigateToJoinHousehold = {},
+            onNavigateToNotifications = {},
+            onNavigateToAdminPanel = {},
+            onLogout = {},
+            onCreateHousehold = {},
+            onClearError = {},
+            onMigrateOrphanFridges = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun HouseholdListPreviewWithHouseholds() {
+    FridgyTheme {
+        HouseholdListContent(
+            householdsUiState = HouseholdListViewModel.HouseholdUiState.Success(
+                listOf(
+                    DisplayHousehold(
+                        id = "1",
+                        name = "Smith Family",
+                        createdByUid = "user1",
+                        ownerDisplayName = "John Smith",
+                        memberUsers = listOf(
+                            UserProfile(uid = "user1", username = "John Smith"),
+                            UserProfile(uid = "user2", username = "Jane Smith"),
+                            UserProfile(uid = "user3", username = "Bobby Smith"),
+                            UserProfile(uid = "user4", username = "Sally Smith")
+                        ),
+                        fridgeCount = 3,
+                        createdAt = System.currentTimeMillis()
+                    ),
+                    DisplayHousehold(
+                        id = "2",
+                        name = "Beach House",
+                        createdByUid = "user1",
+                        ownerDisplayName = "John Smith",
+                        memberUsers = listOf(
+                            UserProfile(uid = "user1", username = "John Smith"),
+                            UserProfile(uid = "user5", username = "Mike Johnson")
+                        ),
+                        fridgeCount = 1,
+                        createdAt = System.currentTimeMillis()
+                    ),
+                    DisplayHousehold(
+                        id = "3",
+                        name = "Office Kitchen",
+                        createdByUid = "user2",
+                        ownerDisplayName = "Jane Smith",
+                        memberUsers = listOf(
+                            UserProfile(uid = "user2", username = "Jane Smith"),
+                            UserProfile(uid = "user6", username = "Alice Brown"),
+                            UserProfile(uid = "user7", username = "Bob White"),
+                            UserProfile(uid = "user8", username = "Charlie Green"),
+                            UserProfile(uid = "user9", username = "Diana Blue"),
+                            UserProfile(uid = "user10", username = "Eve Red"),
+                            UserProfile(uid = "user11", username = "Frank Yellow"),
+                            UserProfile(uid = "user12", username = "Grace Purple")
+                        ),
+                        fridgeCount = 2,
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+            ),
+            isAdmin = true,
+            isCreatingHousehold = false,
+            createHouseholdError = null,
+            needsMigration = false,
+            isMigrating = false,
+            onNavigateToHousehold = {},
+            onNavigateToJoinHousehold = {},
+            onNavigateToNotifications = {},
+            onNavigateToAdminPanel = {},
+            onLogout = {},
+            onCreateHousehold = {},
+            onClearError = {},
+            onMigrateOrphanFridges = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun HouseholdListPreviewError() {
+    FridgyTheme {
+        HouseholdListContent(
+            householdsUiState = HouseholdListViewModel.HouseholdUiState.Error("Failed to load households"),
+            isAdmin = false,
+            isCreatingHousehold = false,
+            createHouseholdError = null,
+            needsMigration = false,
+            isMigrating = false,
+            onNavigateToHousehold = {},
+            onNavigateToJoinHousehold = {},
+            onNavigateToNotifications = {},
+            onNavigateToAdminPanel = {},
+            onLogout = {},
+            onCreateHousehold = {},
+            onClearError = {},
+            onMigrateOrphanFridges = {}
         )
     }
 }

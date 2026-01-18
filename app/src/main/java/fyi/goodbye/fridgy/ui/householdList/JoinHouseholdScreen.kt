@@ -1,6 +1,5 @@
 package fyi.goodbye.fridgy.ui.householdList
 
-import android.app.Application
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -14,115 +13,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.repositories.HouseholdRepository
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.launch
-
-/**
- * ViewModel for joining a household with an invite code.
- */
-class JoinHouseholdViewModel(
-    application: Application,
-    private val householdRepository: HouseholdRepository = HouseholdRepository()
-) : AndroidViewModel(application) {
-    private val _uiState = MutableStateFlow<JoinHouseholdUiState>(JoinHouseholdUiState.Idle)
-    val uiState: StateFlow<JoinHouseholdUiState> = _uiState.asStateFlow()
-
-    private val _inviteCode = MutableStateFlow("")
-    val inviteCode: StateFlow<String> = _inviteCode.asStateFlow()
-
-    fun updateInviteCode(code: String) {
-        // Only allow uppercase alphanumeric characters, max 6 chars
-        _inviteCode.value = code.uppercase().filter { it.isLetterOrDigit() }.take(6)
-    }
-
-    fun validateCode() {
-        val code = _inviteCode.value
-        if (code.length != 6) {
-            _uiState.value =
-                JoinHouseholdUiState.Error(
-                    getApplication<Application>().getString(R.string.error_invalid_invite_code)
-                )
-            return
-        }
-
-        _uiState.value = JoinHouseholdUiState.Validating
-
-        viewModelScope.launch {
-            try {
-                val result = householdRepository.validateInviteCode(code)
-                if (result != null) {
-                    _uiState.value = JoinHouseholdUiState.CodeValid(result.householdName)
-                } else {
-                    _uiState.value =
-                        JoinHouseholdUiState.Error(
-                            getApplication<Application>().getString(R.string.error_invalid_invite_code)
-                        )
-                }
-            } catch (e: Exception) {
-                _uiState.value =
-                    JoinHouseholdUiState.Error(
-                        e.message ?: getApplication<Application>().getString(R.string.error_invalid_invite_code)
-                    )
-            }
-        }
-    }
-
-    fun joinHousehold() {
-        val code = _inviteCode.value
-        _uiState.value = JoinHouseholdUiState.Joining
-
-        viewModelScope.launch {
-            try {
-                val householdId = householdRepository.redeemInviteCode(code)
-                _uiState.value = JoinHouseholdUiState.Success(householdId)
-            } catch (e: Exception) {
-                _uiState.value =
-                    JoinHouseholdUiState.Error(
-                        e.message ?: getApplication<Application>().getString(R.string.error_failed_to_join_household)
-                    )
-            }
-        }
-    }
-
-    fun resetState() {
-        _uiState.value = JoinHouseholdUiState.Idle
-    }
-
-    sealed interface JoinHouseholdUiState {
-        data object Idle : JoinHouseholdUiState
-
-        data object Validating : JoinHouseholdUiState
-
-        data class CodeValid(val householdName: String) : JoinHouseholdUiState
-
-        data object Joining : JoinHouseholdUiState
-
-        data class Success(val householdId: String) : JoinHouseholdUiState
-
-        data class Error(val message: String) : JoinHouseholdUiState
-    }
-
-    companion object {
-        fun provideFactory(): ViewModelProvider.Factory =
-            viewModelFactory {
-                initializer {
-                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                    JoinHouseholdViewModel(app)
-                }
-            }
-    }
-}
 
 /**
  * Screen for joining a household with an invite code.
@@ -144,6 +38,29 @@ fun JoinHouseholdScreen(
             onJoinSuccess(householdId)
         }
     }
+
+    JoinHouseholdContent(
+        inviteCode = inviteCode,
+        uiState = uiState,
+        onInviteCodeChange = { viewModel.updateInviteCode(it) },
+        onValidateCode = { viewModel.validateCode() },
+        onJoinHousehold = { viewModel.joinHousehold() },
+        onResetState = { viewModel.resetState() },
+        onNavigateBack = onNavigateBack
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun JoinHouseholdContent(
+    inviteCode: String,
+    uiState: JoinHouseholdViewModel.JoinHouseholdUiState,
+    onInviteCodeChange: (String) -> Unit,
+    onValidateCode: () -> Unit,
+    onJoinHousehold: () -> Unit,
+    onResetState: () -> Unit,
+    onNavigateBack: () -> Unit
+) {
 
     Scaffold(
         topBar = {
@@ -204,9 +121,9 @@ fun JoinHouseholdScreen(
             OutlinedTextField(
                 value = inviteCode,
                 onValueChange = {
-                    viewModel.updateInviteCode(it)
+                    onInviteCodeChange(it)
                     if (uiState is JoinHouseholdViewModel.JoinHouseholdUiState.Error) {
-                        viewModel.resetState()
+                        onResetState()
                     }
                 },
                 label = { Text(stringResource(R.string.invite_code)) },
@@ -280,7 +197,7 @@ fun JoinHouseholdScreen(
                 is JoinHouseholdViewModel.JoinHouseholdUiState.Idle,
                 is JoinHouseholdViewModel.JoinHouseholdUiState.Error -> {
                     Button(
-                        onClick = { viewModel.validateCode() },
+                        onClick = onValidateCode,
                         modifier = Modifier.fillMaxWidth(),
                         enabled = inviteCode.length == 6
                     ) {
@@ -304,7 +221,7 @@ fun JoinHouseholdScreen(
                 }
                 is JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid -> {
                     Button(
-                        onClick = { viewModel.joinHousehold() },
+                        onClick = onJoinHousehold,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(stringResource(R.string.join))
@@ -332,5 +249,37 @@ fun JoinHouseholdScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun JoinHouseholdPreview() {
+    fyi.goodbye.fridgy.ui.theme.FridgyTheme {
+        JoinHouseholdContent(
+            inviteCode = "",
+            uiState = JoinHouseholdViewModel.JoinHouseholdUiState.Idle,
+            onInviteCodeChange = {},
+            onValidateCode = {},
+            onJoinHousehold = {},
+            onResetState = {},
+            onNavigateBack = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+private fun JoinHouseholdPreviewWithCode() {
+    fyi.goodbye.fridgy.ui.theme.FridgyTheme {
+        JoinHouseholdContent(
+            inviteCode = "ABC123",
+            uiState = JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid("Smith Family"),
+            onInviteCodeChange = {},
+            onValidateCode = {},
+            onJoinHousehold = {},
+            onResetState = {},
+            onNavigateBack = {}
+        )
     }
 }
