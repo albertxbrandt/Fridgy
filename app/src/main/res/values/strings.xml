@@ -305,6 +305,7 @@
     <string name="delete_household_message">This action cannot be undone. All fridges and members will be removed from this household.</string>
     <string name="no_households_yet">No households yet! Create one or join with an invite code.</string>
     <string name="cd_navigate_back">Navigate back</string>
+    <string name="cd_switch_household">Switch household</string>
     <string name="cd_household_settings">Household settings</string>
     <string name="cd_create_household">Create household</string>
     <string name="cd_join_household">Join household</string>

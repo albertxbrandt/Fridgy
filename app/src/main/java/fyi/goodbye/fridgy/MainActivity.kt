@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -31,6 +33,7 @@ import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderF
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import fyi.goodbye.fridgy.ui.adminPanel.AdminPanelScreen
 import fyi.goodbye.fridgy.ui.auth.LoginScreen
@@ -46,6 +49,7 @@ import fyi.goodbye.fridgy.ui.itemDetail.ItemDetailScreen
 import fyi.goodbye.fridgy.ui.notifications.NotificationsScreen
 import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListScreen
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
+import fyi.goodbye.fridgy.utils.UserPreferences
 import kotlinx.coroutines.launch
 
 /**
@@ -192,8 +196,51 @@ class MainActivity : ComponentActivity() {
                     androidx.compose.runtime.LaunchedEffect(Unit) {
                         permissionLauncher.launch(Manifest.permission.CAMERA)
                     }
-
-                    val startDestination = if (auth.currentUser != null) "householdList" else "login"
+                    
+                    // Get user preferences for last selected household
+                    val userPreferences = remember { UserPreferences.getInstance(this@MainActivity) }
+                    val householdRepository = remember { HouseholdRepository() }
+                    
+                    // Determine start destination:
+                    // - If not logged in: login
+                    // - If logged in with last household: fridgeList/{householdId}
+                    // - If logged in with no last household: householdList
+                    val lastHouseholdId = remember { userPreferences.getLastSelectedHouseholdId() }
+                    val startDestination = remember {
+                        when {
+                            auth.currentUser == null -> "login"
+                            lastHouseholdId != null -> "fridgeList/$lastHouseholdId"
+                            else -> "householdList"
+                        }
+                    }
+                    
+                    // Validate that the last household still exists and user is still a member
+                    val needsHouseholdValidation = remember { mutableStateOf(lastHouseholdId != null && auth.currentUser != null) }
+                    
+                    LaunchedEffect(needsHouseholdValidation.value) {
+                        if (needsHouseholdValidation.value && lastHouseholdId != null) {
+                            try {
+                                val household = householdRepository.getHouseholdById(lastHouseholdId)
+                                val currentUserId = auth.currentUser?.uid
+                                if (household == null || currentUserId !in household.members) {
+                                    // Household no longer exists or user is no longer a member
+                                    Log.d("Fridgy_Nav", "Last household no longer valid, clearing preference")
+                                    userPreferences.clearLastSelectedHouseholdId()
+                                    navController.navigate("householdList") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("Fridgy_Nav", "Error validating household: ${e.message}")
+                                // On error, still go to household list to be safe
+                                userPreferences.clearLastSelectedHouseholdId()
+                                navController.navigate("householdList") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                            needsHouseholdValidation.value = false
+                        }
+                    }
 
                     NavHost(
                         navController = navController,
@@ -232,6 +279,8 @@ class MainActivity : ComponentActivity() {
                         composable("householdList") {
                             HouseholdListScreen(
                                 onNavigateToHousehold = { household ->
+                                    // Save selected household for quick access on next launch
+                                    userPreferences.setLastSelectedHouseholdId(household.id)
                                     navController.navigate("fridgeList/${household.id}") {
                                         launchSingleTop = true
                                     }
@@ -292,8 +341,13 @@ class MainActivity : ComponentActivity() {
                                         launchSingleTop = true
                                     }
                                 },
-                                onNavigateBack = {
-                                    navController.popBackStack()
+                                onSwitchHousehold = {
+                                    // Navigate to household list to pick a different household
+                                    navController.navigate("householdList") {
+                                        // Pop up to the root so back button doesn't go to old household
+                                        popUpTo("householdList") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
                                 }
                             )
                         }

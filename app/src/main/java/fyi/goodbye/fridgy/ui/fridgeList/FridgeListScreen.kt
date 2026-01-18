@@ -7,7 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -36,7 +36,7 @@ import fyi.goodbye.fridgy.ui.shared.components.LoadingState
  *
  * @param onNavigateToFridgeInventory Callback to navigate to the inventory of a selected fridge.
  * @param onNavigateToHouseholdSettings Callback to navigate to household settings.
- * @param onNavigateBack Callback to navigate back to the household list.
+ * @param onSwitchHousehold Callback to navigate to household selection screen.
  * @param viewModel The state holder for the fridge list.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,7 +44,7 @@ import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 fun FridgeListScreen(
     onNavigateToFridgeInventory: (DisplayFridge) -> Unit,
     onNavigateToHouseholdSettings: () -> Unit,
-    onNavigateBack: () -> Unit,
+    onSwitchHousehold: () -> Unit,
     viewModel: FridgeListViewModel = viewModel(factory = FridgeListViewModel.provideFactory())
 ) {
     var showAddFridgeDialog by remember { mutableStateOf(false) }
@@ -77,10 +77,10 @@ fun FridgeListScreen(
                     containerColor = MaterialTheme.colorScheme.primary
                 ),
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
+                    IconButton(onClick = onSwitchHousehold) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = stringResource(R.string.cd_navigate_back),
+                            imageVector = Icons.Default.Home,
+                            contentDescription = stringResource(R.string.cd_switch_household),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
