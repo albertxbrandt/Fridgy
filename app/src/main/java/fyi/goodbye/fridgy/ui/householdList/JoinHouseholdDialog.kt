@@ -168,6 +168,39 @@ private fun JoinHouseholdDialogContent(
                         }
                     }
                 }
+
+                // Show info when user is already a member
+                if (uiState is JoinHouseholdViewModel.JoinHouseholdUiState.AlreadyMember) {
+                    val householdName = (uiState as JoinHouseholdViewModel.JoinHouseholdUiState.AlreadyMember).householdName
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors =
+                            CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            )
+                    ) {
+                        Column(
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "You're already a member of:",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = householdName,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -199,6 +232,18 @@ private fun JoinHouseholdDialogContent(
                         onClick = onJoinHousehold
                     ) {
                         Text(stringResource(R.string.join))
+                    }
+                }
+                is JoinHouseholdViewModel.JoinHouseholdUiState.AlreadyMember -> {
+                    Button(
+                        onClick = { },
+                        enabled = false,
+                        colors = ButtonDefaults.buttonColors(
+                            disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                            disabledContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                        )
+                    ) {
+                        Text("Already a Member")
                     }
                 }
                 is JoinHouseholdViewModel.JoinHouseholdUiState.Joining -> {
@@ -255,6 +300,22 @@ private fun JoinHouseholdDialogPreviewWithCode() {
         JoinHouseholdDialogContent(
             inviteCode = "ABC123",
             uiState = JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid("Smith Family"),
+            onInviteCodeChange = {},
+            onValidateCode = {},
+            onJoinHousehold = {},
+            onResetState = {},
+            onDismiss = {}
+        )
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun JoinHouseholdDialogPreviewAlreadyMember() {
+    fyi.goodbye.fridgy.ui.theme.FridgyTheme {
+        JoinHouseholdDialogContent(
+            inviteCode = "ABC123",
+            uiState = JoinHouseholdViewModel.JoinHouseholdUiState.AlreadyMember("Smith Family"),
             onInviteCodeChange = {},
             onValidateCode = {},
             onJoinHousehold = {},

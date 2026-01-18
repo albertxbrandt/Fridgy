@@ -47,7 +47,13 @@ class JoinHouseholdViewModel(
             try {
                 val result = householdRepository.validateInviteCode(code)
                 if (result != null) {
-                    _uiState.value = JoinHouseholdUiState.CodeValid(result.householdName)
+                    // Check if user is already a member of this household
+                    val isAlreadyMember = householdRepository.isUserMemberOfHousehold(result.householdId)
+                    if (isAlreadyMember) {
+                        _uiState.value = JoinHouseholdUiState.AlreadyMember(result.householdName)
+                    } else {
+                        _uiState.value = JoinHouseholdUiState.CodeValid(result.householdName)
+                    }
                 } else {
                     _uiState.value =
                         JoinHouseholdUiState.Error(
@@ -90,6 +96,8 @@ class JoinHouseholdViewModel(
         data object Validating : JoinHouseholdUiState
 
         data class CodeValid(val householdName: String) : JoinHouseholdUiState
+
+        data class AlreadyMember(val householdName: String) : JoinHouseholdUiState
 
         data object Joining : JoinHouseholdUiState
 

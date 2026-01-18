@@ -540,6 +540,20 @@ class HouseholdRepository {
     }
 
     /**
+     * Checks if the current user is already a member of the specified household.
+     */
+    suspend fun isUserMemberOfHousehold(householdId: String): Boolean {
+        val currentUserId = auth.currentUser?.uid ?: return false
+        return try {
+            val household = getHouseholdById(householdId) ?: return false
+            household.members.contains(currentUserId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking membership: ${e.message}")
+            false
+        }
+    }
+
+    /**
      * Validates an invite code and returns invite code info for confirmation UI.
      * Does not redeem the code. Returns invite code with embedded household name.
      * Note: We don't fetch the full household since the user isn't a member yet.
