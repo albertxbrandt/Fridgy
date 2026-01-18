@@ -12,6 +12,8 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -211,8 +213,8 @@ class HouseholdSettingsViewModel(
         // Navigate away FIRST to clear all screens with active listeners
         onSuccess()
 
-        // Then delete in the background (ViewModel stays alive briefly for this)
-        viewModelScope.launch {
+        // Use GlobalScope to ensure deletion completes even after ViewModel is cleared
+        GlobalScope.launch(Dispatchers.IO) {
             try {
                 householdRepository.deleteHousehold(householdId)
                 Log.d("HouseholdSettingsVM", "Successfully deleted household")

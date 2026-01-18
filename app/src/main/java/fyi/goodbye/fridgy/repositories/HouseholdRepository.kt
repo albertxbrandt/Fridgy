@@ -10,9 +10,12 @@ import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.models.UserProfile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
 
@@ -121,6 +124,128 @@ class HouseholdRepository {
             createdAt = household.createdAt
         )
     }
+
+    /**
+     * Returns a Flow of DisplayHouseholds for the current user with real-time updates.
+     * This includes live fridge counts that update when fridges are added/removed.
+     *
+     * This is more efficient than using getHouseholdsForCurrentUser() + getDisplayHouseholdById()
+     * because it uses a single snapshot listener for all households and their fridge counts.
+     */
+    fun getDisplayHouseholdsForCurrentUser(): Flow<List<DisplayHousehold>> =
+        callbackFlow {
+            val currentUserId =
+                auth.currentUser?.uid ?: run {
+                    trySend(emptyList()).isSuccess
+                    close()
+                    return@callbackFlow
+                }
+
+            // Cache for user profiles to avoid repeated queries
+            val userProfileCache = mutableMapOf<String, UserProfile>()
+            
+            // Map to track fridge count listeners for each household
+            val fridgeCountListeners = mutableMapOf<String, com.google.firebase.firestore.ListenerRegistration>()
+            val householdData = mutableMapOf<String, Pair<Household, Int>>() // household to (household, fridgeCount)
+
+            fun emitDisplayHouseholds() {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    try {
+                        // Collect all unique user IDs
+                        val allUserIds =
+                            householdData.values.flatMap { (household, _) ->
+                                household.members + household.createdBy
+                            }.distinct()
+
+                        // Fetch missing user profiles
+                        val missingUserIds = allUserIds.filter { it !in userProfileCache.keys }
+                        if (missingUserIds.isNotEmpty()) {
+                            val newProfiles = getUsersByIds(missingUserIds)
+                            userProfileCache.putAll(newProfiles)
+                        }
+
+                        // Build DisplayHousehold objects
+                        val displayHouseholds =
+                            householdData.values.map { (household, fridgeCount) ->
+                                val memberUsers = household.members.mapNotNull { userProfileCache[it] }
+                                val ownerName = userProfileCache[household.createdBy]?.username ?: "Unknown"
+
+                                DisplayHousehold(
+                                    id = household.id,
+                                    name = household.name,
+                                    createdByUid = household.createdBy,
+                                    ownerDisplayName = ownerName,
+                                    memberUsers = memberUsers,
+                                    fridgeCount = fridgeCount,
+                                    createdAt = household.createdAt
+                                )
+                            }
+
+                        trySend(displayHouseholds).isSuccess
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error building display households: ${e.message}")
+                    }
+                }
+            }
+
+            // Listen to household changes
+            val householdListener =
+                firestore.collection("households")
+                    .whereArrayContains("members", currentUserId)
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            Log.e(TAG, "Error in households listener: ${e.message}")
+                            trySend(emptyList()).isSuccess
+                            return@addSnapshotListener
+                        }
+
+                        val currentHouseholdIds = snapshot?.documents?.map { it.id } ?: emptyList()
+                        val households =
+                            snapshot?.documents?.mapNotNull { doc ->
+                                doc.toObject(Household::class.java)?.copy(id = doc.id)
+                            } ?: emptyList()
+
+                        // Remove listeners for households user is no longer part of
+                        fridgeCountListeners.keys.filter { it !in currentHouseholdIds }.forEach { oldId ->
+                            fridgeCountListeners[oldId]?.remove()
+                            fridgeCountListeners.remove(oldId)
+                            householdData.remove(oldId)
+                        }
+
+                        // Update household data and set up fridge count listeners
+                        households.forEach { household ->
+                            householdData[household.id] = household to (householdData[household.id]?.second ?: 0)
+
+                            // Set up fridge count listener if not already listening
+                            if (!fridgeCountListeners.containsKey(household.id)) {
+                                val fridgeListener =
+                                    firestore.collection("fridges")
+                                        .whereEqualTo("householdId", household.id)
+                                        .addSnapshotListener { fridgeSnapshot, fridgeError ->
+                                            if (fridgeError != null) {
+                                                Log.e(TAG, "Error in fridge count listener: ${fridgeError.message}")
+                                                return@addSnapshotListener
+                                            }
+
+                                            val fridgeCount = fridgeSnapshot?.size() ?: 0
+                                            householdData[household.id] = household to fridgeCount
+
+                                            // Emit updated display households
+                                            emitDisplayHouseholds()
+                                        }
+                                fridgeCountListeners[household.id] = fridgeListener
+                            }
+                        }
+
+                        // Emit initial data (fridge counts will be updated by their listeners)
+                        emitDisplayHouseholds()
+                    }
+
+            awaitClose {
+                householdListener.remove()
+                fridgeCountListeners.values.forEach { it.remove() }
+            }
+        }
 
     /**
      * Creates a new household with the current user as owner and sole member.

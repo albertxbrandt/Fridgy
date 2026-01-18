@@ -84,24 +84,11 @@ class HouseholdListViewModel(
                 }
             }
 
-            // Collect real-time stream of households the user is a member of
+            // Collect real-time stream of display households with live fridge counts
             viewModelScope.launch {
-                Log.d("HouseholdListVM", "Starting to collect households flow")
-                householdRepository.getHouseholdsForCurrentUser().collectLatest { households ->
-                    Log.d("HouseholdListVM", "Received ${households.size} households from flow")
-                    val displayHouseholds =
-                        households.mapNotNull { household ->
-                            try {
-                                householdRepository.getDisplayHouseholdById(household.id)
-                            } catch (e: Exception) {
-                                Log.e("HouseholdListVM", "Error fetching display household: ${e.message}")
-                                null
-                            }
-                        }
-                    Log.d(
-                        "HouseholdListVM",
-                        "Setting UI state to Success with ${displayHouseholds.size} display households"
-                    )
+                Log.d("HouseholdListVM", "Starting to collect display households flow")
+                householdRepository.getDisplayHouseholdsForCurrentUser().collectLatest { displayHouseholds ->
+                    Log.d("HouseholdListVM", "Received ${displayHouseholds.size} display households from flow")
                     _householdsUiState.value = HouseholdUiState.Success(displayHouseholds)
                 }
             }
