@@ -35,6 +35,7 @@ import fyi.goodbye.fridgy.ui.shoppingList.components.ShoppingListItemCard
 import fyi.goodbye.fridgy.ui.shoppingList.components.UpcEntryDialog
 import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
 import android.net.Uri
+import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.ui.shared.components.SearchBar
 import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
 import kotlinx.coroutines.launch
@@ -82,6 +83,7 @@ fun ShoppingListScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val searchResults by viewModel.searchResults.collectAsState()
     val activeViewers by viewModel.activeViewers.collectAsState()
+    val availableFridges by viewModel.availableFridges.collectAsState()
     val coroutineScope = rememberCoroutineScope()
     var showAddDialog by remember { mutableStateOf(false) }
     var showPickupDialog by remember { mutableStateOf<ShoppingListViewModel.ShoppingListItemWithProduct?>(null) }
@@ -511,16 +513,22 @@ fun ShoppingListScreen(
     
     // Partial Pickup Dialog
     showPickupDialog?.let { itemWithProduct ->
+        val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        val currentTargetFridgeId = itemWithProduct.item.targetFridgeId[currentUserId] ?: ""
+        
         PartialPickupDialog(
             itemName = itemWithProduct.productName,
             requestedQuantity = itemWithProduct.item.quantity,
             currentObtained = itemWithProduct.item.obtainedQuantity ?: 0,
+            availableFridges = availableFridges,
+            currentTargetFridgeId = currentTargetFridgeId,
             onDismiss = { showPickupDialog = null },
-            onConfirm = { obtainedQty ->
+            onConfirm = { obtainedQty, targetFridgeId ->
                 viewModel.updateItemPickup(
                     upc = itemWithProduct.item.upc,
                     obtainedQuantity = obtainedQty,
-                    totalQuantity = itemWithProduct.item.quantity
+                    totalQuantity = itemWithProduct.item.quantity,
+                    targetFridgeId = targetFridgeId
                 )
                 showPickupDialog = null
             }

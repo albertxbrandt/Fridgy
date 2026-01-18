@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.google.firebase.auth.FirebaseAuth
+import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.ShoppingListItem
+import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.Job
@@ -28,6 +30,7 @@ class ShoppingListViewModel(
     private val productRepository: ProductRepository
 ) : ViewModel() {
     private val repository = HouseholdRepository()
+    private val fridgeRepository = FridgeRepository()
     private var presenceJob: Job? = null
 
     data class ShoppingListItemWithProduct(
@@ -56,9 +59,13 @@ class ShoppingListViewModel(
     private val _activeViewers = MutableStateFlow<List<HouseholdRepository.ActiveViewer>>(emptyList())
     val activeViewers: StateFlow<List<HouseholdRepository.ActiveViewer>> = _activeViewers.asStateFlow()
 
+    private val _availableFridges = MutableStateFlow<List<Fridge>>(emptyList())
+    val availableFridges: StateFlow<List<Fridge>> = _availableFridges.asStateFlow()
+
     init {
         loadShoppingList()
         observeActiveViewers()
+        loadAvailableFridges()
     }
 
     /**
@@ -94,6 +101,14 @@ class ShoppingListViewModel(
                 val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
                 // Filter out current user from the list
                 _activeViewers.value = viewers.filter { it.userId != currentUserId }
+            }
+        }
+    }
+
+    private fun loadAvailableFridges() {
+        viewModelScope.launch {
+            fridgeRepository.getFridgesForHousehold(householdId).collect { fridges ->
+                _availableFridges.value = fridges
             }
         }
     }

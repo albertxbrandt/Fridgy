@@ -215,6 +215,7 @@
     <string name="mark_item_picked_up">Mark Item as Picked Up</string>
     <string name="how_many_obtained">How many did you get?</string>
     <string name="picked_up_x_of_y">%1$d of %2$d</string>
+    <string name="which_fridge">Which fridge will these go in?</string>
     <string name="increase_quantity">Increase quantity</string>
     <string name="decrease_quantity">Decrease quantity</string>
     <string name="confirm">Confirm</string>
