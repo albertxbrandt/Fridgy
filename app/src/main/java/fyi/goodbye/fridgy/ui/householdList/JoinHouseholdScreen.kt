@@ -23,7 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Household
+import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -64,8 +64,7 @@ class JoinHouseholdViewModel(
             try {
                 val result = householdRepository.validateInviteCode(code)
                 if (result != null) {
-                    val (inviteCode, household) = result
-                    _uiState.value = JoinHouseholdUiState.CodeValid(household)
+                    _uiState.value = JoinHouseholdUiState.CodeValid(result.householdName)
                 } else {
                     _uiState.value = JoinHouseholdUiState.Error(
                         getApplication<Application>().getString(R.string.error_invalid_invite_code)
@@ -85,8 +84,8 @@ class JoinHouseholdViewModel(
         
         viewModelScope.launch {
             try {
-                val household = householdRepository.redeemInviteCode(code)
-                _uiState.value = JoinHouseholdUiState.Success(household)
+                val householdId = householdRepository.redeemInviteCode(code)
+                _uiState.value = JoinHouseholdUiState.Success(householdId)
             } catch (e: Exception) {
                 _uiState.value = JoinHouseholdUiState.Error(
                     e.message ?: getApplication<Application>().getString(R.string.error_failed_to_join_household)
@@ -102,9 +101,9 @@ class JoinHouseholdViewModel(
     sealed interface JoinHouseholdUiState {
         data object Idle : JoinHouseholdUiState
         data object Validating : JoinHouseholdUiState
-        data class CodeValid(val household: Household) : JoinHouseholdUiState
+        data class CodeValid(val householdName: String) : JoinHouseholdUiState
         data object Joining : JoinHouseholdUiState
-        data class Success(val household: Household) : JoinHouseholdUiState
+        data class Success(val householdId: String) : JoinHouseholdUiState
         data class Error(val message: String) : JoinHouseholdUiState
     }
     
@@ -134,8 +133,8 @@ fun JoinHouseholdScreen(
     // Handle success navigation
     LaunchedEffect(uiState) {
         if (uiState is JoinHouseholdViewModel.JoinHouseholdUiState.Success) {
-            val household = (uiState as JoinHouseholdViewModel.JoinHouseholdUiState.Success).household
-            onJoinSuccess(household.id)
+            val householdId = (uiState as JoinHouseholdViewModel.JoinHouseholdUiState.Success).householdId
+            onJoinSuccess(householdId)
         }
     }
     
@@ -231,7 +230,7 @@ fun JoinHouseholdScreen(
             
             // Show household info when code is valid
             if (uiState is JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid) {
-                val household = (uiState as JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid).household
+                val householdName = (uiState as JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid).householdName
                 Card(
                     modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
@@ -251,7 +250,7 @@ fun JoinHouseholdScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = household.name,
+                            text = householdName,
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onPrimaryContainer

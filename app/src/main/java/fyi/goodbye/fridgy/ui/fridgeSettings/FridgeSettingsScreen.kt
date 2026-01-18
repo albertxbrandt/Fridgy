@@ -205,12 +205,13 @@ fun FridgeSettingsScreen(
  */
 @Composable
 fun SettingsSection(
+    modifier: Modifier = Modifier,
     title: String,
     action: (@Composable () -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

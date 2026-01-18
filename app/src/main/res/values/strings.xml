@@ -198,6 +198,7 @@
 
     <!-- Shopping List -->
     <string name="shopping_list">Shopping List</string>
+    <string name="cd_open_shopping_list">Open shopping list</string>
     <string name="search_products">Search products</string>
     <string name="no_products_found">No products found</string>
     <string name="cant_find_product">Can\'t find what you\'re looking for?</string>

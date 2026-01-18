@@ -5,7 +5,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -128,7 +130,7 @@ fun HouseholdSettingsScreen(
                 val household = state.household
                 val isOwner = household.createdByUid == viewModel.currentUserId
                 
-                LazyColumn(
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues)
@@ -136,141 +138,146 @@ fun HouseholdSettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // General Info
-                    item {
-                        SettingsSection(title = stringResource(R.string.general_info)) {
-                            Column {
-                                SettingsItem(
-                                    label = stringResource(R.string.name),
-                                    value = household.name
-                                )
-                                SettingsItem(
-                                    label = stringResource(R.string.owner),
-                                    value = household.ownerDisplayName
-                                )
-                                SettingsItem(
-                                    label = stringResource(R.string.fridges),
-                                    value = household.fridgeCount.toString()
+                    SettingsSection(title = stringResource(R.string.general_info)) {
+                        Column {
+                            SettingsItem(
+                                label = stringResource(R.string.name),
+                                value = household.name
+                            )
+                            SettingsItem(
+                                label = stringResource(R.string.owner),
+                                value = household.ownerDisplayName
+                            )
+                            SettingsItem(
+                                label = stringResource(R.string.fridges),
+                                value = household.fridgeCount.toString()
+                            )
+                        }
+                    }
+                    
+                    // Members (scrollable if many)
+                    SettingsSection(title = stringResource(R.string.members)) {
+                        Column(
+                            modifier = Modifier.heightIn(max = 120.dp)
+                                .verticalScroll(rememberScrollState())
+                        ) {
+                            household.memberUsers.forEach { member ->
+                                SwipeToDismissMember(
+                                    name = if (member.uid == household.createdByUid) {
+                                        "${member.username} (Owner)"
+                                    } else {
+                                        member.username
+                                    },
+                                    isOwner = isOwner,
+                                    canRemove = member.uid != household.createdByUid,
+                                    onRemove = { viewModel.removeMember(member.uid) }
                                 )
                             }
                         }
                     }
                     
-                    // Members
-                    item {
-                        SettingsSection(title = stringResource(R.string.members)) {
-                            Column {
-                                household.memberUsers.forEach { member ->
-                                    SwipeToDismissMember(
-                                        name = if (member.uid == household.createdByUid) {
-                                            "${member.username} (Owner)"
-                                        } else {
-                                            member.username
-                                        },
-                                        isOwner = isOwner,
-                                        canRemove = member.uid != household.createdByUid,
-                                        onRemove = { viewModel.removeMember(member.uid) }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                    
-                    // Invite Codes (Owner only)
+                    // Invite Codes (Owner only) - fills remaining space
                     if (isOwner) {
-                        item {
-                            SettingsSection(
-                                title = stringResource(R.string.invite_codes),
-                                action = {
-                                    IconButton(
-                                        onClick = { showCreateInviteDialog = true },
-                                        enabled = !isCreatingInvite
-                                    ) {
-                                        if (isCreatingInvite) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(20.dp),
-                                                strokeWidth = 2.dp
-                                            )
-                                        } else {
-                                            Icon(
-                                                Icons.Default.Add,
-                                                contentDescription = stringResource(R.string.create_invite_code),
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
+                        SettingsSection(
+                            modifier = Modifier.weight(1f),
+                            title = stringResource(R.string.invite_codes),
+                            action = {
+                                IconButton(
+                                    onClick = { showCreateInviteDialog = true },
+                                    enabled = !isCreatingInvite
+                                ) {
+                                    if (isCreatingInvite) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            Icons.Default.Add,
+                                            contentDescription = stringResource(R.string.create_invite_code),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
                                     }
                                 }
-                            ) {
-                                if (inviteCodes.isEmpty()) {
-                                    Text(
-                                        text = "No invite codes yet. Create one to invite members.",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        inviteCodes.forEach { code ->
-                                            InviteCodeItem(
-                                                inviteCode = code,
-                                                dateFormatter = dateFormatter,
-                                                onCopy = {
-                                                    clipboardManager.setText(AnnotatedString(code.code))
-                                                },
-                                                onShare = {
-                                                    val shareText = context.getString(
-                                                        R.string.share_invite_message,
-                                                        household.name,
-                                                        code.code
-                                                    )
-                                                    val intent = Intent(Intent.ACTION_SEND).apply {
-                                                        type = "text/plain"
-                                                        putExtra(Intent.EXTRA_TEXT, shareText)
-                                                    }
-                                                    context.startActivity(
-                                                        Intent.createChooser(intent, "Share Invite Code")
-                                                    )
-                                                },
-                                                onRevoke = { viewModel.revokeInviteCode(code.code) }
-                                            )
-                                        }
+                            }
+                        ) {
+                            if (inviteCodes.isEmpty()) {
+                                Text(
+                                    text = "No invite codes yet. Create one to invite members.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                // Scrollable invite codes list
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .verticalScroll(rememberScrollState()),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    inviteCodes.forEach { code ->
+                                        InviteCodeItem(
+                                            inviteCode = code,
+                                            dateFormatter = dateFormatter,
+                                            onCopy = {
+                                                clipboardManager.setText(AnnotatedString(code.code))
+                                            },
+                                            onShare = {
+                                                val shareText = context.getString(
+                                                    R.string.share_invite_message,
+                                                    household.name,
+                                                    code.code
+                                                )
+                                                val intent = Intent(Intent.ACTION_SEND).apply {
+                                                    type = "text/plain"
+                                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                                }
+                                                context.startActivity(
+                                                    Intent.createChooser(intent, "Share Invite Code")
+                                                )
+                                            },
+                                            onRevoke = { viewModel.revokeInviteCode(code.code) }
+                                        )
                                     }
                                 }
                             }
                         }
+                    } else {
+                        // Non-owner: add spacer to push button to bottom
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                     
                     // Leave/Delete button
-                    item {
-                        Button(
-                            onClick = {
-                                if (isOwner) {
-                                    showDeleteConfirmDialog = true
-                                } else {
-                                    showLeaveConfirmDialog = true
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.error
-                            ),
-                            shape = RoundedCornerShape(8.dp),
-                            enabled = !isDeletingOrLeaving
-                        ) {
-                            if (isDeletingOrLeaving) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.onError,
-                                    strokeWidth = 2.dp
-                                )
+                    Button(
+                        onClick = {
+                            if (isOwner) {
+                                showDeleteConfirmDialog = true
                             } else {
-                                Text(
-                                    text = if (isOwner) {
-                                        stringResource(R.string.delete_household)
-                                    } else {
-                                        stringResource(R.string.leave_household)
-                                    },
-                                    color = MaterialTheme.colorScheme.onError
-                                )
+                                showLeaveConfirmDialog = true
                             }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = !isDeletingOrLeaving
+                    ) {
+                        if (isDeletingOrLeaving) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = MaterialTheme.colorScheme.onError,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = if (isOwner) {
+                                    stringResource(R.string.delete_household)
+                                } else {
+                                    stringResource(R.string.leave_household)
+                                },
+                                color = MaterialTheme.colorScheme.onError
+                            )
                         }
                     }
                 }

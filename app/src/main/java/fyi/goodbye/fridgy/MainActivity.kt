@@ -348,6 +348,11 @@ class MainActivity : ComponentActivity() {
                                         popUpTo("householdList") { inclusive = true }
                                         launchSingleTop = true
                                     }
+                                },
+                                onShoppingListClick = { householdId ->
+                                    navController.navigate("shoppingList/$householdId") {
+                                        launchSingleTop = true
+                                    }
                                 }
                             )
                         }
@@ -364,6 +369,8 @@ class MainActivity : ComponentActivity() {
                                 householdId = householdId,
                                 onBackClick = { navController.popBackStack() },
                                 onDeleteSuccess = {
+                                    // Clear saved household preference when leaving or deleting
+                                    userPreferences.clearLastSelectedHouseholdId()
                                     navController.navigate("householdList") {
                                         popUpTo("householdList") { inclusive = true }
                                     }
@@ -424,11 +431,6 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onItemClick = { fId, iId ->
                                     navController.navigate("itemDetail/$fId/$iId") {
-                                        launchSingleTop = true
-                                    }
-                                },
-                                onShoppingListClick = { householdId ->
-                                    navController.navigate("shoppingList/$householdId") {
                                         launchSingleTop = true
                                     }
                                 }

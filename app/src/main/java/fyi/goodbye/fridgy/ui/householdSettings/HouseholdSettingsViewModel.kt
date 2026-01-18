@@ -12,6 +12,7 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,6 +47,12 @@ class HouseholdSettingsViewModel(
     private val _isDeletingOrLeaving = MutableStateFlow(false)
     val isDeletingOrLeaving: StateFlow<Boolean> = _isDeletingOrLeaving.asStateFlow()
     
+    // Flag to prevent Flow errors when user is leaving/deleted
+    private var isLeavingOrDeleted = false
+    
+    // Job reference for cancelling the invite codes listener
+    private var inviteCodesJob: Job? = null
+    
     private val _actionError = MutableStateFlow<String?>(null)
     val actionError: StateFlow<String?> = _actionError.asStateFlow()
     
@@ -78,11 +85,28 @@ class HouseholdSettingsViewModel(
     }
     
     private fun loadInviteCodes() {
-        viewModelScope.launch {
-            householdRepository.getInviteCodesFlow(householdId).collectLatest { codes ->
-                _inviteCodes.value = codes.sortedByDescending { it.createdAt }
+        inviteCodesJob = viewModelScope.launch {
+            try {
+                householdRepository.getInviteCodesFlow(householdId).collectLatest { codes ->
+                    if (!isLeavingOrDeleted) {
+                        _inviteCodes.value = codes.sortedByDescending { it.createdAt }
+                    }
+                }
+            } catch (e: Exception) {
+                // Ignore errors if we're leaving/deleted (permissions revoked)
+                if (!isLeavingOrDeleted) {
+                    Log.e("HouseholdSettingsVM", "Error loading invite codes: ${e.message}")
+                }
             }
         }
+    }
+    
+    /**
+     * Cancels all active Firestore listeners to prevent permission errors.
+     */
+    private fun cancelAllListeners() {
+        inviteCodesJob?.cancel()
+        inviteCodesJob = null
     }
     
     /**
@@ -144,40 +168,54 @@ class HouseholdSettingsViewModel(
     
     /**
      * Leaves the household. Current user is removed from members list.
+     * Navigates first, then performs the leave operation in the background.
      */
     fun leaveHousehold(onSuccess: () -> Unit) {
         _isDeletingOrLeaving.value = true
         _actionError.value = null
+        isLeavingOrDeleted = true  // Set flag to prevent Flow errors
         
+        // Cancel all listeners BEFORE leaving to prevent permission errors
+        cancelAllListeners()
+        
+        // Navigate away FIRST to clear all screens with active listeners
+        onSuccess()
+        
+        // Then leave in the background (ViewModel stays alive briefly for this)
         viewModelScope.launch {
             try {
                 householdRepository.leaveHousehold(householdId)
-                onSuccess()
+                Log.d("HouseholdSettingsVM", "Successfully left household")
             } catch (e: Exception) {
-                _actionError.value = e.message
+                // Log error but don't show UI since we've already navigated
                 Log.e("HouseholdSettingsVM", "Error leaving household: ${e.message}")
-            } finally {
-                _isDeletingOrLeaving.value = false
             }
         }
     }
     
     /**
      * Deletes the household entirely. Only the owner can do this.
+     * Navigates first, then performs the delete operation in the background.
      */
     fun deleteHousehold(onSuccess: () -> Unit) {
         _isDeletingOrLeaving.value = true
         _actionError.value = null
+        isLeavingOrDeleted = true  // Set flag to prevent Flow errors
         
+        // Cancel all listeners BEFORE deleting to prevent permission errors
+        cancelAllListeners()
+        
+        // Navigate away FIRST to clear all screens with active listeners
+        onSuccess()
+        
+        // Then delete in the background (ViewModel stays alive briefly for this)
         viewModelScope.launch {
             try {
                 householdRepository.deleteHousehold(householdId)
-                onSuccess()
+                Log.d("HouseholdSettingsVM", "Successfully deleted household")
             } catch (e: Exception) {
-                _actionError.value = e.message
+                // Log error but don't show UI since we've already navigated
                 Log.e("HouseholdSettingsVM", "Error deleting household: ${e.message}")
-            } finally {
-                _isDeletingOrLeaving.value = false
             }
         }
     }

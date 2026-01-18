@@ -9,7 +9,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,7 +49,6 @@ fun FridgeInventoryScreen(
     onSettingsClick: (String) -> Unit,
     onAddItemClick: (String) -> Unit,
     onItemClick: (String, String) -> Unit,
-    onShoppingListClick: (String) -> Unit,
     viewModel: FridgeInventoryViewModel =
         viewModel(factory = FridgeInventoryViewModel.provideFactory(fridgeId, initialFridgeName))
 ) {
@@ -177,33 +175,14 @@ fun FridgeInventoryScreen(
             )
         },
         floatingActionButton = {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+            FloatingActionButton(
+                onClick = { onAddItemClick(fridgeId) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
-                FloatingActionButton(
-                    onClick = { 
-                        if (householdId.isNotEmpty()) {
-                            onShoppingListClick(householdId)
-                        }
-                    },
-                    containerColor = MaterialTheme.colorScheme.secondary,
-                    contentColor = MaterialTheme.colorScheme.onSecondary
-                ) {
-                    Icon(Icons.Default.ShoppingCart, contentDescription = "Open Shopping List")
-                }
-                FloatingActionButton(
-                    onClick = { onAddItemClick(fridgeId) },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, stringResource(R.string.cd_add_new_item))
-                }
+                Icon(Icons.Default.Add, stringResource(R.string.cd_add_new_item))
             }
         },
-        floatingActionButtonPosition = FabPosition.Center,
         containerColor = MaterialTheme.colorScheme.background
 ) { paddingValues ->
         Box(

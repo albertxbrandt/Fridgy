@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,6 +46,7 @@ fun FridgeListScreen(
     onNavigateToFridgeInventory: (DisplayFridge) -> Unit,
     onNavigateToHouseholdSettings: () -> Unit,
     onSwitchHousehold: () -> Unit,
+    onShoppingListClick: (String) -> Unit,
     viewModel: FridgeListViewModel = viewModel(factory = FridgeListViewModel.provideFactory())
 ) {
     var showAddFridgeDialog by remember { mutableStateOf(false) }
@@ -97,14 +99,29 @@ fun FridgeListScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddFridgeDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+            Row(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp)
             ) {
-                Icon(Icons.Default.Add, stringResource(R.string.cd_add_new_fridge))
+                FloatingActionButton(
+                    onClick = { onShoppingListClick(viewModel.householdId) },
+                    containerColor = MaterialTheme.colorScheme.secondary,
+                    contentColor = MaterialTheme.colorScheme.onSecondary
+                ) {
+                    Icon(Icons.Default.ShoppingCart, contentDescription = stringResource(R.string.cd_open_shopping_list))
+                }
+                FloatingActionButton(
+                    onClick = { showAddFridgeDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, stringResource(R.string.cd_add_new_fridge))
+                }
             }
         },
+        floatingActionButtonPosition = FabPosition.Center,
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         when (val state = fridgeUiState) {

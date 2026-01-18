@@ -274,7 +274,9 @@ class HouseholdRepository {
             isActive = true
         )
         
+        Log.d("HouseholdRepository", "Creating invite code: $code for household: $householdId, isActive: true")
         firestore.collection("inviteCodes").document(code).set(inviteCode).await()
+        Log.d("HouseholdRepository", "Invite code created successfully")
         return inviteCode
     }
 
@@ -285,7 +287,7 @@ class HouseholdRepository {
         return try {
             val snapshot = firestore.collection("inviteCodes")
                 .whereEqualTo("householdId", householdId)
-                .whereEqualTo("isActive", true)
+                .whereEqualTo("active", true)
                 .get()
                 .await()
             
@@ -300,19 +302,25 @@ class HouseholdRepository {
 
     /**
      * Returns a Flow of invite codes for real-time updates.
+     * Emits empty list on permission errors (e.g., when user leaves household).
      */
     fun getInviteCodesFlow(householdId: String): Flow<List<InviteCode>> = callbackFlow {
+        Log.d("HouseholdRepository", "Starting invite codes listener for household: $householdId")
         val listener = firestore.collection("inviteCodes")
             .whereEqualTo("householdId", householdId)
-            .whereEqualTo("isActive", true)
+            .whereEqualTo("active", true)
             .addSnapshotListener { snapshot, e ->
                 if (e != null) {
-                    close(e)
+                    Log.e("HouseholdRepository", "Error loading invite codes: ${e.message}", e)
+                    // Don't crash - just close the flow gracefully
+                    // This happens when user loses permission (e.g., leaves household)
+                    channel.close()
                     return@addSnapshotListener
                 }
                 val codes = snapshot?.documents?.mapNotNull { doc ->
                     doc.toObject(InviteCode::class.java)?.copy(code = doc.id)
                 } ?: emptyList()
+                Log.d("HouseholdRepository", "Loaded ${codes.size} invite codes")
                 trySend(codes).isSuccess
             }
         awaitClose { listener.remove() }
@@ -323,7 +331,7 @@ class HouseholdRepository {
      */
     suspend fun revokeInviteCode(code: String) {
         firestore.collection("inviteCodes").document(code)
-            .update("isActive", false)
+            .update("active", false)
             .await()
     }
 
@@ -333,7 +341,7 @@ class HouseholdRepository {
      * @param code The invite code to redeem.
      * @return The Household that was joined, or throws exception on failure.
      */
-    suspend fun redeemInviteCode(code: String): Household {
+    suspend fun redeemInviteCode(code: String): String {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
         val upperCode = code.uppercase().trim()
         
@@ -356,34 +364,31 @@ class HouseholdRepository {
             throw IllegalStateException("This invite code has expired")
         }
         
-        // Check if user is already a member
-        val household = getHouseholdById(inviteCode.householdId)
-            ?: throw IllegalStateException("Household no longer exists")
+        // Add user to household using batch write (no read required)
+        // arrayUnion is idempotent - it won't add duplicates if user is already a member
+        val batch = firestore.batch()
         
-        if (household.members.contains(currentUser.uid)) {
-            throw IllegalStateException("You are already a member of this household")
-        }
+        val householdRef = firestore.collection("households").document(inviteCode.householdId)
+        batch.update(householdRef, "members", FieldValue.arrayUnion(currentUser.uid))
         
-        // Add user to household and mark code as used
-        firestore.runTransaction { transaction ->
-            val householdRef = firestore.collection("households").document(inviteCode.householdId)
-            transaction.update(householdRef, "members", FieldValue.arrayUnion(currentUser.uid))
-            
-            val codeRef = firestore.collection("inviteCodes").document(upperCode)
-            transaction.update(codeRef, mapOf(
-                "usedBy" to currentUser.uid,
-                "usedAt" to System.currentTimeMillis()
-            ))
-        }.await()
+        val codeRef = firestore.collection("inviteCodes").document(upperCode)
+        batch.update(codeRef, mapOf(
+            "usedBy" to currentUser.uid,
+            "usedAt" to System.currentTimeMillis()
+        ))
         
-        return household.copy(members = household.members + currentUser.uid)
+        batch.commit().await()
+        
+        // Return the household ID - the UI will navigate there and load the household
+        return inviteCode.householdId
     }
 
     /**
-     * Validates an invite code and returns household info for confirmation UI.
-     * Does not redeem the code.
+     * Validates an invite code and returns invite code info for confirmation UI.
+     * Does not redeem the code. Returns invite code with embedded household name.
+     * Note: We don't fetch the full household since the user isn't a member yet.
      */
-    suspend fun validateInviteCode(code: String): Pair<InviteCode, Household>? {
+    suspend fun validateInviteCode(code: String): InviteCode? {
         val upperCode = code.uppercase().trim()
         
         return try {
@@ -395,9 +400,7 @@ class HouseholdRepository {
             
             if (!inviteCode.isValid()) return null
             
-            val household = getHouseholdById(inviteCode.householdId) ?: return null
-            
-            Pair(inviteCode, household)
+            inviteCode
         } catch (e: Exception) {
             Log.e(TAG, "Error validating invite code: ${e.message}")
             null
@@ -409,6 +412,7 @@ class HouseholdRepository {
 
     /**
      * Returns a Flow of shopping list items for a household.
+     * Closes gracefully on permission errors.
      */
     fun getShoppingListItems(householdId: String): Flow<List<ShoppingListItem>> = callbackFlow {
         val colRef = firestore.collection("households").document(householdId)
@@ -416,7 +420,8 @@ class HouseholdRepository {
         
         val listener = colRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
-                close(e)
+                Log.e(TAG, "Error loading shopping list: ${e.message}")
+                channel.close()
                 return@addSnapshotListener
             }
             val items = snapshot?.documents?.mapNotNull {
@@ -633,6 +638,7 @@ class HouseholdRepository {
 
     /**
      * Returns a Flow of active viewers for the shopping list.
+     * Closes gracefully on permission errors.
      */
     fun getShoppingListPresence(householdId: String): Flow<List<ActiveViewer>> = callbackFlow {
         val presenceRef = firestore.collection("households").document(householdId)
@@ -640,7 +646,8 @@ class HouseholdRepository {
         
         val listener = presenceRef.addSnapshotListener { snapshot, e ->
             if (e != null) {
-                close(e)
+                Log.e(TAG, "Error loading shopping list presence: ${e.message}")
+                channel.close()
                 return@addSnapshotListener
             }
             
