@@ -626,6 +626,12 @@ class FridgeRepository {
     ) {
         Log.d("FridgeRepo", "Starting addItemToFridge for UPC: $upc")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        
+        // Get the fridge to access householdId
+        val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
+        val householdId = fridgeDoc.getString("householdId") 
+            ?: throw IllegalStateException("Fridge has no householdId")
+        
         val itemRef =
             firestore.collection("fridges").document(fridgeId)
                 .collection("items").document(upc)
@@ -650,7 +656,8 @@ class FridgeRepository {
                         addedBy = currentUser.uid,
                         addedAt = System.currentTimeMillis(),
                         lastUpdatedBy = currentUser.uid,
-                        lastUpdatedAt = System.currentTimeMillis()
+                        lastUpdatedAt = System.currentTimeMillis(),
+                        householdId = householdId
                     )
                 itemRef.set(itemToAdd).await()
             }
@@ -678,7 +685,8 @@ class FridgeRepository {
                             addedBy = currentUser.uid,
                             addedAt = System.currentTimeMillis(),
                             lastUpdatedBy = currentUser.uid,
-                            lastUpdatedAt = System.currentTimeMillis()
+                            lastUpdatedAt = System.currentTimeMillis(),
+                            householdId = householdId
                         )
                     transaction.set(itemRef, itemToAdd)
                 }

@@ -567,7 +567,8 @@ class HouseholdRepository {
                             addedBy = currentUserId,
                             addedAt = System.currentTimeMillis(),
                             lastUpdatedBy = currentUserId,
-                            lastUpdatedAt = System.currentTimeMillis()
+                            lastUpdatedAt = System.currentTimeMillis(),
+                            householdId = householdId
                         )
                         batch.set(itemRef, newItem)
                     }
