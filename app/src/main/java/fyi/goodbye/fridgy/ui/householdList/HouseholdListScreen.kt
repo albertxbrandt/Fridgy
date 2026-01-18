@@ -56,7 +56,7 @@ import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 @Composable
 fun HouseholdListScreen(
     onNavigateToHousehold: (DisplayHousehold) -> Unit,
-    onNavigateToJoinHousehold: () -> Unit,
+    onJoinHouseholdSuccess: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToAdminPanel: () -> Unit,
     onLogout: () -> Unit,
@@ -77,7 +77,7 @@ fun HouseholdListScreen(
         needsMigration = needsMigration,
         isMigrating = isMigrating,
         onNavigateToHousehold = onNavigateToHousehold,
-        onNavigateToJoinHousehold = onNavigateToJoinHousehold,
+        onJoinHouseholdSuccess = onJoinHouseholdSuccess,
         onNavigateToNotifications = onNavigateToNotifications,
         onNavigateToAdminPanel = onNavigateToAdminPanel,
         onLogout = {
@@ -100,7 +100,7 @@ private fun HouseholdListContent(
     needsMigration: Boolean,
     isMigrating: Boolean,
     onNavigateToHousehold: (DisplayHousehold) -> Unit,
-    onNavigateToJoinHousehold: () -> Unit,
+    onJoinHouseholdSuccess: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
     onNavigateToAdminPanel: () -> Unit,
     onLogout: () -> Unit,
@@ -112,6 +112,7 @@ private fun HouseholdListContent(
     var newHouseholdName by remember { mutableStateOf("") }
     var isSidebarOpen by remember { mutableStateOf(false) }
     var showMigrationDialog by remember { mutableStateOf(false) }
+    var showJoinHouseholdDialog by remember { mutableStateOf(false) }
 
     // Show migration dialog when needed
     LaunchedEffect(needsMigration) {
@@ -139,7 +140,7 @@ private fun HouseholdListContent(
                     label = "Join Household",
                     onClick = {
                         isSidebarOpen = false
-                        onNavigateToJoinHousehold()
+                        showJoinHouseholdDialog = true
                     }
                 )
             )
@@ -261,7 +262,7 @@ private fun HouseholdListContent(
                                 modifier = Modifier.padding(bottom = 80.dp)
                             ) {
                                 OutlinedButton(
-                                    onClick = onNavigateToJoinHousehold
+                                    onClick = { showJoinHouseholdDialog = true }
                                 ) {
                                     Icon(
                                         Icons.Default.Link,
@@ -433,6 +434,17 @@ private fun HouseholdListContent(
             containerColor = MaterialTheme.colorScheme.surface
         )
     }
+
+    // Join Household Dialog
+    if (showJoinHouseholdDialog) {
+        JoinHouseholdDialog(
+            onDismiss = { showJoinHouseholdDialog = false },
+            onJoinSuccess = { householdId ->
+                showJoinHouseholdDialog = false
+                onJoinHouseholdSuccess(householdId)
+            }
+        )
+    }
 }
 
 @Preview(showBackground = true, showSystemUi = true)
@@ -447,7 +459,7 @@ private fun HouseholdListPreviewLoading() {
             needsMigration = false,
             isMigrating = false,
             onNavigateToHousehold = {},
-            onNavigateToJoinHousehold = {},
+            onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
             onNavigateToAdminPanel = {},
             onLogout = {},
@@ -470,7 +482,7 @@ private fun HouseholdListPreviewEmpty() {
             needsMigration = false,
             isMigrating = false,
             onNavigateToHousehold = {},
-            onNavigateToJoinHousehold = {},
+            onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
             onNavigateToAdminPanel = {},
             onLogout = {},
@@ -540,7 +552,7 @@ private fun HouseholdListPreviewWithHouseholds() {
             needsMigration = false,
             isMigrating = false,
             onNavigateToHousehold = {},
-            onNavigateToJoinHousehold = {},
+            onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
             onNavigateToAdminPanel = {},
             onLogout = {},
@@ -563,7 +575,7 @@ private fun HouseholdListPreviewError() {
             needsMigration = false,
             isMigrating = false,
             onNavigateToHousehold = {},
-            onNavigateToJoinHousehold = {},
+            onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
             onNavigateToAdminPanel = {},
             onLogout = {},

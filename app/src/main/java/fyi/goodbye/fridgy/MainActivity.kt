@@ -43,7 +43,6 @@ import fyi.goodbye.fridgy.ui.fridgeInventory.FridgeInventoryScreen
 import fyi.goodbye.fridgy.ui.fridgeList.FridgeListScreen
 import fyi.goodbye.fridgy.ui.fridgeSettings.FridgeSettingsScreen
 import fyi.goodbye.fridgy.ui.householdList.HouseholdListScreen
-import fyi.goodbye.fridgy.ui.householdList.JoinHouseholdScreen
 import fyi.goodbye.fridgy.ui.householdSettings.HouseholdSettingsScreen
 import fyi.goodbye.fridgy.ui.itemDetail.ItemDetailScreen
 import fyi.goodbye.fridgy.ui.notifications.NotificationsScreen
@@ -290,9 +289,9 @@ class MainActivity : ComponentActivity() {
                                         launchSingleTop = true
                                     }
                                 },
-                                onNavigateToJoinHousehold = {
-                                    navController.navigate("joinHousehold") {
-                                        launchSingleTop = true
+                                onJoinHouseholdSuccess = { householdId ->
+                                    navController.navigate("fridgeList/$householdId") {
+                                        popUpTo("householdList") { inclusive = false }
                                     }
                                 },
                                 onNavigateToNotifications = {
@@ -308,18 +307,6 @@ class MainActivity : ComponentActivity() {
                                 onLogout = {
                                     navController.navigate("login") {
                                         popUpTo(navController.graph.id) { inclusive = true }
-                                    }
-                                }
-                            )
-                        }
-
-                        // Join Household with invite code
-                        composable("joinHousehold") {
-                            JoinHouseholdScreen(
-                                onNavigateBack = { navController.popBackStack() },
-                                onJoinSuccess = { householdId ->
-                                    navController.navigate("fridgeList/$householdId") {
-                                        popUpTo("householdList") { inclusive = false }
                                     }
                                 }
                             )
