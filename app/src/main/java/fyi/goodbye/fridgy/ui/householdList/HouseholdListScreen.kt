@@ -20,8 +20,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
@@ -29,7 +31,6 @@ import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.UserProfile
 import fyi.goodbye.fridgy.ui.elements.HouseholdCard
 import fyi.goodbye.fridgy.ui.shared.components.CollapsibleSidebar
-import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SidebarMenuItem
@@ -199,12 +200,17 @@ private fun HouseholdListContent(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showAddHouseholdDialog = true },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
+            // Only show FAB when there are households (empty state has inline buttons)
+            if (householdsUiState is HouseholdListViewModel.HouseholdUiState.Success &&
+                (householdsUiState as HouseholdListViewModel.HouseholdUiState.Success).households.isNotEmpty()
             ) {
-                Icon(Icons.Default.Add, stringResource(R.string.cd_create_household))
+                FloatingActionButton(
+                    onClick = { showAddHouseholdDialog = true },
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Icon(Icons.Default.Add, stringResource(R.string.cd_create_household))
+                }
             }
         },
         containerColor = MaterialTheme.colorScheme.background
@@ -249,17 +255,19 @@ private fun HouseholdListContent(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
-                            EmptyState(
-                                message = stringResource(R.string.no_households_yet),
-                                modifier = Modifier.weight(1f)
+                            Text(
+                                text = stringResource(R.string.no_households_yet),
+                                fontSize = 18.sp,
+                                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
+                                textAlign = TextAlign.Center,
+                                lineHeight = 24.sp
                             )
 
-                            Spacer(modifier = Modifier.height(16.dp))
+                            Spacer(modifier = Modifier.height(24.dp))
 
                             // Quick action buttons for empty state
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                modifier = Modifier.padding(bottom = 80.dp)
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
                                 OutlinedButton(
                                     onClick = { showJoinHouseholdDialog = true }

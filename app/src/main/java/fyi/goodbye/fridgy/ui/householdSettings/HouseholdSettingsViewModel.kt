@@ -13,7 +13,6 @@ import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -173,7 +172,7 @@ class HouseholdSettingsViewModel(
 
     /**
      * Leaves the household. Current user is removed from members list.
-     * Navigates first, then performs the leave operation in the background.
+     * Completes the operation first, then navigates to prevent cancellation.
      */
     fun leaveHousehold(onSuccess: () -> Unit) {
         _isDeletingOrLeaving.value = true
@@ -183,16 +182,18 @@ class HouseholdSettingsViewModel(
         // Cancel all listeners BEFORE leaving to prevent permission errors
         cancelAllListeners()
 
-        // Navigate away FIRST to clear all screens with active listeners
-        onSuccess()
-
-        // Then leave in the background (ViewModel stays alive briefly for this)
+        // Perform leave operation BEFORE navigating to ensure it completes
         viewModelScope.launch {
             try {
                 householdRepository.leaveHousehold(householdId)
                 Log.d("HouseholdSettingsVM", "Successfully left household")
+                
+                // Navigate away AFTER successful leave operation
+                onSuccess()
             } catch (e: Exception) {
-                // Log error but don't show UI since we've already navigated
+                // Show error to user since we haven't navigated yet
+                _actionError.value = e.message ?: "Failed to leave household"
+                _isDeletingOrLeaving.value = false
                 Log.e("HouseholdSettingsVM", "Error leaving household: ${e.message}")
             }
         }
@@ -200,7 +201,7 @@ class HouseholdSettingsViewModel(
 
     /**
      * Deletes the household entirely. Only the owner can do this.
-     * Navigates first, then performs the delete operation in the background.
+     * Completes the operation first, then navigates to prevent cancellation.
      */
     fun deleteHousehold(onSuccess: () -> Unit) {
         _isDeletingOrLeaving.value = true
@@ -210,16 +211,18 @@ class HouseholdSettingsViewModel(
         // Cancel all listeners BEFORE deleting to prevent permission errors
         cancelAllListeners()
 
-        // Navigate away FIRST to clear all screens with active listeners
-        onSuccess()
-
-        // Use GlobalScope to ensure deletion completes even after ViewModel is cleared
-        GlobalScope.launch(Dispatchers.IO) {
+        // Perform delete operation BEFORE navigating to ensure it completes
+        viewModelScope.launch {
             try {
                 householdRepository.deleteHousehold(householdId)
                 Log.d("HouseholdSettingsVM", "Successfully deleted household")
+                
+                // Navigate away AFTER successful deletion
+                onSuccess()
             } catch (e: Exception) {
-                // Log error but don't show UI since we've already navigated
+                // Show error to user since we haven't navigated yet
+                _actionError.value = e.message ?: "Failed to delete household"
+                _isDeletingOrLeaving.value = false
                 Log.e("HouseholdSettingsVM", "Error deleting household: ${e.message}")
             }
         }

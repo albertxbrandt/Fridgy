@@ -236,21 +236,21 @@
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
     <string name="product_brand_category">%1$s • %2$s</string>
-    
+
     <!-- Fridge Card -->
     <plurals name="member_count">
         <item quantity="one">%d member</item>
         <item quantity="other">%d members</item>
     </plurals>
-    
+
     <plurals name="fridge_count">
         <item quantity="one">%d fridge</item>
         <item quantity="other">%d fridges</item>
     </plurals>
-    
+
     <!-- Fridge Type -->
     <string name="fridge_type_label">Type</string>
-    
+
     <!-- Push Notifications -->
     <string name="default_notification_channel_id">fridgy_notifications</string>
     <string name="notification_channel_name">Fridgy Notifications</string>
@@ -273,12 +273,12 @@
     <string name="failed_to_accept_invite">Failed to accept invitation</string>
     <string name="declined_invite">Declined fridge invitation</string>
     <string name="failed_to_decline_invite">Failed to decline invitation</string>
-    
+
     <!-- Households -->
     <string name="my_households">My Households</string>
     <string name="households">Households</string>
     <string name="household">Household</string>
-    <string name="create_household">Create Household</string>
+    <string name="create_household">Household</string>
     <string name="household_name">Household Name</string>
     <string name="household_settings">Household Settings</string>
     <string name="join_household">Join Household</string>

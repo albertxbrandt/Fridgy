@@ -32,7 +32,9 @@ class FridgeRepository {
             val listener =
                 colRef.addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        close(e)
+                        Log.e("FridgeRepo", "Error fetching shopping list items: ${e.message}", e)
+                        // Send empty list instead of closing with error to prevent app crash
+                        trySend(emptyList()).isSuccess
                         return@addSnapshotListener
                     }
                     val items =
@@ -91,7 +93,9 @@ class FridgeRepository {
             val listener =
                 presenceRef.addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        close(e)
+                        Log.e("FridgeRepo", "Error fetching shopping list presence: ${e.message}", e)
+                        // Send empty list instead of closing with error to prevent app crash
+                        trySend(emptyList()).isSuccess
                         return@addSnapshotListener
                     }
 
@@ -305,7 +309,9 @@ class FridgeRepository {
             val listener =
                 docRef.addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        close(e)
+                        Log.e("FridgeRepo", "Error fetching shopping list: ${e.message}", e)
+                        // Send empty list instead of closing with error to prevent app crash
+                        trySend(emptyList()).isSuccess
                         return@addSnapshotListener
                     }
                     val shoppingList = snapshot?.get("shoppingList") as? List<String> ?: emptyList()
@@ -411,7 +417,16 @@ class FridgeRepository {
                     .whereEqualTo("householdId", householdId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
-                            close(e)
+                            // Check if this is a permission error
+                            if (e.message?.contains("PERMISSION_DENIED") == true) {
+                                Log.w("FridgeRepo", "Permission denied for household $householdId - user likely removed. Clearing cache.")
+                                // Clear any cached fridges from this household
+                                fridgeCache = fridgeCache.filter { it.householdId != householdId }
+                            } else {
+                                Log.e("FridgeRepo", "Error listening to fridges for household: ${e.message}", e)
+                            }
+                            // Send empty list instead of closing with error to prevent app crash
+                            trySend(emptyList()).isSuccess
                             return@addSnapshotListener
                         }
                         val fridgesList = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
@@ -435,7 +450,15 @@ class FridgeRepository {
                     .whereArrayContains("members", currentUserId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
-                            close(e)
+                            // Check if this is a permission error
+                            if (e.message?.contains("PERMISSION_DENIED") == true) {
+                                Log.w("FridgeRepo", "Permission denied fetching fridges - clearing cache")
+                                fridgeCache = emptyList()
+                            } else {
+                                Log.e("FridgeRepo", "Error listening to fridges: ${e.message}", e)
+                            }
+                            // Send empty list instead of closing with error to prevent app crash
+                            trySend(emptyList()).isSuccess
                             return@addSnapshotListener
                         }
                         val fridgesList = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
@@ -629,14 +652,9 @@ class FridgeRepository {
                 firestore.collection("fridges").document(fridgeId).collection("items")
                     .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, e ->
                         if (e != null) {
-                            // Gracefully handle permission errors (fridge deleted/left)
-                            if (e.message?.contains("PERMISSION_DENIED") == true) {
-                                Log.w("FridgeRepo", "Permission denied for fridge $fridgeId - sending empty list")
-                                trySend(emptyList()).isSuccess
-                                close() // Close flow gracefully without error
-                            } else {
-                                close(e)
-                            }
+                            Log.e("FridgeRepo", "Error fetching items for fridge $fridgeId: ${e.message}", e)
+                            // Send empty list instead of closing with error to prevent app crash
+                            trySend(emptyList()).isSuccess
                             return@addSnapshotListener
                         }
                         val items = snapshot?.documents?.mapNotNull { it.toObject(Item::class.java) } ?: emptyList()

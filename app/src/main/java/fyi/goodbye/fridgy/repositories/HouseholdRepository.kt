@@ -84,9 +84,18 @@ class HouseholdRepository {
     suspend fun getHouseholdById(householdId: String): Household? {
         return try {
             val doc = firestore.collection("households").document(householdId).get().await()
+            if (!doc.exists()) {
+                Log.d(TAG, "Household $householdId does not exist")
+                return null
+            }
             doc.toObject(Household::class.java)?.copy(id = doc.id)
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching household $householdId: ${e.message}")
+            // Silently handle permission errors - user likely no longer has access
+            if (e.message?.contains("PERMISSION_DENIED") == true) {
+                Log.d(TAG, "Permission denied for household $householdId - user likely removed")
+            } else {
+                Log.e(TAG, "Error fetching household $householdId: ${e.message}")
+            }
             null
         }
     }
@@ -223,7 +232,13 @@ class HouseholdRepository {
                                         .whereEqualTo("householdId", household.id)
                                         .addSnapshotListener { fridgeSnapshot, fridgeError ->
                                             if (fridgeError != null) {
-                                                Log.e(TAG, "Error in fridge count listener: ${fridgeError.message}")
+                                                // Handle permission errors gracefully (user might not have access yet)
+                                                if (fridgeError.message?.contains("PERMISSION_DENIED") == true) {
+                                                    Log.d(TAG, "Permission denied for fridge count in household ${household.id} - setting count to 0")
+                                                    householdData[household.id] = household to 0
+                                                } else {
+                                                    Log.e(TAG, "Error in fridge count listener: ${fridgeError.message}")
+                                                }
                                                 return@addSnapshotListener
                                             }
 
@@ -361,17 +376,35 @@ class HouseholdRepository {
             auth.currentUser?.uid
                 ?: throw IllegalStateException("User not logged in")
 
-        val household =
-            getHouseholdById(householdId)
-                ?: throw IllegalStateException("Household not found")
-
-        if (currentUserId == household.createdBy) {
-            throw IllegalStateException("Owner cannot leave the household. Delete it instead.")
+        // Try to get household, but if it fails (permission denied, network issue, etc.),
+        // still attempt to remove user from members list
+        try {
+            val household = getHouseholdById(householdId)
+            
+            if (household != null) {
+                if (currentUserId == household.createdBy) {
+                    throw IllegalStateException("Owner cannot leave the household. Delete it instead.")
+                }
+            } else {
+                // Household might not be fetchable due to permission issues
+                // Log and proceed with removal attempt
+                Log.w(TAG, "Could not fetch household $householdId before leaving, proceeding with removal")
+            }
+        } catch (e: Exception) {
+            // Log error but continue with removal - permission issues shouldn't block leaving
+            Log.w(TAG, "Error fetching household $householdId before leaving: ${e.message}, proceeding with removal")
         }
 
-        firestore.collection("households").document(householdId)
-            .update("members", FieldValue.arrayRemove(currentUserId))
-            .await()
+        // Attempt to remove user from household regardless of fetch result
+        try {
+            firestore.collection("households").document(householdId)
+                .update("members", FieldValue.arrayRemove(currentUserId))
+                .await()
+            Log.d(TAG, "Successfully removed user from household $householdId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to remove user from household: ${e.message}")
+            throw e
+        }
     }
 
     // ==================== Invite Code System ====================
