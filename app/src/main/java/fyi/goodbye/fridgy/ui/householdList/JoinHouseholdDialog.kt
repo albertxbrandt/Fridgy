@@ -95,7 +95,19 @@ private fun JoinHouseholdDialogContent(
                         }
                     },
                     label = { Text(stringResource(R.string.invite_code)) },
-                    placeholder = { Text("ABC123") },
+                    placeholder = {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "ABC123",
+                                style = MaterialTheme.typography.headlineSmall.copy(
+                                    letterSpacing = androidx.compose.ui.unit.TextUnit(8f, androidx.compose.ui.unit.TextUnitType.Sp)
+                                )
+                            )
+                        }
+                    },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.medium,
