@@ -124,14 +124,17 @@ fun InventoryItemCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                // Show size/unit if available
-                if (item.size != null && item.unit != null) {
-                    Text(
-                        text = "${item.size} ${item.unit}",
-                        style = MaterialTheme.typography.bodySmall,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.White.copy(alpha = 0.9f)
-                    )
+                // Show size/unit if available from product
+                if (product.size != null && product.unit != null) {
+                    val sizeUnitText = fyi.goodbye.fridgy.models.SizeUnit.formatSizeUnit(product.size, product.unit)
+                    if (sizeUnitText != null) {
+                        Text(
+                            text = sizeUnitText,
+                            style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.Medium,
+                            color = Color.White.copy(alpha = 0.9f)
+                        )
+                    }
                 } else {
                     Text(
                         text = "Individual item",

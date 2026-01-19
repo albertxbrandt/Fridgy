@@ -33,10 +33,6 @@ class ItemDetailViewModel(
     
     private val _pendingItemForDate = MutableStateFlow<String?>(null)
     val pendingItemForDate: StateFlow<String?> = _pendingItemForDate.asStateFlow()
-    
-    // State for showing size/unit picker after expiration date
-    private val _pendingItemForSize = MutableStateFlow<Pair<String, Long?>?>(null) // UPC and expirationDate
-    val pendingItemForSize: StateFlow<Pair<String, Long?>?> = _pendingItemForSize.asStateFlow()
 
     // Store the UPC from the first load to track items after deletion
     private var trackedUpc: String? = null
@@ -128,26 +124,25 @@ class ItemDetailViewModel(
     }
     
     /**
-     * Adds a new instance of the current product with expiration date, size, and unit
+     * Adds a new instance of the current product with expiration date
      */
     fun addNewInstanceWithDate(expirationDate: Long?) {
         _pendingItemForDate.value = null
         val currentState = _uiState.value
         if (currentState is ItemDetailUiState.Success) {
             val upc = currentState.items.first().upc
-            // Show size dialog next
-            _pendingItemForSize.value = Pair(upc, expirationDate)
+            // Directly add the new instance with expiration date
+            addNewInstance(upc, expirationDate)
         }
     }
     
     /**
-     * Adds a new instance of the current product with all properties
+     * Adds a new instance of the current product
      */
-    fun addNewInstance(upc: String, expirationDate: Long?, size: Double?, unit: String?) {
-        _pendingItemForSize.value = null
+    private fun addNewInstance(upc: String, expirationDate: Long?) {
         viewModelScope.launch {
             try {
-                fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate, size, unit)
+                fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate)
             } catch (e: Exception) {
                 Log.e("ItemDetailVM", "Failed to add new instance: ${e.message}")
             }
@@ -169,13 +164,6 @@ class ItemDetailViewModel(
      */
     fun cancelDatePicker() {
         _pendingItemForDate.value = null
-    }
-    
-    /**
-     * Cancels the size picker dialog
-     */
-    fun cancelSizePicker() {
-        _pendingItemForSize.value = null
     }
     
     /**

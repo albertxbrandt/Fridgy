@@ -8,22 +8,27 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,11 +43,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.models.SizeUnit
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
 import java.io.File
 
@@ -53,11 +60,16 @@ import java.io.File
 @Composable
 fun NewProductDialog(
     upc: String,
-    onConfirm: (String, String, String, Uri?) -> Unit,
+    onConfirm: (String, String, String, Uri?, Double?, String?) -> Unit,
     onDismiss: () -> Unit
 ) {
     var productName by remember { mutableStateOf("") }
     var productBrand by remember { mutableStateOf("") }
+    var sizeText by remember { mutableStateOf("") }
+    var selectedUnit by remember { mutableStateOf<SizeUnit?>(null) }
+    var showUnitDropdown by remember { mutableStateOf(false) }
+    var customUnit by remember { mutableStateOf("") }
+    var showCustomUnitInput by remember { mutableStateOf(false) }
 
     // Load categories from database
     val categoryViewModel: CategoryViewModel = viewModel(factory = CategoryViewModel.provideFactory())
@@ -167,6 +179,84 @@ fun NewProductDialog(
                     shape = MaterialTheme.shapes.medium,
                     singleLine = true
                 )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                // Size/Unit Section
+                Text(
+                    "Size/Unit (Optional)",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    // Size input
+                    OutlinedTextField(
+                        value = sizeText,
+                        onValueChange = { sizeText = it },
+                        label = { Text("Size") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f),
+                        shape = MaterialTheme.shapes.medium,
+                        singleLine = true
+                    )
+                    
+                    // Unit dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = showUnitDropdown,
+                        onExpandedChange = { showUnitDropdown = it },
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        OutlinedTextField(
+                            value = when {
+                                showCustomUnitInput -> customUnit
+                                selectedUnit != null -> selectedUnit!!.displayName
+                                else -> ""
+                            },
+                            onValueChange = {
+                                if (showCustomUnitInput) {
+                                    customUnit = it
+                                }
+                            },
+                            readOnly = !showCustomUnitInput,
+                            label = { Text("Unit") },
+                            trailingIcon = {
+                                if (!showCustomUnitInput) {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitDropdown)
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            shape = MaterialTheme.shapes.medium,
+                            singleLine = true
+                        )
+                        
+                        ExposedDropdownMenu(
+                            expanded = showUnitDropdown,
+                            onDismissRequest = { showUnitDropdown = false }
+                        ) {
+                            SizeUnit.entries.forEach { unit ->
+                                DropdownMenuItem(
+                                    text = { Text(unit.displayName) },
+                                    onClick = {
+                                        selectedUnit = unit
+                                        showUnitDropdown = false
+                                        showCustomUnitInput = (unit == SizeUnit.OTHER)
+                                        if (unit != SizeUnit.OTHER) {
+                                            customUnit = ""
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     stringResource(R.string.category),
@@ -197,7 +287,15 @@ fun NewProductDialog(
         },
         confirmButton = {
             FilledTonalButton(
-                onClick = { onConfirm(productName, productBrand, selectedCategory, capturedImageUri) },
+                onClick = { 
+                    val size = sizeText.toDoubleOrNull()
+                    val unit = when {
+                        showCustomUnitInput && customUnit.isNotBlank() -> customUnit
+                        selectedUnit != null && selectedUnit != SizeUnit.OTHER -> selectedUnit!!.name
+                        else -> null
+                    }
+                    onConfirm(productName, productBrand, selectedCategory, capturedImageUri, size, unit) 
+                },
                 enabled = productName.isNotBlank()
             ) {
                 Text(stringResource(R.string.save_and_add))

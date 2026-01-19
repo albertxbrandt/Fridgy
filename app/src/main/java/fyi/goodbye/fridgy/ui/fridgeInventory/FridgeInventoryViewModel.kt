@@ -89,10 +89,6 @@ class FridgeInventoryViewModel(
     // State for showing expiration date picker after scanning
     private val _pendingItemForDate = MutableStateFlow<String?>(null)
     val pendingItemForDate: StateFlow<String?> = _pendingItemForDate.asStateFlow()
-    
-    // State for showing size/unit picker after expiration date
-    private val _pendingItemForSize = MutableStateFlow<Pair<String, Long?>?>(null) // UPC and expirationDate
-    val pendingItemForSize: StateFlow<Pair<String, Long?>?> = _pendingItemForSize.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -230,21 +226,12 @@ class FridgeInventoryViewModel(
     }
     
     /**
-     * Adds an item with optional expiration date. Shows size dialog next.
+     * Adds an item with optional expiration date.
      */
     fun addItemWithDate(upc: String, expirationDate: Long?) {
         _pendingItemForDate.value = null
-        // Show size dialog next
-        _pendingItemForSize.value = Pair(upc, expirationDate)
-    }
-    
-    /**
-     * Adds an item with expiration date, size, and unit.
-     */
-    fun addItemWithSizeAndUnit(upc: String, expirationDate: Long?, size: Double?, unit: String?) {
-        _pendingItemForSize.value = null
         viewModelScope.launch {
-            addItemToFridge(upc, expirationDate, size, unit)
+            addItemToFridge(upc, expirationDate)
         }
     }
     
@@ -253,13 +240,6 @@ class FridgeInventoryViewModel(
      */
     fun cancelDatePicker() {
         _pendingItemForDate.value = null
-    }
-    
-    /**
-     * Cancels the size/unit picker.
-     */
-    fun cancelSizePicker() {
-        _pendingItemForSize.value = null
     }
 
     /**
@@ -271,7 +251,9 @@ class FridgeInventoryViewModel(
         name: String,
         brand: String,
         category: String,
-        imageUri: Uri?
+        imageUri: Uri?,
+        size: Double?,
+        unit: String?
     ) {
         _pendingScannedUpc.value = null
         _isAddingItem.value = true
@@ -284,6 +266,8 @@ class FridgeInventoryViewModel(
                     brand = brand,
                     category = category,
                     imageUrl = "",
+                    size = size,
+                    unit = unit,
                     lastUpdated = System.currentTimeMillis()
                 )
 
@@ -330,12 +314,10 @@ class FridgeInventoryViewModel(
      */
     private suspend fun addItemToFridge(
         upc: String, 
-        expirationDate: Long? = null,
-        size: Double? = null,
-        unit: String? = null
+        expirationDate: Long? = null
     ) {
         try {
-            fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate, size, unit)
+            fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate)
         } catch (e: Exception) {
             _addItemError.value = getApplication<Application>().getString(R.string.error_failed_to_add_item, e.message ?: "")
         }

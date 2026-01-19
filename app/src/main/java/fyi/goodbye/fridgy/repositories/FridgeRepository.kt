@@ -716,11 +716,9 @@ class FridgeRepository {
     suspend fun addItemToFridge(
         fridgeId: String,
         upc: String,
-        expirationDate: Long? = null,
-        size: Double? = null,
-        unit: String? = null
+        expirationDate: Long? = null
     ): Item {
-        Log.d("FridgeRepo", "Adding item instance for UPC: $upc with expiration: $expirationDate, size: $size, unit: $unit")
+        Log.d("FridgeRepo", "Adding item instance for UPC: $upc with expiration: $expirationDate")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
 
         // Get the fridge to access householdId (required for security rules)
@@ -732,8 +730,6 @@ class FridgeRepository {
         val newItem = Item(
             upc = upc,
             expirationDate = expirationDate,
-            size = size,
-            unit = unit,
             addedBy = currentUser.uid,
             addedAt = System.currentTimeMillis(),
             lastUpdatedBy = currentUser.uid,
@@ -750,8 +746,6 @@ class FridgeRepository {
         Log.d("FridgeRepo", "Item addedBy: ${newItem.addedBy}")
         Log.d("FridgeRepo", "Item lastUpdatedBy: ${newItem.lastUpdatedBy}")
         Log.d("FridgeRepo", "Item expirationDate: ${newItem.expirationDate}")
-        Log.d("FridgeRepo", "Item size: ${newItem.size}")
-        Log.d("FridgeRepo", "Item unit: ${newItem.unit}")
         
         // Check if user is actually a member of this household
         try {

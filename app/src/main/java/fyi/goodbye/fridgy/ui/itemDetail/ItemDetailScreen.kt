@@ -31,7 +31,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
-import fyi.goodbye.fridgy.ui.elements.SizeSelectionDialog
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
 import java.text.SimpleDateFormat
@@ -80,22 +79,6 @@ fun ItemDetailScreen(
                 onDismiss = {
                     viewModel.cancelDatePicker()
                 }
-            )
-        }
-    }
-    
-    // Show size/unit picker after expiration date is set
-    val pendingItemForSize by viewModel.pendingItemForSize.collectAsState()
-    if (pendingItemForSize != null) {
-        val (upc, expirationDate) = pendingItemForSize!!
-        val currentState = uiState
-        if (currentState is ItemDetailViewModel.ItemDetailUiState.Success) {
-            SizeSelectionDialog(
-                productName = currentState.product.name,
-                onSizeSelected = { size, unit ->
-                    viewModel.addNewInstance(upc, expirationDate, size, unit)
-                },
-                onDismiss = { viewModel.cancelSizePicker() }
             )
         }
     }
@@ -209,6 +192,19 @@ fun ItemDetailScreen(
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        
+                        // Product size/unit
+                        if (product.size != null && product.unit != null) {
+                            val sizeUnitText = fyi.goodbye.fridgy.models.SizeUnit.formatSizeUnit(product.size, product.unit)
+                            if (sizeUnitText != null) {
+                                Text(
+                                    text = sizeUnitText,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -256,6 +252,7 @@ fun ItemDetailScreen(
                                     
                                     ItemInstanceCard(
                                         item = item,
+                                        product = product,
                                         userNames = userNames,
                                         dateFormatter = dateFormatter,
                                         onDelete = { 
@@ -275,6 +272,7 @@ fun ItemDetailScreen(
 @Composable
 fun ItemInstanceCard(
     item: fyi.goodbye.fridgy.models.Item,
+    product: fyi.goodbye.fridgy.models.Product,
     userNames: Map<String, String>,
     dateFormatter: SimpleDateFormat,
     onDelete: () -> Unit
@@ -350,14 +348,6 @@ fun ItemInstanceCard(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
-
-        // Size/unit info
-        if (item.size != null && item.unit != null) {
-            DetailRow(
-                label = "Size",
-                value = "${item.size} ${item.unit}"
-            )
-        }
 
         // Added info
         DetailRow(

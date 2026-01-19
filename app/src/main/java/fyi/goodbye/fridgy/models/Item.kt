@@ -14,8 +14,6 @@ import kotlinx.parcelize.Parcelize
  * @property id Unique identifier for this item instance (Firestore auto-generated)
  * @property upc Product barcode/UPC for linking to product information
  * @property expirationDate Expiration date in milliseconds since epoch (null = no expiration)
- * @property size Numeric size/quantity (e.g., 1.0 for "1 gallon", 12 for "12 pack")
- * @property unit Unit of measurement (e.g., "gallon", "quart", "liter", "dozen", etc.)
  * @property addedBy The User ID of the person who originally added this item
  * @property addedAt The timestamp (ms) when the item was first created
  * @property lastUpdatedBy The User ID of the person who last modified this item
@@ -28,8 +26,6 @@ data class Item(
     val id: String = "",
     val upc: String = "",
     val expirationDate: Long? = null,
-    val size: Double? = null,
-    val unit: String? = null,
     val addedBy: String = "",
     val addedAt: Long = System.currentTimeMillis(),
     val lastUpdatedBy: String = "",

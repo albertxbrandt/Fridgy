@@ -23,7 +23,6 @@ import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
-import fyi.goodbye.fridgy.ui.elements.SizeSelectionDialog
 import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
 import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
@@ -269,8 +268,8 @@ fun FridgeInventoryScreen(
     if (pendingUpc != null) {
         NewProductDialog(
             upc = pendingUpc!!,
-            onConfirm = { name, brand, category, imageUri ->
-                viewModel.createAndAddProduct(pendingUpc!!, name, brand, category, imageUri)
+            onConfirm = { name, brand, category, imageUri, size, unit ->
+                viewModel.createAndAddProduct(pendingUpc!!, name, brand, category, imageUri, size, unit)
             },
             onDismiss = { viewModel.cancelPendingProduct() }
         )
@@ -295,27 +294,6 @@ fun FridgeInventoryScreen(
                 viewModel.addItemWithDate(upc, date)
             },
             onDismiss = { viewModel.cancelDatePicker() }
-        )
-    }
-    
-    // Show size/unit picker after expiration date is set
-    val pendingItemForSize by viewModel.pendingItemForSize.collectAsState()
-    if (pendingItemForSize != null) {
-        val (upc, expirationDate) = pendingItemForSize!!
-        // Get product info to show name in dialog
-        var productName by remember { mutableStateOf("Item") }
-        LaunchedEffect(upc) {
-            viewModel.getProductForDisplay(upc)?.let { product ->
-                productName = product.name
-            }
-        }
-        
-        SizeSelectionDialog(
-            productName = productName,
-            onSizeSelected = { size, unit ->
-                viewModel.addItemWithSizeAndUnit(upc, expirationDate, size, unit)
-            },
-            onDismiss = { viewModel.cancelSizePicker() }
         )
     }
 }

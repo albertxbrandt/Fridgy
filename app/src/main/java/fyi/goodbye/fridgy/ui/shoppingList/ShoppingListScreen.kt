@@ -647,7 +647,7 @@ fun ShoppingListScreen(
         NewProductDialog(
             upc = upc,
             onDismiss = { showNewProductDialog = null },
-            onConfirm = { name, brand, category, imageUri ->
+            onConfirm = { name, brand, category, imageUri, size, unit ->
                 // Delegate product creation and linking to ViewModel
                 viewModel.createProductAndLink(
                     oldManualUpc = manualItem.item.upc,
