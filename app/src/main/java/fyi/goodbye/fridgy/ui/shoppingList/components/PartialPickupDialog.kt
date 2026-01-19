@@ -13,41 +13,52 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.ui.shared.components.SquaredButton
+import fyi.goodbye.fridgy.models.Fridge
 
 /**
  * Dialog for marking partial pickup of a shopping list item.
- * 
+ *
  * When users check off an item, this dialog allows them to specify how many
- * units they actually obtained. If the obtained quantity equals the requested
- * quantity, the item is fully checked off. Otherwise, it shows partial status.
- * 
+ * units they actually obtained and which fridge they will place them in.
+ * If the obtained quantity equals the requested quantity, the item is fully checked off.
+ * Otherwise, it shows partial status.
+ *
  * **Features:**
  * - Quantity picker with +/- buttons
+ * - Fridge selection dropdown
  * - Displays "Picked up X of Y" format
  * - Defaults to full quantity (mark as complete)
- * 
+ *
  * @param itemName The display name of the item being picked up
  * @param requestedQuantity Total quantity that was requested
  * @param currentObtained Current obtained quantity (for editing), defaults to 0
+ * @param availableFridges List of fridges in the household to choose from
+ * @param currentTargetFridgeId Currently selected fridge ID (for editing)
  * @param onDismiss Callback when dialog is cancelled
- * @param onConfirm Callback with the obtained quantity when confirmed
+ * @param onConfirm Callback with the obtained quantity and target fridge ID when confirmed
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PartialPickupDialog(
     itemName: String,
     requestedQuantity: Int,
     currentObtained: Int = 0,
+    availableFridges: List<Fridge> = emptyList(),
+    currentTargetFridgeId: String = "",
     onDismiss: () -> Unit,
-    onConfirm: (Int) -> Unit
+    onConfirm: (obtainedQuantity: Int, targetFridgeId: String) -> Unit
 ) {
-    var obtainedQuantity by remember { 
-        mutableIntStateOf(if (currentObtained > 0) currentObtained else requestedQuantity) 
+    var obtainedQuantity by remember {
+        mutableIntStateOf(if (currentObtained > 0) currentObtained else requestedQuantity)
     }
+    var selectedFridgeId by remember {
+        mutableStateOf(currentTargetFridgeId.ifEmpty { availableFridges.firstOrNull()?.id ?: "" })
+    }
+    var expandedFridgeDropdown by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
                 stringResource(R.string.mark_item_picked_up),
                 style = MaterialTheme.typography.headlineSmall,
@@ -66,14 +77,14 @@ fun PartialPickupDialog(
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center
                 )
-                
+
                 Text(
                     text = stringResource(R.string.how_many_obtained),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
-                
+
                 // Quantity Picker
                 Surface(
                     shape = MaterialTheme.shapes.large,
@@ -95,7 +106,7 @@ fun PartialPickupDialog(
                                 tint = MaterialTheme.colorScheme.primary
                             )
                         }
-                        
+
                         Text(
                             text = stringResource(R.string.picked_up_x_of_y, obtainedQuantity, requestedQuantity),
                             style = MaterialTheme.typography.headlineMedium,
@@ -104,7 +115,7 @@ fun PartialPickupDialog(
                             modifier = Modifier.padding(horizontal = 24.dp),
                             textAlign = TextAlign.Center
                         )
-                        
+
                         IconButton(
                             onClick = { if (obtainedQuantity < requestedQuantity) obtainedQuantity++ },
                             enabled = obtainedQuantity < requestedQuantity
@@ -117,11 +128,63 @@ fun PartialPickupDialog(
                         }
                     }
                 }
+
+                // Fridge Selection Dropdown
+                if (availableFridges.isNotEmpty()) {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = stringResource(R.string.which_fridge),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Start,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+
+                        ExposedDropdownMenuBox(
+                            expanded = expandedFridgeDropdown,
+                            onExpandedChange = { expandedFridgeDropdown = it },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = availableFridges.find { it.id == selectedFridgeId }?.name ?: "",
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = {
+                                    ExposedDropdownMenuDefaults.TrailingIcon(
+                                        expanded = expandedFridgeDropdown
+                                    )
+                                },
+                                modifier =
+                                    Modifier
+                                        .fillMaxWidth()
+                                        .menuAnchor(),
+                                colors = OutlinedTextFieldDefaults.colors(),
+                                shape = MaterialTheme.shapes.medium
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = expandedFridgeDropdown,
+                                onDismissRequest = { expandedFridgeDropdown = false }
+                            ) {
+                                availableFridges.forEach { fridge ->
+                                    DropdownMenuItem(
+                                        text = { Text(fridge.name) },
+                                        onClick = {
+                                            selectedFridgeId = fridge.id
+                                            expandedFridgeDropdown = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             FilledTonalButton(
-                onClick = { onConfirm(obtainedQuantity) }
+                onClick = { onConfirm(obtainedQuantity, selectedFridgeId) },
+                enabled = obtainedQuantity > 0 && (availableFridges.isEmpty() || selectedFridgeId.isNotEmpty())
             ) {
                 Text(stringResource(R.string.confirm))
             }

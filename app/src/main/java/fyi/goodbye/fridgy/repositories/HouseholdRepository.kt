@@ -1,0 +1,1026 @@
+package fyi.goodbye.fridgy.repositories
+
+import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import fyi.goodbye.fridgy.models.DisplayHousehold
+import fyi.goodbye.fridgy.models.Household
+import fyi.goodbye.fridgy.models.InviteCode
+import fyi.goodbye.fridgy.models.Item
+import fyi.goodbye.fridgy.models.ShoppingListItem
+import fyi.goodbye.fridgy.models.UserProfile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlin.random.Random
+
+/**
+ * Repository responsible for all household-related operations including:
+ * - Household CRUD operations
+ * - Member management
+ * - Invite code generation and redemption
+ * - Shopping list operations (moved from fridge-level to household-level)
+ * - Migration of legacy fridges without householdId
+ */
+class HouseholdRepository {
+    private val firestore = FirebaseFirestore.getInstance()
+    private val auth = FirebaseAuth.getInstance()
+
+    companion object {
+        private const val TAG = "HouseholdRepository"
+        private const val INVITE_CODE_LENGTH = 6
+        private const val INVITE_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // Exclude confusing chars (I, O, 0, 1)
+    }
+
+    // ==================== Household CRUD ====================
+
+    /**
+     * Returns a Flow of households the current user is a member of.
+     * Returns an empty list if user has no households or if there's a permission error.
+     */
+    fun getHouseholdsForCurrentUser(): Flow<List<Household>> =
+        callbackFlow {
+            val currentUserId =
+                auth.currentUser?.uid ?: run {
+                    Log.d(TAG, "No current user, sending empty list")
+                    trySend(emptyList()).isSuccess
+                    close()
+                    return@callbackFlow
+                }
+
+            Log.d(TAG, "Starting households listener for user: $currentUserId")
+
+            val listener =
+                firestore.collection("households")
+                    .whereArrayContains("members", currentUserId)
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            Log.e(TAG, "Error fetching households: ${e.message}")
+                            // Send empty list on error instead of closing with exception
+                            trySend(emptyList()).isSuccess
+                            return@addSnapshotListener
+                        }
+                        val households =
+                            snapshot?.documents?.mapNotNull { doc ->
+                                doc.toObject(Household::class.java)?.copy(id = doc.id)
+                            } ?: emptyList()
+                        Log.d(TAG, "Fetched ${households.size} households")
+                        trySend(households).isSuccess
+                    }
+            awaitClose {
+                Log.d(TAG, "Closing households listener")
+                listener.remove()
+            }
+        }
+
+    /**
+     * Gets a single household by ID.
+     */
+    suspend fun getHouseholdById(householdId: String): Household? {
+        return try {
+            val doc = firestore.collection("households").document(householdId).get().await()
+            if (!doc.exists()) {
+                Log.d(TAG, "Household $householdId does not exist")
+                return null
+            }
+            doc.toObject(Household::class.java)?.copy(id = doc.id)
+        } catch (e: Exception) {
+            // Silently handle permission errors - user likely no longer has access
+            if (e.message?.contains("PERMISSION_DENIED") == true) {
+                Log.d(TAG, "Permission denied for household $householdId - user likely removed")
+            } else {
+                Log.e(TAG, "Error fetching household $householdId: ${e.message}")
+            }
+            null
+        }
+    }
+
+    /**
+     * Gets a household with resolved user profiles for display.
+     */
+    suspend fun getDisplayHouseholdById(householdId: String): DisplayHousehold? {
+        val household = getHouseholdById(householdId) ?: return null
+
+        // Fetch user profiles for all members
+        val userProfiles = getUsersByIds(household.members + listOf(household.createdBy))
+        val memberUsers = household.members.mapNotNull { userProfiles[it] }
+        val ownerName = userProfiles[household.createdBy]?.username ?: "Unknown"
+
+        // Count fridges in this household
+        val fridgeCount =
+            try {
+                firestore.collection("fridges")
+                    .whereEqualTo("householdId", householdId)
+                    .get()
+                    .await()
+                    .size()
+            } catch (e: Exception) {
+                0
+            }
+
+        return DisplayHousehold(
+            id = household.id,
+            name = household.name,
+            createdByUid = household.createdBy,
+            ownerDisplayName = ownerName,
+            memberUsers = memberUsers,
+            fridgeCount = fridgeCount,
+            createdAt = household.createdAt
+        )
+    }
+
+    /**
+     * Returns a Flow of DisplayHouseholds for the current user with real-time updates.
+     * This includes live fridge counts that update when fridges are added/removed.
+     *
+     * This is more efficient than using getHouseholdsForCurrentUser() + getDisplayHouseholdById()
+     * because it uses a single snapshot listener for all households and their fridge counts.
+     */
+    fun getDisplayHouseholdsForCurrentUser(): Flow<List<DisplayHousehold>> =
+        callbackFlow {
+            val currentUserId =
+                auth.currentUser?.uid ?: run {
+                    trySend(emptyList()).isSuccess
+                    close()
+                    return@callbackFlow
+                }
+
+            // Cache for user profiles to avoid repeated queries
+            val userProfileCache = mutableMapOf<String, UserProfile>()
+            
+            // Map to track fridge count listeners for each household
+            val fridgeCountListeners = mutableMapOf<String, com.google.firebase.firestore.ListenerRegistration>()
+            val householdData = mutableMapOf<String, Pair<Household, Int>>() // household to (household, fridgeCount)
+
+            fun emitDisplayHouseholds() {
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    try {
+                        // Collect all unique user IDs
+                        val allUserIds =
+                            householdData.values.flatMap { (household, _) ->
+                                household.members + household.createdBy
+                            }.distinct()
+
+                        // Fetch missing user profiles
+                        val missingUserIds = allUserIds.filter { it !in userProfileCache.keys }
+                        if (missingUserIds.isNotEmpty()) {
+                            val newProfiles = getUsersByIds(missingUserIds)
+                            userProfileCache.putAll(newProfiles)
+                        }
+
+                        // Build DisplayHousehold objects
+                        val displayHouseholds =
+                            householdData.values.map { (household, fridgeCount) ->
+                                val memberUsers = household.members.mapNotNull { userProfileCache[it] }
+                                val ownerName = userProfileCache[household.createdBy]?.username ?: "Unknown"
+
+                                DisplayHousehold(
+                                    id = household.id,
+                                    name = household.name,
+                                    createdByUid = household.createdBy,
+                                    ownerDisplayName = ownerName,
+                                    memberUsers = memberUsers,
+                                    fridgeCount = fridgeCount,
+                                    createdAt = household.createdAt
+                                )
+                            }
+
+                        trySend(displayHouseholds).isSuccess
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error building display households: ${e.message}")
+                    }
+                }
+            }
+
+            // Listen to household changes
+            val householdListener =
+                firestore.collection("households")
+                    .whereArrayContains("members", currentUserId)
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            Log.e(TAG, "Error in households listener: ${e.message}")
+                            trySend(emptyList()).isSuccess
+                            return@addSnapshotListener
+                        }
+
+                        val currentHouseholdIds = snapshot?.documents?.map { it.id } ?: emptyList()
+                        val households =
+                            snapshot?.documents?.mapNotNull { doc ->
+                                doc.toObject(Household::class.java)?.copy(id = doc.id)
+                            } ?: emptyList()
+
+                        // Remove listeners for households user is no longer part of
+                        fridgeCountListeners.keys.filter { it !in currentHouseholdIds }.forEach { oldId ->
+                            fridgeCountListeners[oldId]?.remove()
+                            fridgeCountListeners.remove(oldId)
+                            householdData.remove(oldId)
+                        }
+
+                        // Update household data and set up fridge count listeners
+                        households.forEach { household ->
+                            householdData[household.id] = household to (householdData[household.id]?.second ?: 0)
+
+                            // Set up fridge count listener if not already listening
+                            if (!fridgeCountListeners.containsKey(household.id)) {
+                                val fridgeListener =
+                                    firestore.collection("fridges")
+                                        .whereEqualTo("householdId", household.id)
+                                        .addSnapshotListener { fridgeSnapshot, fridgeError ->
+                                            if (fridgeError != null) {
+                                                // Handle permission errors gracefully (user might not have access yet)
+                                                if (fridgeError.message?.contains("PERMISSION_DENIED") == true) {
+                                                    Log.d(TAG, "Permission denied for fridge count in household ${household.id} - setting count to 0")
+                                                    householdData[household.id] = household to 0
+                                                } else {
+                                                    Log.e(TAG, "Error in fridge count listener: ${fridgeError.message}")
+                                                }
+                                                return@addSnapshotListener
+                                            }
+
+                                            val fridgeCount = fridgeSnapshot?.size() ?: 0
+                                            householdData[household.id] = household to fridgeCount
+
+                                            // Emit updated display households
+                                            emitDisplayHouseholds()
+                                        }
+                                fridgeCountListeners[household.id] = fridgeListener
+                            }
+                        }
+
+                        // Emit initial data (fridge counts will be updated by their listeners)
+                        emitDisplayHouseholds()
+                    }
+
+            awaitClose {
+                householdListener.remove()
+                fridgeCountListeners.values.forEach { it.remove() }
+            }
+        }
+
+    /**
+     * Creates a new household with the current user as owner and sole member.
+     *
+     * @param name The name of the household.
+     * @return The created Household object.
+     */
+    suspend fun createHousehold(name: String): Household {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+
+        val docRef = firestore.collection("households").document()
+        val household =
+            Household(
+                id = docRef.id,
+                name = name,
+                createdBy = currentUser.uid,
+                members = listOf(currentUser.uid),
+                createdAt = System.currentTimeMillis()
+            )
+
+        docRef.set(household).await()
+        return household
+    }
+
+    /**
+     * Updates the name of a household. Only the owner can do this.
+     */
+    suspend fun updateHouseholdName(
+        householdId: String,
+        newName: String
+    ) {
+        firestore.collection("households").document(householdId)
+            .update("name", newName)
+            .await()
+    }
+
+    /**
+     * Deletes a household and all associated data (fridges, shopping list, invite codes).
+     * Only the owner can delete a household.
+     */
+    suspend fun deleteHousehold(householdId: String) {
+        val batch = firestore.batch()
+
+        // Delete all fridges in this household
+        val fridges =
+            firestore.collection("fridges")
+                .whereEqualTo("householdId", householdId)
+                .get()
+                .await()
+
+        fridges.documents.forEach { fridgeDoc ->
+            // Delete fridge items subcollection
+            val items = fridgeDoc.reference.collection("items").get().await()
+            items.documents.forEach { batch.delete(it.reference) }
+            batch.delete(fridgeDoc.reference)
+        }
+
+        // Delete shopping list subcollection
+        val shoppingList =
+            firestore.collection("households").document(householdId)
+                .collection("shoppingList").get().await()
+        shoppingList.documents.forEach { batch.delete(it.reference) }
+
+        // Delete shopping list presence subcollection
+        val presence =
+            firestore.collection("households").document(householdId)
+                .collection("shoppingListPresence").get().await()
+        presence.documents.forEach { batch.delete(it.reference) }
+
+        // Delete invite codes for this household
+        val inviteCodes =
+            firestore.collection("inviteCodes")
+                .whereEqualTo("householdId", householdId)
+                .get()
+                .await()
+        inviteCodes.documents.forEach { batch.delete(it.reference) }
+
+        // Delete the household document
+        batch.delete(firestore.collection("households").document(householdId))
+
+        batch.commit().await()
+    }
+
+    // ==================== Member Management ====================
+
+    /**
+     * Removes a member from a household. Only the owner can remove members.
+     * The owner cannot be removed.
+     */
+    suspend fun removeMember(
+        householdId: String,
+        userId: String
+    ) {
+        val household =
+            getHouseholdById(householdId)
+                ?: throw IllegalStateException("Household not found")
+
+        if (userId == household.createdBy) {
+            throw IllegalStateException("Cannot remove the owner from the household")
+        }
+
+        firestore.collection("households").document(householdId)
+            .update("members", FieldValue.arrayRemove(userId))
+            .await()
+    }
+
+    /**
+     * Allows the current user to leave a household.
+     * The owner cannot leave - they must delete the household or transfer ownership.
+     */
+    suspend fun leaveHousehold(householdId: String) {
+        val currentUserId =
+            auth.currentUser?.uid
+                ?: throw IllegalStateException("User not logged in")
+
+        // Try to get household, but if it fails (permission denied, network issue, etc.),
+        // still attempt to remove user from members list
+        try {
+            val household = getHouseholdById(householdId)
+            
+            if (household != null) {
+                if (currentUserId == household.createdBy) {
+                    throw IllegalStateException("Owner cannot leave the household. Delete it instead.")
+                }
+            } else {
+                // Household might not be fetchable due to permission issues
+                // Log and proceed with removal attempt
+                Log.w(TAG, "Could not fetch household $householdId before leaving, proceeding with removal")
+            }
+        } catch (e: Exception) {
+            // Log error but continue with removal - permission issues shouldn't block leaving
+            Log.w(TAG, "Error fetching household $householdId before leaving: ${e.message}, proceeding with removal")
+        }
+
+        // Attempt to remove user from household regardless of fetch result
+        try {
+            firestore.collection("households").document(householdId)
+                .update("members", FieldValue.arrayRemove(currentUserId))
+                .await()
+            Log.d(TAG, "Successfully removed user from household $householdId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to remove user from household: ${e.message}")
+            throw e
+        }
+    }
+
+    // ==================== Invite Code System ====================
+
+    /**
+     * Generates a random 6-character alphanumeric invite code.
+     */
+    private fun generateInviteCode(): String {
+        return (1..INVITE_CODE_LENGTH)
+            .map { INVITE_CODE_CHARS[Random.nextInt(INVITE_CODE_CHARS.length)] }
+            .joinToString("")
+    }
+
+    /**
+     * Creates a new invite code for a household.
+     *
+     * @param householdId The household to create the code for.
+     * @param expiresAt Optional expiration timestamp (null = never expires).
+     * @return The created InviteCode object.
+     */
+    suspend fun createInviteCode(
+        householdId: String,
+        expiresAt: Long? = null
+    ): InviteCode {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        val household =
+            getHouseholdById(householdId)
+                ?: throw IllegalStateException("Household not found")
+
+        // Generate unique code with collision check
+        var code: String
+        var attempts = 0
+        do {
+            code = generateInviteCode()
+            val existing = firestore.collection("inviteCodes").document(code).get().await()
+            attempts++
+            if (attempts > 10) throw IllegalStateException("Failed to generate unique code")
+        } while (existing.exists())
+
+        val inviteCode =
+            InviteCode(
+                code = code,
+                householdId = householdId,
+                householdName = household.name,
+                createdBy = currentUser.uid,
+                createdAt = System.currentTimeMillis(),
+                expiresAt = expiresAt,
+                isActive = true
+            )
+
+        Log.d("HouseholdRepository", "Creating invite code: $code for household: $householdId, isActive: true")
+        firestore.collection("inviteCodes").document(code).set(inviteCode).await()
+        Log.d("HouseholdRepository", "Invite code created successfully")
+        return inviteCode
+    }
+
+    /**
+     * Gets all active invite codes for a household.
+     */
+    suspend fun getInviteCodesForHousehold(householdId: String): List<InviteCode> {
+        return try {
+            val snapshot =
+                firestore.collection("inviteCodes")
+                    .whereEqualTo("householdId", householdId)
+                    .whereEqualTo("active", true)
+                    .get()
+                    .await()
+
+            snapshot.documents.mapNotNull { doc ->
+                doc.toObject(InviteCode::class.java)?.copy(code = doc.id)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching invite codes: ${e.message}")
+            emptyList()
+        }
+    }
+
+    /**
+     * Returns a Flow of invite codes for real-time updates.
+     * Emits empty list on permission errors (e.g., when user leaves household).
+     */
+    fun getInviteCodesFlow(householdId: String): Flow<List<InviteCode>> =
+        callbackFlow {
+            Log.d("HouseholdRepository", "Starting invite codes listener for household: $householdId")
+            val listener =
+                firestore.collection("inviteCodes")
+                    .whereEqualTo("householdId", householdId)
+                    .whereEqualTo("active", true)
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            Log.e("HouseholdRepository", "Error loading invite codes: ${e.message}", e)
+                            // Don't crash - just close the flow gracefully
+                            // This happens when user loses permission (e.g., leaves household)
+                            channel.close()
+                            return@addSnapshotListener
+                        }
+                        val codes =
+                            snapshot?.documents?.mapNotNull { doc ->
+                                doc.toObject(InviteCode::class.java)?.copy(code = doc.id)
+                            } ?: emptyList()
+                        Log.d("HouseholdRepository", "Loaded ${codes.size} invite codes")
+                        trySend(codes).isSuccess
+                    }
+            awaitClose { listener.remove() }
+        }
+
+    /**
+     * Revokes (deactivates) an invite code.
+     */
+    suspend fun revokeInviteCode(code: String) {
+        firestore.collection("inviteCodes").document(code)
+            .update("active", false)
+            .await()
+    }
+
+    /**
+     * Redeems an invite code to join a household.
+     *
+     * @param code The invite code to redeem.
+     * @return The Household that was joined, or throws exception on failure.
+     */
+    suspend fun redeemInviteCode(code: String): String {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        val upperCode = code.uppercase().trim()
+
+        val codeDoc = firestore.collection("inviteCodes").document(upperCode).get().await()
+        if (!codeDoc.exists()) {
+            throw IllegalStateException("Invalid invite code")
+        }
+
+        val inviteCode =
+            codeDoc.toObject(InviteCode::class.java)?.copy(code = upperCode)
+                ?: throw IllegalStateException("Invalid invite code")
+
+        // Validate code
+        if (!inviteCode.isActive) {
+            throw IllegalStateException("This invite code has been revoked")
+        }
+        if (inviteCode.usedBy != null) {
+            throw IllegalStateException("This invite code has already been used")
+        }
+        if (inviteCode.isExpired()) {
+            throw IllegalStateException("This invite code has expired")
+        }
+
+        // Add user to household using batch write (no read required)
+        // arrayUnion is idempotent - it won't add duplicates if user is already a member
+        val batch = firestore.batch()
+
+        val householdRef = firestore.collection("households").document(inviteCode.householdId)
+        batch.update(householdRef, "members", FieldValue.arrayUnion(currentUser.uid))
+
+        val codeRef = firestore.collection("inviteCodes").document(upperCode)
+        batch.update(
+            codeRef,
+            mapOf(
+                "usedBy" to currentUser.uid,
+                "usedAt" to System.currentTimeMillis()
+            )
+        )
+
+        batch.commit().await()
+
+        // Return the household ID - the UI will navigate there and load the household
+        return inviteCode.householdId
+    }
+
+    /**
+     * Checks if the current user is already a member of the specified household.
+     */
+    suspend fun isUserMemberOfHousehold(householdId: String): Boolean {
+        val currentUserId = auth.currentUser?.uid ?: return false
+        return try {
+            val household = getHouseholdById(householdId) ?: return false
+            household.members.contains(currentUserId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking membership: ${e.message}")
+            false
+        }
+    }
+
+    /**
+     * Validates an invite code and returns invite code info for confirmation UI.
+     * Does not redeem the code. Returns invite code with embedded household name.
+     * Note: We don't fetch the full household since the user isn't a member yet.
+     */
+    suspend fun validateInviteCode(code: String): InviteCode? {
+        val upperCode = code.uppercase().trim()
+
+        return try {
+            val codeDoc = firestore.collection("inviteCodes").document(upperCode).get().await()
+            if (!codeDoc.exists()) return null
+
+            val inviteCode =
+                codeDoc.toObject(InviteCode::class.java)?.copy(code = upperCode)
+                    ?: return null
+
+            if (!inviteCode.isValid()) return null
+
+            inviteCode
+        } catch (e: Exception) {
+            Log.e(TAG, "Error validating invite code: ${e.message}")
+            null
+        }
+    }
+
+    // ==================== Shopping List Operations ====================
+    // (Moved from FridgeRepository - now at household level)
+
+    /**
+     * Returns a Flow of shopping list items for a household.
+     * Closes gracefully on permission errors.
+     */
+    fun getShoppingListItems(householdId: String): Flow<List<ShoppingListItem>> =
+        callbackFlow {
+            val colRef =
+                firestore.collection("households").document(householdId)
+                    .collection("shoppingList")
+
+            val listener =
+                colRef.addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.e(TAG, "Error loading shopping list: ${e.message}")
+                        channel.close()
+                        return@addSnapshotListener
+                    }
+                    val items =
+                        snapshot?.documents?.mapNotNull {
+                            it.toObject(ShoppingListItem::class.java)
+                        } ?: emptyList()
+                    trySend(items).isSuccess
+                }
+            awaitClose { listener.remove() }
+        }
+
+    /**
+     * Adds an item to the household's shopping list.
+     */
+    suspend fun addShoppingListItem(
+        householdId: String,
+        upc: String,
+        quantity: Int = 1,
+        store: String = "",
+        customName: String = ""
+    ) {
+        val currentUser =
+            auth.currentUser?.uid
+                ?: throw IllegalStateException("User not logged in.")
+
+        val item =
+            ShoppingListItem(
+                upc = upc,
+                addedAt = System.currentTimeMillis(),
+                addedBy = currentUser,
+                quantity = quantity,
+                store = store,
+                customName = customName
+            )
+
+        firestore.collection("households").document(householdId)
+            .collection("shoppingList").document(upc)
+            .set(item)
+            .await()
+    }
+
+    /**
+     * Removes an item from the shopping list.
+     */
+    suspend fun removeShoppingListItem(
+        householdId: String,
+        upc: String
+    ) {
+        firestore.collection("households").document(householdId)
+            .collection("shoppingList").document(upc)
+            .delete()
+            .await()
+    }
+
+    /**
+     * Updates the current user's obtained quantity and target fridge for an item.
+     */
+    suspend fun updateShoppingListItemPickup(
+        householdId: String,
+        upc: String,
+        obtainedQuantity: Int,
+        totalQuantity: Int,
+        targetFridgeId: String
+    ) {
+        val currentUserId =
+            auth.currentUser?.uid
+                ?: throw IllegalStateException("User not logged in.")
+
+        val itemRef =
+            firestore.collection("households").document(householdId)
+                .collection("shoppingList").document(upc)
+
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(itemRef)
+            val currentObtainedBy = snapshot.get("obtainedBy") as? Map<String, Long> ?: emptyMap()
+            val currentTargetFridgeId = snapshot.get("targetFridgeId") as? Map<String, String> ?: emptyMap()
+
+            // Update obtained quantity map
+            val updatedObtainedBy = currentObtainedBy.toMutableMap()
+            if (obtainedQuantity > 0) {
+                updatedObtainedBy[currentUserId] = obtainedQuantity.toLong()
+            } else {
+                updatedObtainedBy.remove(currentUserId)
+            }
+
+            // Update target fridge map
+            val updatedTargetFridgeId = currentTargetFridgeId.toMutableMap()
+            if (obtainedQuantity > 0 && targetFridgeId.isNotEmpty()) {
+                updatedTargetFridgeId[currentUserId] = targetFridgeId
+            } else {
+                updatedTargetFridgeId.remove(currentUserId)
+            }
+
+            val newTotal = updatedObtainedBy.values.sum().toInt()
+            val checked = newTotal >= totalQuantity
+
+            transaction.update(
+                itemRef,
+                mapOf(
+                    "obtainedBy" to updatedObtainedBy,
+                    "targetFridgeId" to updatedTargetFridgeId,
+                    "obtainedQuantity" to newTotal,
+                    "checked" to checked,
+                    "lastUpdatedBy" to currentUserId,
+                    "lastUpdatedAt" to System.currentTimeMillis()
+                )
+            )
+        }.await()
+    }
+
+    /**
+     * Completes the current user's shopping session by moving their obtained items to designated fridges.
+     *
+     * This operation performs an atomic batch write that:
+     * 1. Adds user's obtained quantities to their selected fridges (creates new items or increments existing)
+     * 2. Removes user's contribution from shopping list items
+     * 3. Deletes shopping list items that no other users need
+     *
+     * **Important**: This function performs sequential reads for each item to check existence before writing.
+     * It works reliably with large shopping lists (tested with 22+ items) because the reads happen
+     * outside the batch operation and don't count against Firestore's 10-read batch limit.
+     *
+     * @param householdId The ID of the household whose shopping session is being completed
+     * @throws IllegalStateException if user is not logged in
+     * @throws Exception if Firestore operations fail (e.g., network issues, permission denied)
+     */
+    suspend fun completeShoppingSession(householdId: String) {
+        val currentUserId =
+            auth.currentUser?.uid
+                ?: throw IllegalStateException("User not logged in.")
+
+        val shoppingListRef =
+            firestore.collection("households").document(householdId)
+                .collection("shoppingList")
+
+        try {
+            val snapshot = shoppingListRef.get().await()
+            val items =
+                snapshot.documents.mapNotNull {
+                    it.toObject(ShoppingListItem::class.java)
+                }
+
+            val batch = firestore.batch()
+
+            items.forEach { item ->
+                val userQuantity = item.obtainedBy[currentUserId] ?: 0
+                val targetFridgeId = item.targetFridgeId[currentUserId]
+
+                if (userQuantity > 0 && targetFridgeId != null) {
+                    // Add to the designated fridge
+                    val itemRef =
+                        firestore.collection("fridges").document(targetFridgeId)
+                            .collection("items").document(item.upc)
+
+                    val fridgeItemSnapshot = itemRef.get().await()
+
+                    if (fridgeItemSnapshot.exists()) {
+                        val currentQty = fridgeItemSnapshot.getLong("quantity") ?: 0L
+                        batch.update(
+                            itemRef,
+                            mapOf(
+                                "quantity" to currentQty + userQuantity,
+                                "lastUpdatedBy" to currentUserId,
+                                "lastUpdatedAt" to System.currentTimeMillis()
+                            )
+                        )
+                    } else {
+                        val newItem =
+                            Item(
+                                upc = item.upc,
+                                quantity = userQuantity,
+                                addedBy = currentUserId,
+                                addedAt = System.currentTimeMillis(),
+                                lastUpdatedBy = currentUserId,
+                                lastUpdatedAt = System.currentTimeMillis(),
+                                householdId = householdId
+                            )
+                        batch.set(itemRef, newItem)
+                    }
+
+                    // Update shopping list item
+                    val shoppingItemRef = shoppingListRef.document(item.upc)
+                    val remainingObtainedBy = item.obtainedBy.toMutableMap()
+                    val remainingTargetFridgeId = item.targetFridgeId.toMutableMap()
+                    remainingObtainedBy.remove(currentUserId)
+                    remainingTargetFridgeId.remove(currentUserId)
+
+                    val remainingQuantityNeeded = item.quantity - userQuantity
+                    val newTotalObtained = remainingObtainedBy.values.sum()
+
+                    if (remainingQuantityNeeded <= 0) {
+                        batch.delete(shoppingItemRef)
+                    } else {
+                        batch.update(
+                            shoppingItemRef,
+                            mapOf(
+                                "quantity" to remainingQuantityNeeded,
+                                "obtainedBy" to remainingObtainedBy,
+                                "targetFridgeId" to remainingTargetFridgeId,
+                                "obtainedQuantity" to newTotalObtained,
+                                "checked" to false,
+                                "lastUpdatedBy" to currentUserId,
+                                "lastUpdatedAt" to System.currentTimeMillis()
+                            )
+                        )
+                    }
+                }
+            }
+
+            batch.commit().await()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error completing shopping session", e)
+            throw e
+        }
+    }
+
+    /**
+     * Sets the current user as actively viewing the shopping list.
+     */
+    suspend fun setShoppingListPresence(householdId: String) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        val presenceRef =
+            firestore.collection("households").document(householdId)
+                .collection("shoppingListPresence").document(currentUserId)
+
+        presenceRef.set(
+            mapOf(
+                "userId" to currentUserId,
+                "lastSeen" to FieldValue.serverTimestamp()
+            )
+        ).await()
+    }
+
+    /**
+     * Removes the current user's presence from the shopping list.
+     */
+    suspend fun removeShoppingListPresence(householdId: String) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        firestore.collection("households").document(householdId)
+            .collection("shoppingListPresence").document(currentUserId)
+            .delete()
+            .await()
+    }
+
+    data class ActiveViewer(
+        val userId: String,
+        val username: String,
+        val lastSeenTimestamp: Long
+    )
+
+    /**
+     * Returns a Flow of active viewers for the shopping list.
+     * Closes gracefully on permission errors.
+     */
+    fun getShoppingListPresence(householdId: String): Flow<List<ActiveViewer>> =
+        callbackFlow {
+            val presenceRef =
+                firestore.collection("households").document(householdId)
+                    .collection("shoppingListPresence")
+
+            val listener =
+                presenceRef.addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.e(TAG, "Error loading shopping list presence: ${e.message}")
+                        channel.close()
+                        return@addSnapshotListener
+                    }
+
+                    val currentTime = System.currentTimeMillis()
+                    val activeViewers = mutableListOf<ActiveViewer>()
+
+                    snapshot?.documents?.forEach { doc ->
+                        val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+                        val userId = doc.getString("userId")
+
+                        if (userId != null && (currentTime - lastSeen) < 30_000) {
+                            firestore.collection("userProfiles").document(userId)
+                                .get()
+                                .addOnSuccessListener { userDoc ->
+                                    val username = userDoc.getString("username") ?: "Unknown User"
+                                    activeViewers.add(ActiveViewer(userId, username, lastSeen))
+                                    trySend(activeViewers.toList()).isSuccess
+                                }
+                        }
+                    }
+
+                    if (snapshot?.documents?.isEmpty() == true) {
+                        trySend(emptyList()).isSuccess
+                    }
+                }
+
+            awaitClose { listener.remove() }
+        }
+
+    // ==================== Migration Helper ====================
+
+    /**
+     * Checks if the current user has any fridges without a householdId (legacy fridges).
+     * Used for first-run migration flow.
+     *
+     * Note: This is disabled in the new architecture since fridges no longer have
+     * a members field. Migration from the old model should be handled via a
+     * separate admin tool or Cloud Function if needed.
+     */
+    suspend fun hasOrphanFridges(): Boolean {
+        // Disabled - the new architecture doesn't support querying fridges
+        // by member since membership is now at the household level
+        return false
+    }
+
+    /**
+     * Migrates orphan fridges (without householdId) to a new or existing household.
+     * Creates a default household named "My Home" if user has no households.
+     *
+     * @return The household ID that the fridges were migrated to.
+     */
+    suspend fun migrateOrphanFridges(): String {
+        val currentUserId =
+            auth.currentUser?.uid
+                ?: throw IllegalStateException("User not logged in.")
+
+        // Check if user already has a household
+        val existingHouseholds =
+            firestore.collection("households")
+                .whereArrayContains("members", currentUserId)
+                .get()
+                .await()
+
+        val targetHouseholdId =
+            if (existingHouseholds.isEmpty) {
+                // Create a default household
+                val newHousehold = createHousehold("My Home")
+                newHousehold.id
+            } else {
+                existingHouseholds.documents.first().id
+            }
+
+        // Find all orphan fridges where user is in members list
+        val orphanFridges =
+            firestore.collection("fridges")
+                .whereArrayContains("members", currentUserId)
+                .get()
+                .await()
+
+        val batch = firestore.batch()
+
+        orphanFridges.documents.forEach { doc ->
+            val householdId = doc.getString("householdId")
+            if (householdId.isNullOrEmpty()) {
+                // Migrate this fridge to the target household
+                batch.update(doc.reference, "householdId", targetHouseholdId)
+
+                // Also migrate shopping list if it exists as a subcollection
+                // (Shopping list data stays with fridge during migration,
+                // but new items go to household level)
+            }
+        }
+
+        batch.commit().await()
+        Log.d(TAG, "Migrated ${orphanFridges.size()} orphan fridges to household $targetHouseholdId")
+
+        return targetHouseholdId
+    }
+
+    // ==================== Utility Methods ====================
+
+    /**
+     * Fetches multiple user profiles by their IDs.
+     */
+    private suspend fun getUsersByIds(userIds: List<String>): Map<String, UserProfile> {
+        if (userIds.isEmpty()) return emptyMap()
+
+        val result = mutableMapOf<String, UserProfile>()
+
+        try {
+            userIds.distinct().chunked(10).forEach { chunk ->
+                val snapshot =
+                    firestore.collection("userProfiles")
+                        .whereIn(com.google.firebase.firestore.FieldPath.documentId(), chunk)
+                        .get()
+                        .await()
+
+                snapshot.documents.forEach { doc ->
+                    doc.toObject(UserProfile::class.java)?.let { profile ->
+                        result[doc.id] = profile.copy(uid = doc.id)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user profiles: ${e.message}")
+        }
+
+        return result
+    }
+}

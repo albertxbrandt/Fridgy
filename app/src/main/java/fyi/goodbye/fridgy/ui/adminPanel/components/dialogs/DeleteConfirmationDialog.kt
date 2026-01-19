@@ -26,7 +26,7 @@ fun DeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
                 title,
                 style = MaterialTheme.typography.headlineSmall,
@@ -34,7 +34,7 @@ fun DeleteConfirmationDialog(
                 color = MaterialTheme.colorScheme.error
             )
         },
-        text = { 
+        text = {
             Text(
                 message,
                 style = MaterialTheme.typography.bodyMedium
@@ -43,9 +43,10 @@ fun DeleteConfirmationDialog(
         confirmButton = {
             Button(
                 onClick = onConfirm,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                )
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
             ) {
                 Text(stringResource(R.string.delete))
             }

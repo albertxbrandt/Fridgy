@@ -15,6 +15,7 @@ import kotlinx.parcelize.Parcelize
  * @property addedAt The timestamp (ms) when the item was first created.
  * @property lastUpdatedBy The User ID of the person who last modified this item.
  * @property lastUpdatedAt The timestamp (ms) when the item was last modified.
+ * @property householdId The ID of the household this item belongs to (for security rules).
  */
 @Parcelize
 data class Item(
@@ -24,5 +25,6 @@ data class Item(
     val addedBy: String = "",
     val addedAt: Long = System.currentTimeMillis(),
     val lastUpdatedBy: String = "",
-    val lastUpdatedAt: Long = System.currentTimeMillis()
+    val lastUpdatedAt: Long = System.currentTimeMillis(),
+    val householdId: String = ""
 ) : Parcelable

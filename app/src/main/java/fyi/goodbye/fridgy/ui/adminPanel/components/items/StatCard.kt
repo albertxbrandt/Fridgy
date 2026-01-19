@@ -15,7 +15,7 @@ import androidx.compose.ui.unit.dp
 /**
  * A modern card component for displaying a single statistic in the admin panel.
  *
- * Features gradient-style primary container with clean typography and 
+ * Features gradient-style primary container with clean typography and
  * proper Material 3 theming.
  *
  * @param title The label describing the statistic (e.g., "Total Users")

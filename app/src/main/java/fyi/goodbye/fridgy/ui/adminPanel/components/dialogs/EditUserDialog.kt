@@ -31,7 +31,7 @@ fun EditUserDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
                 stringResource(R.string.edit_user),
                 style = MaterialTheme.typography.headlineSmall,

@@ -12,11 +12,11 @@ import fyi.goodbye.fridgy.ui.shared.components.SquaredInput
 
 /**
  * Dialog for entering a UPC code for a manual shopping list item.
- * 
+ *
  * Prompts the user to scan or manually enter a UPC code for an item that was
  * added manually to the shopping list. This allows linking the manual item to
  * an actual product in the database.
- * 
+ *
  * @param itemName The name of the manual item being linked
  * @param onDismiss Callback invoked when dialog is cancelled
  * @param onScanClick Callback to open barcode scanner
@@ -30,7 +30,7 @@ fun UpcEntryDialog(
     onConfirm: (String) -> Unit
 ) {
     var upcInput by remember { mutableStateOf("") }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -47,7 +47,7 @@ fun UpcEntryDialog(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 SquaredInput(
                     value = upcInput,
                     onValueChange = { upcInput = it },
@@ -55,7 +55,7 @@ fun UpcEntryDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 FilledTonalButton(
                     onClick = onScanClick,
                     modifier = Modifier.fillMaxWidth()

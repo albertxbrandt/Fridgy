@@ -5,7 +5,7 @@ import com.google.firebase.firestore.DocumentId
 import kotlinx.parcelize.Parcelize
 
 /**
- * Represents an item in a fridge's shopping list subcollection.
+ * Represents an item in a household's shopping list subcollection.
  *
  * @property upc The product UPC code or generated ID for manual entries.
  * @property addedAt Timestamp when the item was added.
@@ -15,6 +15,7 @@ import kotlinx.parcelize.Parcelize
  * @property checked Whether the item has been checked off (fully or partially).
  * @property obtainedQuantity How many units were actually obtained (for partial pickup).
  * @property obtainedBy Map of userId to quantity obtained by that user (for multi-user shopping).
+ * @property targetFridgeId Map of userId to the fridge ID where they want to store their obtained items.
  * @property lastUpdatedBy User ID who last updated the item.
  * @property lastUpdatedAt Timestamp of last update.
  * @property customName Optional custom name for manual entries (when product not in database).
@@ -30,7 +31,9 @@ data class ShoppingListItem(
     val checked: Boolean = false,
     val obtainedQuantity: Int? = null,
     val obtainedBy: Map<String, Int> = emptyMap(),
+    val targetFridgeId: Map<String, String> = emptyMap(),
     val lastUpdatedBy: String = "",
     val lastUpdatedAt: Long = System.currentTimeMillis(),
-    val customName: String = "" // For manual entries without UPC
+    // For manual entries without UPC
+    val customName: String = ""
 ) : Parcelable

@@ -204,12 +204,12 @@ class ProductRepository(private val context: Context? = null) {
         return try {
             // Try cache first for instant loading
             var doc = productsCollection.document(upc).get(Source.CACHE).await()
-            
+
             // If not in cache, fetch from server
             if (!doc.exists()) {
                 doc = productsCollection.document(upc).get(Source.SERVER).await()
             }
-            
+
             if (doc.exists()) {
                 val product = doc.toObject(Product::class.java)?.copy(upc = doc.id)
                 if (product != null) {
@@ -234,14 +234,14 @@ class ProductRepository(private val context: Context? = null) {
         return try {
             // First try: fetch from server
             var doc = productsCollection.document(upc).get(Source.SERVER).await()
-            
+
             // If not found on server, retry with DEFAULT source (includes cache)
             // This helps with Firestore's eventual consistency
             if (!doc.exists()) {
                 Log.d("ProductRepo", "Product $upc not found on server, trying default source")
                 doc = productsCollection.document(upc).get(Source.DEFAULT).await()
             }
-            
+
             if (doc.exists()) {
                 val product = doc.toObject(Product::class.java)?.copy(upc = doc.id)
                 if (product != null) {
@@ -294,7 +294,7 @@ class ProductRepository(private val context: Context? = null) {
                     // Upload compressed bytes instead of raw file
                     storageRef.putBytes(compressedBytes).await()
                     finalImageUrl = storageRef.downloadUrl.await().toString()
-                    
+
                     // Create updated product with Storage URL
                     productToSave = product.copy(imageUrl = finalImageUrl)
                     productCache[product.upc] = productToSave

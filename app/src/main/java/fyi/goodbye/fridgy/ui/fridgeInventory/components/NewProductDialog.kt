@@ -3,25 +3,21 @@ package fyi.goodbye.fridgy.ui.fridgeInventory.components
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.FilterChip
@@ -43,8 +39,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.layout.size
 import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
@@ -98,7 +92,7 @@ fun NewProductDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { 
+        title = {
             Text(
                 stringResource(R.string.new_product_detected),
                 style = MaterialTheme.typography.headlineSmall,
@@ -116,9 +110,10 @@ fun NewProductDialog(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(140.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(140.dp),
                     shape = MaterialTheme.shapes.medium,
                     color = MaterialTheme.colorScheme.surfaceContainerHighest,
                     onClick = { cameraLauncher.launch(tempUri) }
@@ -188,7 +183,7 @@ fun NewProductDialog(
                         FilterChip(
                             selected = selectedCategory == cat,
                             onClick = { selectedCategory = cat },
-                            label = { 
+                            label = {
                                 Text(
                                     text = cat,
                                     maxLines = 1,

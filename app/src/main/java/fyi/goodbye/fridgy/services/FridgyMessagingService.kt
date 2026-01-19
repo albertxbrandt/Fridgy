@@ -27,7 +27,6 @@ import kotlinx.coroutines.launch
  * - Updates FCM token when it changes
  */
 class FridgyMessagingService : FirebaseMessagingService() {
-
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {
@@ -37,7 +36,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
 
     private val channelId: String
         get() = getString(R.string.default_notification_channel_id)
-    
+
     private val channelName: String
         get() = getString(R.string.notification_channel_name)
 
@@ -109,35 +108,42 @@ class FridgyMessagingService : FirebaseMessagingService() {
     /**
      * Display a notification to the user.
      */
-    private fun showNotification(title: String, body: String, data: Map<String, String>) {
+    private fun showNotification(
+        title: String,
+        body: String,
+        data: Map<String, String>
+    ) {
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         // Create intent to open app when notification is tapped
-        val intent = Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            
-            // Add custom data to intent for deep linking
-            data["type"]?.let { putExtra("notificationType", it) }
-            data["fridgeId"]?.let { putExtra("fridgeId", it) }
-            data["itemId"]?.let { putExtra("itemId", it) }
-        }
+        val intent =
+            Intent(this, MainActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
 
-        val pendingIntent = PendingIntent.getActivity(
-            this,
-            System.currentTimeMillis().toInt(),
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
+                // Add custom data to intent for deep linking
+                data["type"]?.let { putExtra("notificationType", it) }
+                data["fridgeId"]?.let { putExtra("fridgeId", it) }
+                data["itemId"]?.let { putExtra("itemId", it) }
+            }
+
+        val pendingIntent =
+            PendingIntent.getActivity(
+                this,
+                System.currentTimeMillis().toInt(),
+                intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
 
         // Build notification
-        val notificationBuilder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with your app icon
-            .setContentTitle(title)
-            .setContentText(body)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(body))
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
-            .setAutoCancel(true)
-            .setContentIntent(pendingIntent)
+        val notificationBuilder =
+            NotificationCompat.Builder(this, channelId)
+                .setSmallIcon(R.drawable.ic_launcher_foreground) // Replace with your app icon
+                .setContentTitle(title)
+                .setContentText(body)
+                .setStyle(NotificationCompat.BigTextStyle().bigText(body))
+                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setAutoCancel(true)
+                .setContentIntent(pendingIntent)
 
         // Show notification with unique ID
         val notificationId = NOTIFICATION_ID_COUNTER_START + System.currentTimeMillis().toInt() % 10000
@@ -149,15 +155,16 @@ class FridgyMessagingService : FirebaseMessagingService() {
      */
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                channelId,
-                channelName,
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "Notifications for fridge updates, invites, and more"
-                enableLights(true)
-                enableVibration(true)
-            }
+            val channel =
+                NotificationChannel(
+                    channelId,
+                    channelName,
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Notifications for fridge updates, invites, and more"
+                    enableLights(true)
+                    enableVibration(true)
+                }
 
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)

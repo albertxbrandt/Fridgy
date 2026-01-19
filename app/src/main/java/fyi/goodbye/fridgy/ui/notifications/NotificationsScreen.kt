@@ -1,6 +1,5 @@
 package fyi.goodbye.fridgy.ui.notifications
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -19,10 +18,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -46,14 +45,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Notification
-import fyi.goodbye.fridgy.ui.theme.FridgyDarkBlue
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import java.text.SimpleDateFormat
@@ -108,19 +106,21 @@ fun NotificationsScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = FridgyPrimary,
-                    titleContentColor = FridgyWhite,
-                    navigationIconContentColor = FridgyWhite,
-                    actionIconContentColor = FridgyWhite
-                )
+                colors =
+                    TopAppBarDefaults.topAppBarColors(
+                        containerColor = FridgyPrimary,
+                        titleContentColor = FridgyWhite,
+                        navigationIconContentColor = FridgyWhite,
+                        actionIconContentColor = FridgyWhite
+                    )
             )
         }
     ) { paddingValues ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
         ) {
             when (val state = uiState) {
                 is NotificationViewModel.NotificationUiState.Loading -> {
@@ -223,25 +223,27 @@ fun SwipeToDeleteNotificationItem(
     onAcceptInvite: (Notification) -> Unit,
     onDeclineInvite: (Notification) -> Unit
 ) {
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                onDelete(notification)
-                true
-            } else {
-                false
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            confirmValueChange = { dismissValue ->
+                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                    onDelete(notification)
+                    true
+                } else {
+                    false
+                }
             }
-        }
-    )
+        )
 
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Transparent)
-                    .padding(horizontal = 16.dp),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(Color.Transparent)
+                        .padding(horizontal = 16.dp),
                 contentAlignment = Alignment.CenterEnd
             ) {
                 Icon(
@@ -269,35 +271,41 @@ fun NotificationItem(
     onDeclineInvite: () -> Unit
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(
-            containerColor = if (notification.isRead) {
-                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            } else {
-                MaterialTheme.colorScheme.surface
-            }
-        ),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clickable(onClick = onClick),
+        colors =
+            CardDefaults.cardColors(
+                containerColor =
+                    if (notification.isRead) {
+                        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
+            ),
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (notification.isRead) 0.dp else 2.dp
-        )
+        elevation =
+            CardDefaults.cardElevation(
+                defaultElevation = if (notification.isRead) 0.dp else 2.dp
+            )
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalAlignment = Alignment.Top
         ) {
             // Unread indicator
             if (!notification.isRead) {
                 Box(
-                    modifier = Modifier
-                        .size(12.dp)
-                        .clip(CircleShape)
-                        .background(FridgyPrimary)
+                    modifier =
+                        Modifier
+                            .size(12.dp)
+                            .clip(CircleShape)
+                            .background(FridgyPrimary)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
             }
@@ -324,7 +332,7 @@ fun NotificationItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
-                
+
                 // Show accept/decline buttons for fridge invites
                 if (notification.type.name == "FRIDGE_INVITE") {
                     Spacer(modifier = Modifier.padding(8.dp))
@@ -335,9 +343,10 @@ fun NotificationItem(
                         FilledTonalButton(
                             onClick = onAcceptInvite,
                             modifier = Modifier.weight(1f),
-                            colors = androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                                containerColor = FridgyPrimary
-                            )
+                            colors =
+                                androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
+                                    containerColor = FridgyPrimary
+                                )
                         ) {
                             Icon(
                                 Icons.Default.Check,
@@ -347,7 +356,7 @@ fun NotificationItem(
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("Accept")
                         }
-                        
+
                         androidx.compose.material3.OutlinedButton(
                             onClick = onDeclineInvite,
                             modifier = Modifier.weight(1f)
@@ -369,7 +378,7 @@ fun NotificationItem(
 
 private fun formatTimestamp(timestamp: Date?): String {
     if (timestamp == null) return ""
-    
+
     val now = System.currentTimeMillis()
     val time = timestamp.time
     val diff = now - time

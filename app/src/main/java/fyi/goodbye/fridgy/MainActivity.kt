@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -31,6 +33,7 @@ import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderF
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import fyi.goodbye.fridgy.ui.adminPanel.AdminPanelScreen
 import fyi.goodbye.fridgy.ui.auth.LoginScreen
@@ -39,10 +42,13 @@ import fyi.goodbye.fridgy.ui.fridgeInventory.BarcodeScannerScreen
 import fyi.goodbye.fridgy.ui.fridgeInventory.FridgeInventoryScreen
 import fyi.goodbye.fridgy.ui.fridgeList.FridgeListScreen
 import fyi.goodbye.fridgy.ui.fridgeSettings.FridgeSettingsScreen
+import fyi.goodbye.fridgy.ui.householdList.HouseholdListScreen
+import fyi.goodbye.fridgy.ui.householdSettings.HouseholdSettingsScreen
 import fyi.goodbye.fridgy.ui.itemDetail.ItemDetailScreen
 import fyi.goodbye.fridgy.ui.notifications.NotificationsScreen
 import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListScreen
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
+import fyi.goodbye.fridgy.utils.UserPreferences
 import kotlinx.coroutines.launch
 
 /**
@@ -69,9 +75,8 @@ import kotlinx.coroutines.launch
  * @see FridgyTheme for the app's Material 3 theme configuration
  */
 class MainActivity : ComponentActivity() {
-    
     private val notificationRepository = NotificationRepository()
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -83,8 +88,9 @@ class MainActivity : ComponentActivity() {
         // Explicitly configure cache size for better performance
         val firestore = FirebaseFirestore.getInstance()
         try {
-            val settings = FirebaseFirestoreSettings.Builder()
-                .build()
+            val settings =
+                FirebaseFirestoreSettings.Builder()
+                    .build()
             firestore.firestoreSettings = settings
             Log.d("Fridgy_Firestore", "Firestore configured with offline persistence (default)")
         } catch (e: Exception) {
@@ -126,20 +132,23 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
-                    
+
                     // Handle deep linking from notifications
                     LaunchedEffect(Unit) {
                         intent?.let { notificationIntent ->
                             val notificationType = notificationIntent.getStringExtra("notificationType")
                             val fridgeId = notificationIntent.getStringExtra("fridgeId")
                             val itemId = notificationIntent.getStringExtra("itemId")
-                            
+
                             if (notificationType != null) {
-                                Log.d("Fridgy_DeepLink", "Handling notification: type=$notificationType, fridgeId=$fridgeId, itemId=$itemId")
-                                
+                                Log.d(
+                                    "Fridgy_DeepLink",
+                                    "Handling notification: type=$notificationType, fridgeId=$fridgeId, itemId=$itemId"
+                                )
+
                                 // Wait a bit for auth state to settle
                                 kotlinx.coroutines.delay(500)
-                                
+
                                 when (notificationType) {
                                     "FRIDGE_INVITE" -> {
                                         navController.navigate("fridgeList") {
@@ -190,7 +199,52 @@ class MainActivity : ComponentActivity() {
                         permissionLauncher.launch(Manifest.permission.CAMERA)
                     }
 
-                    val startDestination = if (auth.currentUser != null) "fridgeList" else "login"
+                    // Get user preferences for last selected household
+                    val userPreferences = remember { UserPreferences.getInstance(this@MainActivity) }
+                    val householdRepository = remember { HouseholdRepository() }
+
+                    // Determine start destination:
+                    // - If not logged in: login
+                    // - If logged in with last household: fridgeList/{householdId}
+                    // - If logged in with no last household: householdList
+                    val lastHouseholdId = remember { userPreferences.getLastSelectedHouseholdId() }
+                    val startDestination =
+                        remember {
+                            when {
+                                auth.currentUser == null -> "login"
+                                lastHouseholdId != null -> "fridgeList/$lastHouseholdId"
+                                else -> "householdList"
+                            }
+                        }
+
+                    // Validate that the last household still exists and user is still a member
+                    val needsHouseholdValidation =
+                        remember { mutableStateOf(lastHouseholdId != null && auth.currentUser != null) }
+
+                    LaunchedEffect(needsHouseholdValidation.value) {
+                        if (needsHouseholdValidation.value && lastHouseholdId != null) {
+                            try {
+                                val household = householdRepository.getHouseholdById(lastHouseholdId)
+                                val currentUserId = auth.currentUser?.uid
+                                if (household == null || currentUserId !in household.members) {
+                                    // Household no longer exists or user is no longer a member
+                                    Log.d("Fridgy_Nav", "Last household no longer valid, clearing preference")
+                                    userPreferences.clearLastSelectedHouseholdId()
+                                    navController.navigate("householdList") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("Fridgy_Nav", "Error validating household: ${e.message}")
+                                // On error, still go to household list to be safe
+                                userPreferences.clearLastSelectedHouseholdId()
+                                navController.navigate("householdList") {
+                                    popUpTo(0) { inclusive = true }
+                                }
+                            }
+                            needsHouseholdValidation.value = false
+                        }
+                    }
 
                     NavHost(
                         navController = navController,
@@ -203,7 +257,7 @@ class MainActivity : ComponentActivity() {
                         composable("login") {
                             LoginScreen(
                                 onLoginSuccess = {
-                                    navController.navigate("fridgeList") {
+                                    navController.navigate("householdList") {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
@@ -217,29 +271,34 @@ class MainActivity : ComponentActivity() {
                         composable("signup") {
                             SignupScreen(
                                 onSignupSuccess = {
-                                    navController.navigate("fridgeList") {
+                                    navController.navigate("householdList") {
                                         popUpTo("login") { inclusive = true }
                                     }
                                 },
                                 onNavigateToLogin = { navController.popBackStack() }
                             )
                         }
-                        composable("fridgeList") {
-                            FridgeListScreen(
-                                onNavigateToFridgeInventory = { displayFridge ->
-                                    navController.navigate(
-                                        "fridgeInventory/${displayFridge.id}/${Uri.encode(displayFridge.name)}"
-                                    ) {
+
+                        // Household List - main screen after login
+                        composable("householdList") {
+                            HouseholdListScreen(
+                                onNavigateToHousehold = { household ->
+                                    // Save selected household for quick access on next launch
+                                    userPreferences.setLastSelectedHouseholdId(household.id)
+                                    navController.navigate("fridgeList/${household.id}") {
                                         launchSingleTop = true
                                     }
                                 },
-                                onAddFridgeClick = { },
-                                onNotificationsClick = {
+                                onJoinHouseholdSuccess = { householdId ->
+                                    navController.navigate("fridgeList/$householdId") {
+                                        popUpTo("householdList") { inclusive = false }
+                                    }
+                                },
+                                onNavigateToNotifications = {
                                     navController.navigate("notifications") {
                                         launchSingleTop = true
                                     }
                                 },
-                                onProfileClick = { },
                                 onNavigateToAdminPanel = {
                                     navController.navigate("adminPanel") {
                                         launchSingleTop = true
@@ -252,6 +311,67 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+
+                        // Fridge list for a specific household
+                        composable(
+                            route = "fridgeList/{householdId}",
+                            arguments =
+                                listOf(
+                                    navArgument("householdId") { type = NavType.StringType }
+                                )
+                        ) { backStackEntry ->
+                            val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
+                            FridgeListScreen(
+                                onNavigateToFridgeInventory = { displayFridge ->
+                                    navController.navigate(
+                                        "fridgeInventory/${displayFridge.id}/${Uri.encode(displayFridge.name)}"
+                                    ) {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onNavigateToHouseholdSettings = {
+                                    navController.navigate("householdSettings/$householdId") {
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onSwitchHousehold = {
+                                    // Navigate to household list to pick a different household
+                                    navController.navigate("householdList") {
+                                        // Pop up to the root so back button doesn't go to old household
+                                        popUpTo("householdList") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                },
+                                onShoppingListClick = { householdId ->
+                                    navController.navigate("shoppingList/$householdId") {
+                                        launchSingleTop = true
+                                    }
+                                }
+                            )
+                        }
+
+                        // Household settings
+                        composable(
+                            route = "householdSettings/{householdId}",
+                            arguments =
+                                listOf(
+                                    navArgument("householdId") { type = NavType.StringType }
+                                )
+                        ) { backStackEntry ->
+                            val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
+                            HouseholdSettingsScreen(
+                                householdId = householdId,
+                                onBackClick = { navController.popBackStack() },
+                                onDeleteSuccess = {
+                                    // Clear saved household preference when leaving or deleting
+                                    userPreferences.clearLastSelectedHouseholdId()
+                                    navController.navigate("householdList") {
+                                        popUpTo("householdList") { inclusive = true }
+                                    }
+                                }
+                            )
+                        }
+
                         composable("adminPanel") {
                             AdminPanelScreen(
                                 onNavigateBack = { navController.popBackStack() }
@@ -264,12 +384,16 @@ class MainActivity : ComponentActivity() {
                                     // Handle notification click - navigate based on type
                                     when {
                                         notification.relatedFridgeId != null && notification.relatedItemId != null -> {
-                                            navController.navigate("itemDetail/${notification.relatedFridgeId}/${notification.relatedItemId}") {
+                                            navController.navigate(
+                                                "itemDetail/${notification.relatedFridgeId}/${notification.relatedItemId}"
+                                            ) {
                                                 launchSingleTop = true
                                             }
                                         }
                                         notification.relatedFridgeId != null -> {
-                                            navController.navigate("fridgeInventory/${notification.relatedFridgeId}/Fridge") {
+                                            navController.navigate(
+                                                "fridgeInventory/${notification.relatedFridgeId}/Fridge"
+                                            ) {
                                                 launchSingleTop = true
                                             }
                                         }
@@ -307,11 +431,6 @@ class MainActivity : ComponentActivity() {
                                     navController.navigate("itemDetail/$fId/$iId") {
                                         launchSingleTop = true
                                     }
-                                },
-                                onShoppingListClick = { currentFridgeId ->
-                                    navController.navigate("shoppingList/$currentFridgeId") {
-                                        launchSingleTop = true
-                                    }
                                 }
                             )
                         }
@@ -332,18 +451,19 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable(
-                            route = "shoppingList/{fridgeId}",
+                            route = "shoppingList/{householdId}",
                             arguments =
                                 listOf(
-                                    navArgument("fridgeId") { type = NavType.StringType }
+                                    navArgument("householdId") { type = NavType.StringType }
                                 )
                         ) { backStackEntry ->
-                            val fridgeId = backStackEntry.arguments?.getString("fridgeId") ?: ""
+                            val householdId = backStackEntry.arguments?.getString("householdId") ?: ""
                             ShoppingListScreen(
-                                fridgeId = fridgeId,
+                                householdId = householdId,
                                 onBackClick = { navController.popBackStack() },
-                                onScanClick = { currentFridgeId ->
-                                    navController.navigate("barcodeScanner/$currentFridgeId") {
+                                onScanClick = { currentHouseholdId ->
+                                    // TODO: barcode scanner needs to be updated to work with householdId
+                                    navController.navigate("barcodeScanner/$currentHouseholdId") {
                                         launchSingleTop = true
                                     }
                                 },
@@ -365,7 +485,9 @@ class MainActivity : ComponentActivity() {
                                     // Navigate back to fridge list and clear everything above it to prevent
                                     // permission errors from lingering Firestore listeners
                                     navController.navigate("fridgeList") {
-                                        popUpTo(0) { inclusive = false } // Clear entire back stack except initial destination
+                                        popUpTo(
+                                            0
+                                        ) { inclusive = false } // Clear entire back stack except initial destination
                                         launchSingleTop = true
                                     }
                                 }
@@ -397,7 +519,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    
+
     /**
      * Request notification permission (Android 13+) and initialize FCM token.
      * For Android 12 and below, FCM token is initialized immediately.
@@ -435,7 +557,7 @@ class MainActivity : ComponentActivity() {
             initializeFCMToken()
         }
     }
-    
+
     /**
      * Initialize FCM token and save to Firestore.
      * This should be called after notification permission is granted (Android 13+)
@@ -447,11 +569,11 @@ class MainActivity : ComponentActivity() {
             Log.d("Fridgy_FCM", "User not authenticated - skipping FCM token initialization")
             return
         }
-        
+
         lifecycleScope.launch {
             Log.d("Fridgy_FCM", "Initializing FCM token for user: ${currentUser.uid}")
             notificationRepository.refreshFcmToken()
-                .onSuccess { 
+                .onSuccess {
                     Log.d("Fridgy_FCM", "FCM token initialized successfully")
                 }
                 .onFailure { error ->

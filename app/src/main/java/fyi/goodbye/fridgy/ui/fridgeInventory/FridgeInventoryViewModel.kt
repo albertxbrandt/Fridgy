@@ -15,6 +15,7 @@ import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
@@ -22,7 +23,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.launch
 
 /**
@@ -52,10 +52,9 @@ class FridgeInventoryViewModel(
                     DisplayFridge(
                         id = fridgeId,
                         name = initialFridgeName,
+                        householdId = "",
                         createdByUid = "",
                         creatorDisplayName = "",
-                        memberUsers = emptyList(),
-                        pendingInviteUsers = emptyList(),
                         createdAt = 0L
                     )
                 )
@@ -64,6 +63,10 @@ class FridgeInventoryViewModel(
             }
         )
     val displayFridgeState: StateFlow<FridgeDetailUiState> = _displayFridgeState.asStateFlow()
+
+    /** The householdId of the current fridge, or null if not loaded yet. */
+    val householdId: String?
+        get() = (_displayFridgeState.value as? FridgeDetailUiState.Success)?.fridge?.householdId
 
     private val _itemsUiState = MutableStateFlow<ItemsUiState>(ItemsUiState.Loading)
     val itemsUiState: StateFlow<ItemsUiState> = _itemsUiState.asStateFlow()
@@ -84,30 +87,33 @@ class FridgeInventoryViewModel(
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     // OPTIMIZATION: Filtered items state - combines items with debounced search query
-    val filteredItemsUiState: StateFlow<ItemsUiState> = combine(
-        _itemsUiState,
-        _searchQuery.debounce(150) // Debounce search input to reduce recomputations
-    ) { itemsState, query ->
-        when (itemsState) {
-            is ItemsUiState.Success -> {
-                if (query.isNotBlank()) {
-                    val filtered = itemsState.items.filter { inventoryItem ->
-                        inventoryItem.product.name.contains(query, ignoreCase = true) ||
-                            inventoryItem.product.brand.contains(query, ignoreCase = true) ||
-                            inventoryItem.item.upc.contains(query, ignoreCase = true)
+    val filteredItemsUiState: StateFlow<ItemsUiState> =
+        combine(
+            _itemsUiState,
+            // Debounce search input to reduce recomputations
+            _searchQuery.debounce(150)
+        ) { itemsState, query ->
+            when (itemsState) {
+                is ItemsUiState.Success -> {
+                    if (query.isNotBlank()) {
+                        val filtered =
+                            itemsState.items.filter { inventoryItem ->
+                                inventoryItem.product.name.contains(query, ignoreCase = true) ||
+                                    inventoryItem.product.brand.contains(query, ignoreCase = true) ||
+                                    inventoryItem.item.upc.contains(query, ignoreCase = true)
+                            }
+                        ItemsUiState.Success(filtered)
+                    } else {
+                        itemsState
                     }
-                    ItemsUiState.Success(filtered)
-                } else {
-                    itemsState
                 }
+                else -> itemsState
             }
-            else -> itemsState
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = ItemsUiState.Loading
-    )
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = ItemsUiState.Loading
+        )
 
     init {
         // Preload items from cache for instant display
@@ -115,15 +121,17 @@ class FridgeInventoryViewModel(
             val cachedItems = fridgeRepository.preloadItemsFromCache(fridgeId)
             if (cachedItems.isNotEmpty()) {
                 // Map cached items to products and show immediately
-                val inventoryItems = cachedItems.map { item ->
-                    val product = productRepository.getProductInfo(item.upc) 
-                        ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
-                    InventoryItem(item, product)
-                }
+                val inventoryItems =
+                    cachedItems.map { item ->
+                        val product =
+                            productRepository.getProductInfo(item.upc)
+                                ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
+                        InventoryItem(item, product)
+                    }
                 _itemsUiState.value = ItemsUiState.Success(inventoryItems)
             }
         }
-        
+
         loadFridgeDetails()
         listenToInventoryUpdates()
     }
@@ -157,7 +165,7 @@ class FridgeInventoryViewModel(
                 ) { remoteItems, optimistic ->
                     // Create map of optimistic data by UPC for quick lookup
                     val optimisticMap = optimistic.associateBy { it.item.upc }
-                    
+
                     // Filter out optimistic items that have now been confirmed by remote data
                     val remoteUpcs = remoteItems.map { it.upc }.toSet()
                     val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
@@ -167,14 +175,15 @@ class FridgeInventoryViewModel(
                         remoteItems.map { item ->
                             // Check if we have optimistic data for this item
                             val optimisticItem = optimisticMap[item.upc]
-                            
+
                             if (optimisticItem != null) {
                                 // Use optimistic product data and local image until product is in Firestore
                                 InventoryItem(item, optimisticItem.product, optimisticItem.localImageUri)
                             } else {
                                 // For normal remote items, fetch product from Firestore
-                                val product = productRepository.getProductInfoFresh(item.upc) 
-                                    ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
+                                val product =
+                                    productRepository.getProductInfoFresh(item.upc)
+                                        ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
                                 InventoryItem(item, product)
                             }
                         }
@@ -201,11 +210,11 @@ class FridgeInventoryViewModel(
     /**
      * Handles a scanned barcode UPC, checking if the product exists in the global
      * product database before adding it to the fridge.
-     * 
+     *
      * If the product exists, it's immediately added to the fridge.
      * If the product doesn't exist, sets [pendingScannedUpc] to trigger the
      * new product dialog where the user can add product details.
-     * 
+     *
      * @param upc The scanned UPC/barcode string.
      */
     fun onBarcodeScanned(upc: String) {

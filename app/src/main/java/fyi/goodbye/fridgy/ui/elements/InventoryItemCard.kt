@@ -61,7 +61,7 @@ fun InventoryItemCard(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = stringResource(R.string.cd_placeholder_icon), 
+                        text = stringResource(R.string.cd_placeholder_icon),
                         style = MaterialTheme.typography.displaySmall
                     )
                 }
