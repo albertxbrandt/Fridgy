@@ -26,6 +26,7 @@ import fyi.goodbye.fridgy.ui.fridgeInventory.InventoryItem
 @Composable
 fun InventoryItemCard(
     inventoryItem: InventoryItem,
+    itemCount: Int = 1,
     onClick: (String) -> Unit
 ) {
     val item = inventoryItem.item
@@ -80,6 +81,24 @@ fun InventoryItemCard(
                         )
             )
 
+            // Count Badge (top-right corner)
+            if (itemCount > 1) {
+                Badge(
+                    modifier =
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = Color.White
+                ) {
+                    Text(
+                        text = "×$itemCount",
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
             // Item Information Overlaid
             Column(
                 modifier =
@@ -105,12 +124,22 @@ fun InventoryItemCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Text(
-                    text = stringResource(R.string.quantity_label, item.quantity),
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium,
-                    color = Color.White.copy(alpha = 0.9f)
-                )
+                // Show size/unit if available
+                if (item.size != null && item.unit != null) {
+                    Text(
+                        text = "${item.size} ${item.unit}",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                } else {
+                    Text(
+                        text = "Individual item",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White.copy(alpha = 0.9f)
+                    )
+                }
             }
         }
     }

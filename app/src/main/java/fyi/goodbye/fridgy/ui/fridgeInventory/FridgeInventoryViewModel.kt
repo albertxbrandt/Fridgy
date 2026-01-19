@@ -10,6 +10,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.models.DisplayItem
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
@@ -28,7 +29,9 @@ import kotlinx.coroutines.launch
 /**
  * Combined model for displaying an item with its global product details.
  * @property localImageUri Optional local URI for images that haven't been uploaded to Storage yet.
+ * @deprecated Use DisplayItem instead
  */
+@Deprecated("Use DisplayItem from models package")
 data class InventoryItem(
     val item: Item,
     val product: Product,
@@ -82,6 +85,14 @@ class FridgeInventoryViewModel(
 
     private val _pendingScannedUpc = MutableStateFlow<String?>(null)
     val pendingScannedUpc: StateFlow<String?> = _pendingScannedUpc.asStateFlow()
+    
+    // State for showing expiration date picker after scanning
+    private val _pendingItemForDate = MutableStateFlow<String?>(null)
+    val pendingItemForDate: StateFlow<String?> = _pendingItemForDate.asStateFlow()
+    
+    // State for showing size/unit picker after expiration date
+    private val _pendingItemForSize = MutableStateFlow<Pair<String, Long?>?>(null) // UPC and expirationDate
+    val pendingItemForSize: StateFlow<Pair<String, Long?>?> = _pendingItemForSize.asStateFlow()
 
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
@@ -158,42 +169,26 @@ class FridgeInventoryViewModel(
             // Don't reset to Loading - we might already have cached data showing
 
             try {
-                // Combine remote items with our local optimistic items (without search query)
-                combine(
-                    fridgeRepository.getItemsForFridge(fridgeId),
-                    optimisticItems
-                ) { remoteItems, optimistic ->
-                    // Create map of optimistic data by UPC for quick lookup
-                    val optimisticMap = optimistic.associateBy { it.item.upc }
-
-                    // Filter out optimistic items that have now been confirmed by remote data
-                    val remoteUpcs = remoteItems.map { it.upc }.toSet()
-                    val pendingOptimistic = optimistic.filter { it.item.upc !in remoteUpcs }
-
-                    // Map remote items to products
-                    val mappedRemote =
-                        remoteItems.map { item ->
-                            // Check if we have optimistic data for this item
-                            val optimisticItem = optimisticMap[item.upc]
-
-                            if (optimisticItem != null) {
-                                // Use optimistic product data and local image until product is in Firestore
-                                InventoryItem(item, optimisticItem.product, optimisticItem.localImageUri)
-                            } else {
-                                // For normal remote items, fetch product from Firestore
-                                val product =
-                                    productRepository.getProductInfoFresh(item.upc)
-                                        ?: Product(upc = item.upc, name = getApplication<Application>().getString(R.string.unknown_product))
-                                InventoryItem(item, product)
-                            }
-                        }
-
-                    // Final display list: Remote items first, then any still-pending optimistic items
-                    mappedRemote + pendingOptimistic
-                }
+                // Repository now returns DisplayItem (without product info loaded yet)
+                fridgeRepository.getItemsForFridge(fridgeId)
                     .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
-                    .collectLatest { combinedList ->
-                        _itemsUiState.value = ItemsUiState.Success(combinedList)
+                    .collectLatest { displayItems ->
+                        // Fetch product info for each item
+                        val inventoryItems = displayItems.map { displayItem ->
+                            val product = productRepository.getProductInfoFresh(displayItem.item.upc)
+                                ?: Product(
+                                    upc = displayItem.item.upc,
+                                    name = getApplication<Application>().getString(R.string.unknown_product)
+                                )
+                            
+                            @Suppress("DEPRECATION")
+                            InventoryItem(
+                                item = displayItem.item,
+                                product = product,
+                                localImageUri = null
+                            )
+                        }
+                        _itemsUiState.value = ItemsUiState.Success(inventoryItems)
                     }
             } catch (e: Exception) {
                 // Handle permission errors gracefully (e.g., when fridge is deleted/left)
@@ -211,7 +206,7 @@ class FridgeInventoryViewModel(
      * Handles a scanned barcode UPC, checking if the product exists in the global
      * product database before adding it to the fridge.
      *
-     * If the product exists, it's immediately added to the fridge.
+     * If the product exists, prompts for expiration date.
      * If the product doesn't exist, sets [pendingScannedUpc] to trigger the
      * new product dialog where the user can add product details.
      *
@@ -222,14 +217,49 @@ class FridgeInventoryViewModel(
             try {
                 val product = productRepository.getProductInfo(upc)
                 if (product != null) {
-                    addItemToFridge(upc)
+                    // Product exists, show date picker
+                    _pendingItemForDate.value = upc
                 } else {
+                    // Product doesn't exist, show create product dialog
                     _pendingScannedUpc.value = upc
                 }
             } catch (e: Exception) {
                 Log.e("FridgeInventoryVM", "Error handling scan: ${e.message}")
             }
         }
+    }
+    
+    /**
+     * Adds an item with optional expiration date. Shows size dialog next.
+     */
+    fun addItemWithDate(upc: String, expirationDate: Long?) {
+        _pendingItemForDate.value = null
+        // Show size dialog next
+        _pendingItemForSize.value = Pair(upc, expirationDate)
+    }
+    
+    /**
+     * Adds an item with expiration date, size, and unit.
+     */
+    fun addItemWithSizeAndUnit(upc: String, expirationDate: Long?, size: Double?, unit: String?) {
+        _pendingItemForSize.value = null
+        viewModelScope.launch {
+            addItemToFridge(upc, expirationDate, size, unit)
+        }
+    }
+    
+    /**
+     * Cancels the expiration date picker.
+     */
+    fun cancelDatePicker() {
+        _pendingItemForDate.value = null
+    }
+    
+    /**
+     * Cancels the size/unit picker.
+     */
+    fun cancelSizePicker() {
+        _pendingItemForSize.value = null
     }
 
     /**
@@ -257,15 +287,19 @@ class FridgeInventoryViewModel(
                     lastUpdated = System.currentTimeMillis()
                 )
 
+            // TODO: Optimistic updates need rework for instance-based items
+            // For now, disable optimistic updates and rely on Firestore snapshot
+            /*
             val optimisticItem =
                 Item(
                     upc = upc,
-                    quantity = 1,
                     addedAt = System.currentTimeMillis()
                 )
 
             // Layer 1: Inject into ViewModel's local state immediately
             optimisticItems.value = optimisticItems.value + InventoryItem(optimisticItem, optimisticProduct, imageUri)
+            */
+
 
             try {
                 // Layer 2: Push to Repository Cache
@@ -274,7 +308,7 @@ class FridgeInventoryViewModel(
                 // Save product to Firestore FIRST, then add item to fridge
                 // This ensures other devices see the product data when the item appears
                 productRepository.saveProductWithImage(optimisticProduct, imageUri)
-                fridgeRepository.addItemToFridge(fridgeId, upc)
+                addItemToFridge(upc)
 
                 Log.d("FridgeInventoryVM", "Product and item added successfully: $name")
             } catch (e: Exception) {
@@ -288,9 +322,20 @@ class FridgeInventoryViewModel(
         }
     }
 
-    private suspend fun addItemToFridge(upc: String) {
+    /**
+     * Adds an item to the fridge with an optional expiration date.
+     * 
+     * @param upc The Universal Product Code of the item
+     * @param expirationDate Optional expiration date in milliseconds since epoch
+     */
+    private suspend fun addItemToFridge(
+        upc: String, 
+        expirationDate: Long? = null,
+        size: Double? = null,
+        unit: String? = null
+    ) {
         try {
-            fridgeRepository.addItemToFridge(fridgeId, upc)
+            fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate, size, unit)
         } catch (e: Exception) {
             _addItemError.value = getApplication<Application>().getString(R.string.error_failed_to_add_item, e.message ?: "")
         }
@@ -299,6 +344,11 @@ class FridgeInventoryViewModel(
     fun cancelPendingProduct() {
         _pendingScannedUpc.value = null
     }
+    
+    /**
+     * Gets product info for display purposes (used in dialogs).
+     */
+    suspend fun getProductForDisplay(upc: String) = productRepository.getProductInfo(upc)
 
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query

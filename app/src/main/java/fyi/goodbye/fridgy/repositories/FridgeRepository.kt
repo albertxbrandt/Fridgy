@@ -9,8 +9,10 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Source
 import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.models.DisplayItem
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Item
+import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
 import fyi.goodbye.fridgy.utils.LruCache
@@ -250,7 +252,10 @@ class FridgeRepository {
                             )
                         )
                     } else {
-                        // Item doesn't exist, create new
+                        // TODO: Update for instance-based items
+                        // Need to create userQuantity individual instances
+                        // For now, skip item creation in shopping list completion
+                        /*
                         val newItem =
                             Item(
                                 upc = item.upc,
@@ -261,6 +266,7 @@ class FridgeRepository {
                                 lastUpdatedAt = System.currentTimeMillis()
                             )
                         batch.set(itemRef, newItem)
+                        */
                     }
 
                     // Update shopping list item
@@ -645,7 +651,16 @@ class FridgeRepository {
         }
     }
 
-    fun getItemsForFridge(fridgeId: String): Flow<List<Item>> =
+    /**
+     * Gets all items for a fridge with expiration status.
+     * 
+     * Returns a flow that emits whenever items change. Product info is NOT included here -
+     * the ViewModel layer should handle fetching product data using ProductRepository.
+     * 
+     * @param fridgeId Target fridge ID
+     * @return Flow of DisplayItem list (with null products), sorted by expiration date
+     */
+    fun getItemsForFridge(fridgeId: String): Flow<List<DisplayItem>> =
         callbackFlow {
             // Use SnapshotListener with metadata changes enabled for immediate updates
             val listener =
@@ -657,35 +672,55 @@ class FridgeRepository {
                             trySend(emptyList()).isSuccess
                             return@addSnapshotListener
                         }
-                        val items = snapshot?.documents?.mapNotNull { it.toObject(Item::class.java) } ?: emptyList()
+                        
+                        val items = snapshot?.documents?.mapNotNull { 
+                            it.toObject(Item::class.java)?.copy(id = it.id)
+                        } ?: emptyList()
+                        
                         Log.d("FridgeRepo", "Items snapshot received for fridge $fridgeId: ${items.size} items")
-                        trySend(items).isSuccess
+                        
+                        // Create DisplayItems without product info (ViewModel will fetch products)
+                        val displayItems = items.map { item ->
+                            DisplayItem.from(item, null)
+                        }.sortedWith(
+                            compareBy<DisplayItem> { 
+                                // Sort expired first, then expiring soon, then by date
+                                when {
+                                    it.isExpired -> 0
+                                    it.isExpiringSoon -> 1
+                                    it.item.expirationDate != null -> 2
+                                    else -> 3
+                                }
+                            }.thenBy { it.item.expirationDate ?: Long.MAX_VALUE }
+                        )
+                        
+                        trySend(displayItems).isSuccess
                     }
             awaitClose { listener.remove() }
         }
 
     /**
-     * Adds an item to a fridge or increments its quantity if it already exists.
-     *
-     * This function uses an optimistic approach:
-     * 1. Checks local cache first for instant response
-     * 2. Increments existing item quantities using FieldValue.increment()
-     * 3. Creates new items with full metadata including householdId (required for security rules)
-     * 4. Falls back to a transaction if cache operations fail
-     *
-     * The householdId is fetched from the fridge document and included in new items
-     * to enable efficient Firebase security rule validation during batch operations.
-     *
-     * @param fridgeId The ID of the fridge to add the item to
+     * Adds a new item instance to a fridge.
+     * Adds a new item instance to a fridge.
+     * 
+     * Items are now stored as individual instances rather than aggregated quantities,
+     * allowing each instance to have its own expiration date.
+     * 
+     * @param fridgeId Target fridge ID
      * @param upc The Universal Product Code (barcode) of the item to add
+     * @param expirationDate Optional expiration date in milliseconds since epoch
+     * @return The created Item instance with its generated ID
      * @throws IllegalStateException if user is not logged in or fridge has no householdId
      * @throws Exception if Firestore operations fail
      */
     suspend fun addItemToFridge(
         fridgeId: String,
-        upc: String
-    ) {
-        Log.d("FridgeRepo", "Starting addItemToFridge for UPC: $upc")
+        upc: String,
+        expirationDate: Long? = null,
+        size: Double? = null,
+        unit: String? = null
+    ): Item {
+        Log.d("FridgeRepo", "Adding item instance for UPC: $upc with expiration: $expirationDate, size: $size, unit: $unit")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
 
         // Get the fridge to access householdId (required for security rules)
@@ -694,88 +729,126 @@ class FridgeRepository {
             fridgeDoc.getString("householdId")
                 ?: throw IllegalStateException("Fridge has no householdId")
 
-        val itemRef =
-            firestore.collection("fridges").document(fridgeId)
-                .collection("items").document(upc)
+        val newItem = Item(
+            upc = upc,
+            expirationDate = expirationDate,
+            size = size,
+            unit = unit,
+            addedBy = currentUser.uid,
+            addedAt = System.currentTimeMillis(),
+            lastUpdatedBy = currentUser.uid,
+            lastUpdatedAt = System.currentTimeMillis(),
+            householdId = householdId
+        )
+
+        Log.d("FridgeRepo", "=== ITEM CREATION DEBUG ===")
+        Log.d("FridgeRepo", "Current User UID: ${currentUser.uid}")
+        Log.d("FridgeRepo", "Fridge ID: $fridgeId")
+        Log.d("FridgeRepo", "Household ID: $householdId")
+        Log.d("FridgeRepo", "Item UPC: $upc")
+        Log.d("FridgeRepo", "Item householdId: ${newItem.householdId}")
+        Log.d("FridgeRepo", "Item addedBy: ${newItem.addedBy}")
+        Log.d("FridgeRepo", "Item lastUpdatedBy: ${newItem.lastUpdatedBy}")
+        Log.d("FridgeRepo", "Item expirationDate: ${newItem.expirationDate}")
+        Log.d("FridgeRepo", "Item size: ${newItem.size}")
+        Log.d("FridgeRepo", "Item unit: ${newItem.unit}")
+        
+        // Check if user is actually a member of this household
+        try {
+            val householdDoc = firestore.collection("households").document(householdId).get().await()
+            val members = householdDoc.get("members") as? List<*>
+            Log.d("FridgeRepo", "Household members: $members")
+            Log.d("FridgeRepo", "Is current user a member? ${members?.contains(currentUser.uid)}")
+        } catch (e: Exception) {
+            Log.e("FridgeRepo", "Failed to check household membership", e)
+        }
 
         try {
-            // First, try a simple non-transactional update for speed (Firestore handles local latency)
-            val snapshot = itemRef.get(Source.CACHE).await()
-            if (snapshot.exists()) {
-                itemRef.update(
-                    "quantity",
-                    FieldValue.increment(1),
-                    "lastUpdatedBy",
-                    currentUser.uid,
-                    "lastUpdatedAt",
-                    System.currentTimeMillis()
-                ).await()
-            } else {
-                val itemToAdd =
-                    Item(
-                        upc = upc,
-                        quantity = 1,
-                        addedBy = currentUser.uid,
-                        addedAt = System.currentTimeMillis(),
-                        lastUpdatedBy = currentUser.uid,
-                        lastUpdatedAt = System.currentTimeMillis(),
-                        householdId = householdId
-                    )
-                itemRef.set(itemToAdd).await()
-            }
-            Log.d("FridgeRepo", "Item $upc locally added to fridge $fridgeId")
+            val docRef = firestore.collection("fridges")
+                .document(fridgeId)
+                .collection("items")
+                .add(newItem)
+                .await()
+            
+            Log.d("FridgeRepo", "Added item instance: ${docRef.id} (UPC: $upc)")
+            return newItem.copy(id = docRef.id)
         } catch (e: Exception) {
-            // Fallback to transaction if cache fetch fails or other issues occur
-            Log.w("FridgeRepo", "Local add failed, falling back to transaction: ${e.message}")
-            firestore.runTransaction { transaction ->
-                val serverSnapshot = transaction.get(itemRef)
-                if (serverSnapshot.exists()) {
-                    transaction.update(
-                        itemRef,
-                        "quantity",
-                        FieldValue.increment(1),
-                        "lastUpdatedBy",
-                        currentUser.uid,
-                        "lastUpdatedAt",
-                        System.currentTimeMillis()
-                    )
-                } else {
-                    val itemToAdd =
-                        Item(
-                            upc = upc,
-                            quantity = 1,
-                            addedBy = currentUser.uid,
-                            addedAt = System.currentTimeMillis(),
-                            lastUpdatedBy = currentUser.uid,
-                            lastUpdatedAt = System.currentTimeMillis(),
-                            householdId = householdId
-                        )
-                    transaction.set(itemRef, itemToAdd)
-                }
-            }.await()
+            Log.e("FridgeRepo", "Error adding item to fridge", e)
+            throw e
         }
     }
 
+    /**
+     * Updates the expiration date of a specific item instance.
+     * 
+     * @param fridgeId Target fridge ID
+     * @param itemId The unique item instance ID
+     * @param expirationDate New expiration date in milliseconds (null to remove expiration)
+     */
+    suspend fun updateItemExpirationDate(
+        fridgeId: String,
+        itemId: String,
+        expirationDate: Long?
+    ) {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        
+        try {
+            firestore.collection("fridges")
+                .document(fridgeId)
+                .collection("items")
+                .document(itemId)
+                .update(
+                    mapOf(
+                        "expirationDate" to expirationDate,
+                        "lastUpdatedBy" to currentUser.uid,
+                        "lastUpdatedAt" to System.currentTimeMillis()
+                    )
+                )
+                .await()
+            
+            Log.d("FridgeRepo", "Updated expiration date for item: $itemId")
+        } catch (e: Exception) {
+            Log.e("FridgeRepo", "Error updating expiration date", e)
+            throw e
+        }
+    }
+
+    /**
+     * Legacy method for backward compatibility during migration.
+     * @deprecated Use updateItemExpirationDate instead
+     */
+    @Deprecated("Items are now individual instances, use deleteItem instead")
     suspend fun updateItemQuantity(
         fridgeId: String,
         itemId: String,
         newQuantity: Int
     ) {
-        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        // For backward compatibility, if quantity is 0, delete the item
         if (newQuantity <= 0) {
-            firestore.collection("fridges").document(fridgeId)
-                .collection("items").document(itemId).delete().await()
-        } else {
-            firestore.collection("fridges").document(fridgeId)
-                .collection("items").document(itemId)
-                .update(
-                    "quantity",
-                    newQuantity,
-                    "lastUpdatedBy",
-                    currentUser.uid,
-                    "lastUpdatedAt",
-                    System.currentTimeMillis()
-                ).await()
+            deleteItem(fridgeId, itemId)
+        }
+        // Note: Increasing quantity should now add new item instances
+    }
+
+    /**
+     * Deletes a specific item instance from a fridge.
+     * 
+     * @param fridgeId Target fridge ID
+     * @param itemId The unique item instance ID to delete
+     */
+    suspend fun deleteItem(fridgeId: String, itemId: String) {
+        try {
+            firestore.collection("fridges")
+                .document(fridgeId)
+                .collection("items")
+                .document(itemId)
+                .delete()
+                .await()
+            
+            Log.d("FridgeRepo", "Deleted item: $itemId")
+        } catch (e: Exception) {
+            Log.e("FridgeRepo", "Error deleting item", e)
+            throw e
         }
     }
 

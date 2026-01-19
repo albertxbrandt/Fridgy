@@ -12,9 +12,12 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +30,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
+import fyi.goodbye.fridgy.ui.elements.SizeSelectionDialog
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
 import java.text.SimpleDateFormat
@@ -43,7 +48,57 @@ fun ItemDetailScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userNames by viewModel.userNames.collectAsState()
+    val pendingItemForDate by viewModel.pendingItemForDate.collectAsState()
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()) }
+    
+    // Navigate back when all items are deleted
+    LaunchedEffect(uiState) {
+        if (uiState is ItemDetailViewModel.ItemDetailUiState.Success) {
+            val items = (uiState as ItemDetailViewModel.ItemDetailUiState.Success).items
+            if (items.isEmpty()) {
+                onBackClick()
+            }
+        }
+    }
+    
+    // Show date picker dialog when needed
+    pendingItemForDate?.let { upc ->
+        LaunchedEffect(upc) {
+            val product = viewModel.getProductForDisplay(upc)
+            if (product != null) {
+                // Dialog will be shown below
+            }
+        }
+        
+        val currentState = uiState
+        if (currentState is ItemDetailViewModel.ItemDetailUiState.Success) {
+            ExpirationDateDialog(
+                productName = currentState.product.name,
+                onDateSelected = { date ->
+                    viewModel.addNewInstanceWithDate(date)
+                },
+                onDismiss = {
+                    viewModel.cancelDatePicker()
+                }
+            )
+        }
+    }
+    
+    // Show size/unit picker after expiration date is set
+    val pendingItemForSize by viewModel.pendingItemForSize.collectAsState()
+    if (pendingItemForSize != null) {
+        val (upc, expirationDate) = pendingItemForSize!!
+        val currentState = uiState
+        if (currentState is ItemDetailViewModel.ItemDetailUiState.Success) {
+            SizeSelectionDialog(
+                productName = currentState.product.name,
+                onSizeSelected = { size, unit ->
+                    viewModel.addNewInstance(upc, expirationDate, size, unit)
+                },
+                onDismiss = { viewModel.cancelSizePicker() }
+            )
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -86,8 +141,19 @@ fun ItemDetailScreen(
                     SimpleErrorState(message = state.message)
                 }
                 is ItemDetailViewModel.ItemDetailUiState.Success -> {
-                    val item = state.item
+                    val items = state.items
                     val product = state.product
+
+                    // Show empty state while navigating back
+                    if (items.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                        return@Box
+                    }
 
                     Column(
                         modifier =
@@ -139,141 +205,169 @@ fun ItemDetailScreen(
                         }
 
                         Text(
-                            text = stringResource(R.string.upc_label, item.upc),
+                            text = stringResource(R.string.upc_label, items.first().upc),
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
 
-                        // Reduced and equalized gaps around Quantity Control
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(24.dp))
 
-                        // Quantity Control (Compact)
-                        Card(
-                            modifier = Modifier.widthIn(max = 240.dp),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Row(
-                                modifier =
-                                    Modifier
-                                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                                        .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(
-                                        text = stringResource(R.string.qty),
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = "${item.quantity}",
-                                        fontSize = 20.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    val isLastItem = item.quantity == 1
-                                    FilledIconButton(
-                                        onClick = {
-                                            if (isLastItem) {
-                                                viewModel.updateQuantity(0)
-                                            } else {
-                                                viewModel.updateQuantity(item.quantity - 1)
-                                            }
-                                        },
-                                        colors =
-                                            IconButtonDefaults.filledIconButtonColors(
-                                                containerColor =
-                                                    if (isLastItem) {
-                                                        Color(
-                                                            0xFFFF3B30
-                                                        )
-                                                    } else {
-                                                        MaterialTheme.colorScheme.primary
-                                                    }
-                                            ),
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isLastItem) Icons.Default.Delete else Icons.Default.Remove,
-                                            contentDescription =
-                                                if (isLastItem) {
-                                                    stringResource(
-                                                        R.string.cd_delete
-                                                    )
-                                                } else {
-                                                    stringResource(R.string.cd_decrease)
-                                                },
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    FilledIconButton(
-                                        onClick = { viewModel.updateQuantity(item.quantity + 1) },
-                                        colors =
-                                            IconButtonDefaults.filledIconButtonColors(
-                                                containerColor = MaterialTheme.colorScheme.primary
-                                            ),
-                                        modifier = Modifier.size(36.dp)
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Add,
-                                            contentDescription = stringResource(R.string.cd_increase),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        // Additional Details
+                        // All Instances
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
                         ) {
                             Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = stringResource(R.string.history),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp,
-                                    modifier = Modifier.padding(bottom = 12.dp)
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Instances (${items.size})",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 18.sp
+                                    )
+                                    
+                                    Button(
+                                        onClick = { viewModel.showAddInstanceDialog() },
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = "Add instance",
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Add")
+                                    }
+                                }
+                                
+                                Spacer(modifier = Modifier.height(12.dp))
 
-                                DetailRow(
-                                    label = stringResource(R.string.added_by),
-                                    value = userNames[item.addedBy] ?: stringResource(R.string.loading)
-                                )
-                                DetailRow(
-                                    label = stringResource(R.string.added_on),
-                                    value = dateFormatter.format(Date(item.addedAt))
-                                )
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(vertical = 8.dp),
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                                )
-                                DetailRow(
-                                    label = stringResource(R.string.last_updated_by),
-                                    value = userNames[item.lastUpdatedBy] ?: stringResource(R.string.loading)
-                                )
-                                DetailRow(
-                                    label = stringResource(R.string.last_updated_on),
-                                    value = dateFormatter.format(Date(item.lastUpdatedAt))
-                                )
+                                items.forEachIndexed { index, item ->
+                                    if (index > 0) {
+                                        HorizontalDivider(
+                                            modifier = Modifier.padding(vertical = 12.dp),
+                                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                                        )
+                                    }
+                                    
+                                    ItemInstanceCard(
+                                        item = item,
+                                        userNames = userNames,
+                                        dateFormatter = dateFormatter,
+                                        onDelete = { 
+                                            viewModel.deleteItem(item.id) 
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ItemInstanceCard(
+    item: fyi.goodbye.fridgy.models.Item,
+    userNames: Map<String, String>,
+    dateFormatter: SimpleDateFormat,
+    onDelete: () -> Unit
+) {
+    Column {
+        // Expiration Date
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Expiration Date",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                if (item.expirationDate != null) {
+                    val expirationDateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
+                    val isExpired = fyi.goodbye.fridgy.models.Item.isExpired(item.expirationDate)
+                    val isExpiringSoon = fyi.goodbye.fridgy.models.Item.isExpiringSoon(item.expirationDate)
+                    
+                    Text(
+                        text = expirationDateFormatter.format(Date(item.expirationDate)),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = when {
+                            isExpired -> MaterialTheme.colorScheme.error
+                            isExpiringSoon -> Color(0xFFFFA726) // Orange
+                            else -> MaterialTheme.colorScheme.primary
+                        }
+                    )
+                    
+                    if (isExpired) {
+                        Text(
+                            text = "Expired",
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else if (isExpiringSoon) {
+                        Text(
+                            text = "Expiring soon",
+                            fontSize = 12.sp,
+                            color = Color(0xFFFFA726)
+                        )
+                    }
+                } else {
+                    Text(
+                        text = "No expiration",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Delete button
+            FilledIconButton(
+                onClick = onDelete,
+                colors =
+                    IconButtonDefaults.filledIconButtonColors(
+                        containerColor = Color(0xFFFF3B30)
+                    ),
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Size/unit info
+        if (item.size != null && item.unit != null) {
+            DetailRow(
+                label = "Size",
+                value = "${item.size} ${item.unit}"
+            )
+        }
+
+        // Added info
+        DetailRow(
+            label = "Added by",
+            value = userNames[item.addedBy] ?: "Loading..."
+        )
+        DetailRow(
+            label = "Added on",
+            value = dateFormatter.format(Date(item.addedAt))
+        )
     }
 }
 

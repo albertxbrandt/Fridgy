@@ -21,7 +21,9 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
+import fyi.goodbye.fridgy.ui.elements.SizeSelectionDialog
 import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
 import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
@@ -237,9 +239,18 @@ fun FridgeInventoryScreen(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    items(items, key = { it.item.upc }) { inventoryItem ->
-                                        InventoryItemCard(inventoryItem = inventoryItem) { clickedItemId ->
-                                            onItemClick(fridgeId, clickedItemId)
+                                    // Group items by UPC for bundled display
+                                    val groupedItems = items.groupBy { it.product.upc }
+                                    
+                                    groupedItems.forEach { (upc, itemGroup) ->
+                                        item(key = upc) {
+                                            InventoryItemCard(
+                                                inventoryItem = itemGroup.first(),
+                                                itemCount = itemGroup.size
+                                            ) { _ ->
+                                                // Navigate to first item in group
+                                                onItemClick(fridgeId, itemGroup.first().item.id)
+                                            }
                                         }
                                     }
                                 }
@@ -262,6 +273,49 @@ fun FridgeInventoryScreen(
                 viewModel.createAndAddProduct(pendingUpc!!, name, brand, category, imageUri)
             },
             onDismiss = { viewModel.cancelPendingProduct() }
+        )
+    }
+    
+    // Show expiration date picker for scanned items
+    val pendingItemForDate by viewModel.pendingItemForDate.collectAsState()
+    if (pendingItemForDate != null) {
+        val upc = pendingItemForDate!!
+        // Get product info to show name in dialog
+        var productName by remember { mutableStateOf("Item") }
+        LaunchedEffect(upc) {
+            // Fetch product name for display
+            viewModel.getProductForDisplay(upc)?.let { product ->
+                productName = product.name
+            }
+        }
+        
+        ExpirationDateDialog(
+            productName = productName,
+            onDateSelected = { date ->
+                viewModel.addItemWithDate(upc, date)
+            },
+            onDismiss = { viewModel.cancelDatePicker() }
+        )
+    }
+    
+    // Show size/unit picker after expiration date is set
+    val pendingItemForSize by viewModel.pendingItemForSize.collectAsState()
+    if (pendingItemForSize != null) {
+        val (upc, expirationDate) = pendingItemForSize!!
+        // Get product info to show name in dialog
+        var productName by remember { mutableStateOf("Item") }
+        LaunchedEffect(upc) {
+            viewModel.getProductForDisplay(upc)?.let { product ->
+                productName = product.name
+            }
+        }
+        
+        SizeSelectionDialog(
+            productName = productName,
+            onSizeSelected = { size, unit ->
+                viewModel.addItemWithSizeAndUnit(upc, expirationDate, size, unit)
+            },
+            onDismiss = { viewModel.cancelSizePicker() }
         )
     }
 }

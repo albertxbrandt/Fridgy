@@ -796,6 +796,8 @@ class HouseholdRepository {
                             )
                         )
                     } else {
+                        // TODO: Update for instance-based items
+                        /*
                         val newItem =
                             Item(
                                 upc = item.upc,
@@ -807,6 +809,7 @@ class HouseholdRepository {
                                 householdId = householdId
                             )
                         batch.set(itemRef, newItem)
+                        */
                     }
 
                     // Update shopping list item
