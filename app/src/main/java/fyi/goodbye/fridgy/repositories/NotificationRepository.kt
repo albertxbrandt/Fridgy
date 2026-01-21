@@ -19,11 +19,15 @@ import kotlinx.coroutines.tasks.await
  * - FCM token retrieval and storage in Firestore
  * - User notification subscriptions
  * - Fetching and marking notifications as read
+ *
+ * @param firestore The Firestore instance for database operations.
+ * @param auth The Auth instance for user identification.
+ * @param messaging The Messaging instance for FCM operations.
  */
 class NotificationRepository(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance(),
-    private val auth: FirebaseAuth = FirebaseAuth.getInstance(),
-    private val messaging: FirebaseMessaging = FirebaseMessaging.getInstance()
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth,
+    private val messaging: FirebaseMessaging
 ) {
     companion object {
         private const val TAG = "NotificationRepository"

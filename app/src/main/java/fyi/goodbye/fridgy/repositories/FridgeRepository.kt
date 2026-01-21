@@ -44,10 +44,15 @@ import kotlinx.coroutines.tasks.await
  * - Uses coroutines for async operations
  * - Presence tracking uses batch coroutine fetching to avoid race conditions
  *
+ * @param firestore The Firestore instance for database operations.
+ * @param auth The Auth instance for user identification.
  * @see HouseholdRepository For household-level shopping list operations (preferred)
  * @see ProductRepository For product information lookup
  */
-class FridgeRepository {
+class FridgeRepository(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
+) {
     /**
      * Returns a Flow of shopping list items for a fridge subcollection.
      *
@@ -385,9 +390,6 @@ class FridgeRepository {
         firestore.collection("fridges").document(fridgeId)
             .update("shoppingList", FieldValue.arrayRemove(upc)).await()
     }
-
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
 
     private var fridgeCache: List<Fridge> = emptyList()
 

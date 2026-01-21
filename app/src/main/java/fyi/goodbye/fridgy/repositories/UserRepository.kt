@@ -17,11 +17,14 @@ import kotlinx.coroutines.tasks.await
  * 
  * This repository abstracts Firebase Auth and Firestore operations
  * for user management, following the MVVM architecture pattern.
+ *
+ * @param firestore The Firestore instance for database operations.
+ * @param auth The Auth instance for authentication.
  */
-class UserRepository {
-    private val auth = FirebaseAuth.getInstance()
-    private val firestore = FirebaseFirestore.getInstance()
-
+class UserRepository(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
+) {
     companion object {
         private const val TAG = "UserRepository"
         private const val COLLECTION_USERS = "users"

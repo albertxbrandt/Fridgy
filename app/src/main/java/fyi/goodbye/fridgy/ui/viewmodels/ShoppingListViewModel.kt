@@ -1,12 +1,14 @@
 package fyi.goodbye.fridgy.ui.viewmodels
 
-import android.app.Application
+import android.content.Context
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.models.Fridge
+import javax.inject.Inject
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.repositories.FridgeRepository
@@ -46,12 +48,16 @@ import kotlinx.coroutines.launch
  * @see HouseholdRepository For underlying shopping list operations
  * @see ShoppingListItem For shopping list item data model
  */
-class ShoppingListViewModel(
-    private val householdId: String,
-    private val productRepository: ProductRepository
+@HiltViewModel
+class ShoppingListViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    savedStateHandle: SavedStateHandle,
+    private val productRepository: ProductRepository,
+    private val repository: HouseholdRepository,
+    private val fridgeRepository: FridgeRepository,
+    private val firebaseAuth: FirebaseAuth
 ) : ViewModel() {
-    private val repository = HouseholdRepository()
-    private val fridgeRepository = FridgeRepository()
+    private val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
     private var presenceJob: Job? = null
 
     /**
@@ -95,7 +101,7 @@ class ShoppingListViewModel(
      * Exposed for UI to determine user-specific data like target fridges.
      */
     val currentUserId: String
-        get() = FirebaseAuth.getInstance().currentUser?.uid ?: ""
+        get() = firebaseAuth.currentUser?.uid ?: ""
 
     init {
         loadShoppingList()
@@ -134,9 +140,9 @@ class ShoppingListViewModel(
     private fun observeActiveViewers() {
         viewModelScope.launch {
             repository.getShoppingListPresence(householdId).collect { viewers ->
-                val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+                val userId = firebaseAuth.currentUser?.uid
                 // Filter out current user from the list
-                _activeViewers.value = viewers.filter { it.userId != currentUserId }
+                _activeViewers.value = viewers.filter { it.userId != userId }
             }
         }
     }
@@ -421,21 +427,4 @@ class ShoppingListViewModel(
         }
     }
 
-    companion object {
-        fun provideFactory(
-            householdId: String,
-            productRepository: ProductRepository? = null
-        ): ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : ViewModel> create(
-                    modelClass: Class<T>,
-                    extras: CreationExtras
-                ): T {
-                    val app = extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
-                    val repo = productRepository ?: ProductRepository(app.applicationContext)
-                    return ShoppingListViewModel(householdId, repo) as T
-                }
-            }
-    }
 }

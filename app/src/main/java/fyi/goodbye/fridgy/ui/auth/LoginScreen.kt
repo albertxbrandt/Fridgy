@@ -15,7 +15,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shared.components.SquaredInput
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
@@ -35,7 +35,7 @@ import kotlinx.coroutines.flow.collectLatest
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
     onNavigateToSignup: () -> Unit,
-    viewModel: LoginViewModel = viewModel()
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
     // Navigate to the next screen when the loginSuccess event is received
     LaunchedEffect(Unit) {

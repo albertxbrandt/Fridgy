@@ -1,7 +1,8 @@
 package fyi.goodbye.fridgy.ui.auth
 
-import android.app.Application
+import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import com.google.firebase.auth.FirebaseAuth
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,15 +23,17 @@ class LoginViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var mockApplication: Application
+    private lateinit var mockContext: Context
+    private lateinit var mockAuth: FirebaseAuth
     private lateinit var viewModel: LoginViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockApplication = mockk(relaxed = true)
-        every { mockApplication.getString(any()) } returns "Error message"
-        viewModel = LoginViewModel(mockApplication)
+        mockContext = mockk(relaxed = true)
+        mockAuth = mockk(relaxed = true)
+        every { mockContext.getString(any()) } returns "Error message"
+        viewModel = LoginViewModel(mockContext, mockAuth)
     }
 
     @After

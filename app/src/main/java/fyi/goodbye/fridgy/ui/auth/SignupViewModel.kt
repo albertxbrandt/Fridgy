@@ -1,31 +1,38 @@
 package fyi.goodbye.fridgy.ui.auth
 
-import android.app.Application
+import android.content.Context
 import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.repositories.UserRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel responsible for managing the user signup process.
  *
  * This class handles input validation, Firebase Authentication account creation,
  * and the subsequent creation of a user profile document in Firestore. It exposes
- * various UI states to the [SignupScreen] including loading status and error messages.
+ * various UI states to the SignupScreen including loading status and error messages.
  * 
  * Uses [UserRepository] for all Firebase operations following MVVM architecture.
+ *
+ * @param context Application context for accessing string resources.
+ * @param userRepository Repository for user authentication and profile operations.
  */
-class SignupViewModel(
-    application: Application,
-    private val userRepository: UserRepository = UserRepository()
-) : AndroidViewModel(application) {
+@HiltViewModel
+class SignupViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val userRepository: UserRepository
+) : ViewModel() {
 
     /** The email address entered by the user. */
     var email by mutableStateOf("")
@@ -89,30 +96,30 @@ class SignupViewModel(
     fun signup() {
         errorMessage = null
         if (email.isBlank() || username.isBlank() || password.isBlank() || confirmPassword.isBlank()) {
-            errorMessage = getApplication<Application>().getString(R.string.error_please_fill_all_fields)
+            errorMessage = context.getString(R.string.error_please_fill_all_fields)
             return
         }
 
         // Validate username format: letters, numbers, underscore, period only
         val trimmedUsername = username.trim()
         if (!trimmedUsername.matches(Regex("^[a-zA-Z0-9_.]+$"))) {
-            errorMessage = getApplication<Application>().getString(R.string.error_username_invalid_chars)
+            errorMessage = context.getString(R.string.error_username_invalid_chars)
             return
         }
 
         // Validate username length
         if (trimmedUsername.length < 3) {
-            errorMessage = getApplication<Application>().getString(R.string.error_username_too_short)
+            errorMessage = context.getString(R.string.error_username_too_short)
             return
         }
 
         if (trimmedUsername.length > 16) {
-            errorMessage = getApplication<Application>().getString(R.string.error_username_too_long)
+            errorMessage = context.getString(R.string.error_username_too_long)
             return
         }
 
         if (password != confirmPassword) {
-            errorMessage = getApplication<Application>().getString(R.string.error_passwords_do_not_match)
+            errorMessage = context.getString(R.string.error_passwords_do_not_match)
             return
         }
 
@@ -122,7 +129,7 @@ class SignupViewModel(
             try {
                 // Check if username already exists
                 if (userRepository.isUsernameTaken(trimmedUsername)) {
-                    errorMessage = getApplication<Application>().getString(R.string.error_username_taken, trimmedUsername)
+                    errorMessage = context.getString(R.string.error_username_taken, trimmedUsername)
                     isLoading = false
                     return@launch
                 }
@@ -132,7 +139,7 @@ class SignupViewModel(
                 _signupSuccess.emit(true)
             } catch (e: Exception) {
                 Log.w("SignupViewModel", "createUserWithEmail:failure", e)
-                errorMessage = e.message ?: getApplication<Application>().getString(R.string.error_signup_failed)
+                errorMessage = e.message ?: context.getString(R.string.error_signup_failed)
             } finally {
                 isLoading = false
             }

@@ -13,7 +13,7 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 
 /**
@@ -23,7 +23,7 @@ import fyi.goodbye.fridgy.R
 fun JoinHouseholdDialog(
     onDismiss: () -> Unit,
     onJoinSuccess: (String) -> Unit,
-    viewModel: JoinHouseholdViewModel = viewModel(factory = JoinHouseholdViewModel.provideFactory())
+    viewModel: JoinHouseholdViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val inviteCode by viewModel.inviteCode.collectAsState()

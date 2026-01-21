@@ -1,10 +1,10 @@
 package fyi.goodbye.fridgy.ui.shared
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
+import android.content.Context
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.CreationExtras
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.repositories.CategoryRepository
@@ -13,29 +13,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel for managing category data and UI state.
  *
  * Provides a reactive stream of categories and handles CRUD operations.
+ *
+ * @param context Application context for accessing string resources.
+ * @param categoryRepository Repository for category operations.
  */
-class CategoryViewModel(
-    application: Application,
-    private val categoryRepository: CategoryRepository = CategoryRepository()
-) : AndroidViewModel(application) {
-    companion object {
-        fun provideFactory(): ViewModelProvider.Factory =
-            object : ViewModelProvider.Factory {
-                @Suppress("UNCHECKED_CAST")
-                override fun <T : androidx.lifecycle.ViewModel> create(
-                    modelClass: Class<T>,
-                    extras: CreationExtras
-                ): T {
-                    val application = checkNotNull(extras[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY])
-                    return CategoryViewModel(application) as T
-                }
-            }
-    }
+@HiltViewModel
+class CategoryViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val categoryRepository: CategoryRepository
+) : ViewModel() {
 
     sealed interface CategoryUiState {
         data object Loading : CategoryUiState
@@ -65,7 +57,7 @@ class CategoryViewModel(
                         _uiState.value = CategoryUiState.Success(categories)
                     }
                 } catch (e: Exception) {
-                    _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_categories))
+                    _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_categories))
                 }
             }
     }
@@ -84,7 +76,7 @@ class CategoryViewModel(
             try {
                 categoryRepository.createCategory(name, order)
             } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_create_category))
+                _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_create_category))
             }
         }
     }
@@ -101,7 +93,7 @@ class CategoryViewModel(
             try {
                 categoryRepository.updateCategory(categoryId, name, order)
             } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_update_category))
+                _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_update_category))
             }
         }
     }
@@ -114,7 +106,7 @@ class CategoryViewModel(
             try {
                 categoryRepository.deleteCategory(categoryId)
             } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_delete_category))
+                _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_delete_category))
             }
         }
     }

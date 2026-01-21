@@ -49,7 +49,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Notification
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
@@ -73,7 +73,7 @@ import java.util.Locale
 fun NotificationsScreen(
     onBackClick: () -> Unit,
     onNotificationClick: (Notification) -> Unit = {},
-    viewModel: NotificationViewModel = viewModel()
+    viewModel: NotificationViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()

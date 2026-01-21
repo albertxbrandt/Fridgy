@@ -10,9 +10,12 @@ import kotlinx.coroutines.tasks.await
  * Repository for managing food categories in Firestore.
  *
  * Handles CRUD operations for categories and provides real-time updates via Flow.
+ *
+ * @param firestore The Firestore instance for database operations.
  */
-class CategoryRepository {
-    private val firestore = FirebaseFirestore.getInstance()
+class CategoryRepository(
+    private val firestore: FirebaseFirestore
+) {
     private val categoriesCollection = firestore.collection("categories")
 
     /**

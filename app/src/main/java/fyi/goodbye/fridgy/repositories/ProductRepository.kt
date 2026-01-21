@@ -20,12 +20,19 @@ import java.io.InputStream
 /**
  * Repository for managing a private, crowdsourced barcode database.
  *
+ * Handles product information retrieval, caching, image uploads, and
+ * crowdsourced product database management.
+ *
  * @param context Application context for file operations. Must be Application context
- *                to avoid memory leaks. Pass null for read-only operations.
+ *                to avoid memory leaks.
+ * @param firestore The Firestore instance for database operations.
+ * @param storage The Storage instance for image uploads.
  */
-class ProductRepository(private val context: Context? = null) {
-    private val firestore = FirebaseFirestore.getInstance()
-    private val storage = FirebaseStorage.getInstance()
+class ProductRepository(
+    private val context: Context,
+    private val firestore: FirebaseFirestore,
+    private val storage: FirebaseStorage
+) {
     private val productsCollection = firestore.collection("products")
 
     companion object {
@@ -52,8 +59,6 @@ class ProductRepository(private val context: Context? = null) {
      * Target: ~100-300KB per image (down from 1.5MB)
      */
     private fun compressImage(uri: Uri): ByteArray? {
-        if (context == null) return null
-
         return try {
             // Read EXIF orientation first
             val exifOrientation = getExifOrientation(uri)
@@ -114,8 +119,6 @@ class ProductRepository(private val context: Context? = null) {
      * Reads EXIF orientation from image URI.
      */
     private fun getExifOrientation(uri: Uri): Int {
-        if (context == null) return ExifInterface.ORIENTATION_NORMAL
-
         return try {
             val inputStream = context.contentResolver.openInputStream(uri) ?: return ExifInterface.ORIENTATION_NORMAL
             val exif = ExifInterface(inputStream)

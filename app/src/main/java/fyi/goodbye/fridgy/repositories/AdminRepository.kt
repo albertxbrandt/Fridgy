@@ -14,11 +14,16 @@ import kotlinx.coroutines.tasks.await
 
 /**
  * Repository for managing admin user privileges.
+ *
+ * @param firestore The Firestore instance for database operations.
+ * @param auth The Auth instance for user identification.
+ * @param storage The Storage instance for cleanup operations.
  */
-class AdminRepository {
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-    private val storage = FirebaseStorage.getInstance()
+class AdminRepository(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth,
+    private val storage: FirebaseStorage
+) {
     private val adminsCollection = firestore.collection("admins")
 
     /**

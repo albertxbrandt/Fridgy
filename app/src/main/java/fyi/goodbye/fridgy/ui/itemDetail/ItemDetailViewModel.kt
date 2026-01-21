@@ -1,13 +1,14 @@
 package fyi.goodbye.fridgy.ui.itemDetail
 
-import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
+import javax.inject.Inject
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
@@ -45,13 +46,15 @@ import kotlinx.coroutines.launch
  * @see Item For item instance data model
  * @see Product For product information model
  */
-class ItemDetailViewModel(
-    application: Application,
+@HiltViewModel
+class ItemDetailViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    savedStateHandle: SavedStateHandle,
     private val fridgeRepository: FridgeRepository,
-    private val productRepository: ProductRepository,
-    private val fridgeId: String,
-    private val itemId: String
-) : AndroidViewModel(application) {
+    private val productRepository: ProductRepository
+) : ViewModel() {
+    private val fridgeId: String = savedStateHandle.get<String>("fridgeId") ?: ""
+    private val itemId: String = savedStateHandle.get<String>("itemId") ?: ""
     private val _uiState = MutableStateFlow<ItemDetailUiState>(ItemDetailUiState.Loading)
     val uiState: StateFlow<ItemDetailUiState> = _uiState.asStateFlow()
 
@@ -85,7 +88,7 @@ class ItemDetailViewModel(
                             if (clickedItem != null) {
                                 trackedUpc = clickedItem.item.upc
                             } else {
-                                _uiState.value = ItemDetailUiState.Error(getApplication<Application>().getString(R.string.error_item_not_found))
+                                _uiState.value = ItemDetailUiState.Error(context.getString(R.string.error_item_not_found))
                                 return@collect
                             }
                         }
@@ -106,7 +109,7 @@ class ItemDetailViewModel(
                                 _uiState.value = ItemDetailUiState.Success(allInstances, product)
                                 loadUserNames(allInstances)
                             } else {
-                                _uiState.value = ItemDetailUiState.Error(getApplication<Application>().getString(R.string.error_product_not_found))
+                                _uiState.value = ItemDetailUiState.Error(context.getString(R.string.error_product_not_found))
                             }
                         } else {
                             // All instances deleted - keep current success state, let UI handle navigation
@@ -117,7 +120,7 @@ class ItemDetailViewModel(
                         }
                     }
                 } catch (e: Exception) {
-                    _uiState.value = ItemDetailUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_details))
+                    _uiState.value = ItemDetailUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_details))
                 }
             }
     }
@@ -129,7 +132,7 @@ class ItemDetailViewModel(
             uids.forEach { uid ->
                 if (!names.containsKey(uid)) {
                     val userProfile = fridgeRepository.getUserProfileById(uid)
-                    names[uid] = userProfile?.username ?: getApplication<Application>().getString(R.string.unknown_user)
+                    names[uid] = userProfile?.username ?: context.getString(R.string.unknown_user)
                 }
             }
             _userNames.value = names
@@ -214,19 +217,4 @@ class ItemDetailViewModel(
         data class Error(val message: String) : ItemDetailUiState
     }
 
-    companion object {
-        fun provideFactory(
-            fridgeId: String,
-            itemId: String,
-            fridgeRepository: FridgeRepository = FridgeRepository(),
-            productRepository: ProductRepository? = null
-        ): ViewModelProvider.Factory =
-            viewModelFactory {
-                initializer {
-                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                    val repo = productRepository ?: ProductRepository(app.applicationContext)
-                    ItemDetailViewModel(app, fridgeRepository, repo, fridgeId, itemId)
-                }
-            }
-    }
 }

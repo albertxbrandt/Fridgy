@@ -2,6 +2,8 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
     id("com.google.gms.google-services")
     id("kotlin-parcelize")
     alias(libs.plugins.ktlint)
@@ -108,9 +110,14 @@ dependencies {
     implementation(libs.coil.compose) // Added Coil
     implementation(libs.androidx.exifinterface) // Added ExifInterface for image orientation
 
+    // Hilt Dependency Injection
+    implementation(libs.hilt.android)
+    implementation(libs.hilt.navigation.compose)
+    ksp(libs.hilt.compiler)
+
     // Unit Testing
     testImplementation(libs.junit)
-    testImplementation("org.jetbrains.kotlin:kotlin-test:2.2.21")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:2.0.21")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("app.cash.turbine:turbine:1.0.0") // For testing Flows
     testImplementation("io.mockk:mockk:1.13.8") // For mocking Firebase/dependencies

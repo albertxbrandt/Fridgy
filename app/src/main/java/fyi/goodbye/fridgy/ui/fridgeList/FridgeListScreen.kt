@@ -17,7 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.elements.FridgeCard
@@ -47,7 +47,7 @@ fun FridgeListScreen(
     onNavigateToHouseholdSettings: () -> Unit,
     onSwitchHousehold: () -> Unit,
     onShoppingListClick: (String) -> Unit,
-    viewModel: FridgeListViewModel = viewModel(factory = FridgeListViewModel.provideFactory())
+    viewModel: FridgeListViewModel = hiltViewModel()
 ) {
     var showAddFridgeDialog by remember { mutableStateOf(false) }
     var newFridgeName by remember { mutableStateOf("") }

@@ -1,14 +1,15 @@
 package fyi.goodbye.fridgy.ui.fridgeSettings
 
-import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
+import javax.inject.Inject
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.repositories.FridgeRepository
@@ -26,11 +27,14 @@ import kotlinx.coroutines.launch
  * @property fridgeRepository The repository for database operations.
  * @property fridgeId The unique ID of the fridge being managed.
  */
-class FridgeSettingsViewModel(
-    application: Application,
-    private val fridgeRepository: FridgeRepository = FridgeRepository(),
-    private val fridgeId: String
-) : AndroidViewModel(application) {
+@HiltViewModel
+class FridgeSettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    savedStateHandle: SavedStateHandle,
+    private val fridgeRepository: FridgeRepository,
+    private val firebaseAuth: FirebaseAuth
+) : ViewModel() {
+    private val fridgeId: String = savedStateHandle.get<String>("fridgeId") ?: ""
     private val _uiState = MutableStateFlow<FridgeSettingsUiState>(FridgeSettingsUiState.Loading)
 
     /** The current UI state of the fridge settings (Loading, Success, or Error). */
@@ -47,7 +51,7 @@ class FridgeSettingsViewModel(
     val actionError: StateFlow<String?> = _actionError.asStateFlow()
 
     /** The User ID of the currently authenticated user. */
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val currentUserId = firebaseAuth.currentUser?.uid
 
     init {
         loadFridgeDetails()
@@ -63,10 +67,10 @@ class FridgeSettingsViewModel(
                 if (displayFridge != null && rawFridge != null) {
                     _uiState.value = FridgeSettingsUiState.Success(displayFridge, rawFridge)
                 } else {
-                    _uiState.value = FridgeSettingsUiState.Error(getApplication<Application>().getString(R.string.error_fridge_not_found))
+                    _uiState.value = FridgeSettingsUiState.Error(context.getString(R.string.error_fridge_not_found))
                 }
             } catch (e: Exception) {
-                _uiState.value = FridgeSettingsUiState.Error(e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_fridge))
+                _uiState.value = FridgeSettingsUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_fridge))
                 Log.e("FridgeSettingsVM", "Error fetching fridge details for $fridgeId: ${e.message}", e)
             }
         }
@@ -102,18 +106,4 @@ class FridgeSettingsViewModel(
         data class Error(val message: String) : FridgeSettingsUiState
     }
 
-    companion object {
-        /** Factory method to create an instance of [FridgeSettingsViewModel] with a [fridgeId]. */
-        fun provideFactory(
-            fridgeId: String,
-            fridgeRepository: FridgeRepository = FridgeRepository()
-        ): ViewModelProvider.Factory {
-            return viewModelFactory {
-                initializer {
-                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                    FridgeSettingsViewModel(app, fridgeRepository, fridgeId)
-                }
-            }
-        }
-    }
 }

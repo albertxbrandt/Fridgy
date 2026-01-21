@@ -1,25 +1,29 @@
 package fyi.goodbye.fridgy.ui.householdList
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
+import android.content.Context
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel for joining a household with an invite code.
+ *
+ * @param context Application context for accessing string resources.
+ * @param householdRepository Repository for household operations.
  */
-class JoinHouseholdViewModel(
-    application: Application,
-    private val householdRepository: HouseholdRepository = HouseholdRepository()
-) : AndroidViewModel(application) {
+@HiltViewModel
+class JoinHouseholdViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val householdRepository: HouseholdRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow<JoinHouseholdUiState>(JoinHouseholdUiState.Idle)
     val uiState: StateFlow<JoinHouseholdUiState> = _uiState.asStateFlow()
 
@@ -36,7 +40,7 @@ class JoinHouseholdViewModel(
         if (code.length != 6) {
             _uiState.value =
                 JoinHouseholdUiState.Error(
-                    getApplication<Application>().getString(R.string.error_invalid_invite_code)
+                    context.getString(R.string.error_invalid_invite_code)
                 )
             return
         }
@@ -57,13 +61,13 @@ class JoinHouseholdViewModel(
                 } else {
                     _uiState.value =
                         JoinHouseholdUiState.Error(
-                            getApplication<Application>().getString(R.string.error_invalid_invite_code)
+                            context.getString(R.string.error_invalid_invite_code)
                         )
                 }
             } catch (e: Exception) {
                 _uiState.value =
                     JoinHouseholdUiState.Error(
-                        e.message ?: getApplication<Application>().getString(R.string.error_invalid_invite_code)
+                        e.message ?: context.getString(R.string.error_invalid_invite_code)
                     )
             }
         }
@@ -80,7 +84,7 @@ class JoinHouseholdViewModel(
             } catch (e: Exception) {
                 _uiState.value =
                     JoinHouseholdUiState.Error(
-                        e.message ?: getApplication<Application>().getString(R.string.error_failed_to_join_household)
+                        e.message ?: context.getString(R.string.error_failed_to_join_household)
                     )
             }
         }
@@ -104,15 +108,5 @@ class JoinHouseholdViewModel(
         data class Success(val householdId: String) : JoinHouseholdUiState
 
         data class Error(val message: String) : JoinHouseholdUiState
-    }
-
-    companion object {
-        fun provideFactory(): ViewModelProvider.Factory =
-            viewModelFactory {
-                initializer {
-                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                    JoinHouseholdViewModel(app)
-                }
-            }
     }
 }

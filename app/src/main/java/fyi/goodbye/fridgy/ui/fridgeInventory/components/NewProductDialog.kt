@@ -46,7 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.SizeUnit
@@ -72,7 +72,7 @@ fun NewProductDialog(
     var showCustomUnitInput by remember { mutableStateOf(false) }
 
     // Load categories from database
-    val categoryViewModel: CategoryViewModel = viewModel(factory = CategoryViewModel.provideFactory())
+    val categoryViewModel: CategoryViewModel = hiltViewModel()
     val categoryState by categoryViewModel.uiState.collectAsState()
 
     // Get the fallback category from string resources

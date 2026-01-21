@@ -24,7 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.UserProfile
@@ -60,7 +60,7 @@ fun HouseholdListScreen(
     onNavigateToNotifications: () -> Unit,
     onNavigateToAdminPanel: () -> Unit,
     onLogout: () -> Unit,
-    viewModel: HouseholdListViewModel = viewModel(factory = HouseholdListViewModel.provideFactory())
+    viewModel: HouseholdListViewModel = hiltViewModel()
 ) {
     val householdsUiState by viewModel.householdsUiState.collectAsState()
     val isAdmin by viewModel.isAdmin.collectAsState()

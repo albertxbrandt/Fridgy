@@ -16,7 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import fyi.goodbye.fridgy.R
@@ -48,8 +48,7 @@ fun FridgeInventoryScreen(
     onSettingsClick: (String) -> Unit,
     onAddItemClick: (String) -> Unit,
     onItemClick: (String, String) -> Unit,
-    viewModel: FridgeInventoryViewModel =
-        viewModel(factory = FridgeInventoryViewModel.provideFactory(fridgeId, initialFridgeName))
+    viewModel: FridgeInventoryViewModel = hiltViewModel()
 ) {
     val fridgeDetailUiState by viewModel.displayFridgeState.collectAsState()
     val filteredItemsUiState by viewModel.filteredItemsUiState.collectAsState()

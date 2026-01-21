@@ -1,7 +1,8 @@
 package fyi.goodbye.fridgy.ui.auth
 
-import android.app.Application
+import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import fyi.goodbye.fridgy.repositories.UserRepository
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -22,19 +23,21 @@ class SignupViewModelTest {
 
     private val testDispatcher = StandardTestDispatcher()
 
-    private lateinit var mockApplication: Application
+    private lateinit var mockContext: Context
+    private lateinit var mockUserRepository: UserRepository
     private lateinit var viewModel: SignupViewModel
 
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockApplication = mockk(relaxed = true)
+        mockContext = mockk(relaxed = true)
+        mockUserRepository = mockk(relaxed = true)
 
         // Mock getString for error messages
-        every { mockApplication.getString(any()) } returns "Error message"
-        every { mockApplication.getString(any(), any()) } returns "Error message"
+        every { mockContext.getString(any()) } returns "Error message"
+        every { mockContext.getString(any(), any()) } returns "Error message"
 
-        viewModel = SignupViewModel(mockApplication)
+        viewModel = SignupViewModel(mockContext, mockUserRepository)
     }
 
     @After

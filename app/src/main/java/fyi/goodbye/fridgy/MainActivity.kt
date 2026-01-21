@@ -33,6 +33,7 @@ import com.google.firebase.appcheck.playintegrity.PlayIntegrityAppCheckProviderF
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.FirebaseFirestoreSettings
+import dagger.hilt.android.AndroidEntryPoint
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import fyi.goodbye.fridgy.ui.adminPanel.AdminPanelScreen
@@ -50,6 +51,7 @@ import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListScreen
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 import fyi.goodbye.fridgy.utils.UserPreferences
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Main entry point for the Fridgy application.
@@ -74,8 +76,16 @@ import kotlinx.coroutines.launch
  *
  * @see FridgyTheme for the app's Material 3 theme configuration
  */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private val notificationRepository = NotificationRepository()
+    
+    /** Repository for managing push notifications and FCM tokens. */
+    @Inject
+    lateinit var notificationRepository: NotificationRepository
+    
+    /** Repository for managing household data and membership validation. */
+    @Inject
+    lateinit var householdRepository: HouseholdRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -201,7 +211,6 @@ class MainActivity : ComponentActivity() {
 
                     // Get user preferences for last selected household
                     val userPreferences = remember { UserPreferences.getInstance(this@MainActivity) }
-                    val householdRepository = remember { HouseholdRepository() }
 
                     // Determine start destination:
                     // - If not logged in: login

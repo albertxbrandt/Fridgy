@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
@@ -75,7 +75,7 @@ fun ShoppingListScreen(
     onBackClick: () -> Unit,
     onScanClick: (String) -> Unit,
     navController: NavController,
-    viewModel: ShoppingListViewModel = viewModel(factory = ShoppingListViewModel.provideFactory(householdId))
+    viewModel: ShoppingListViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()

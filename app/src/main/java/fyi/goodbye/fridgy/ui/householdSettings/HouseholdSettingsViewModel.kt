@@ -1,14 +1,15 @@
 package fyi.goodbye.fridgy.ui.householdSettings
 
-import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
+import javax.inject.Inject
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
@@ -27,11 +28,14 @@ import java.time.temporal.ChronoUnit
  *
  * Handles member management, invite code generation, and household deletion/leave.
  */
-class HouseholdSettingsViewModel(
-    application: Application,
-    private val householdRepository: HouseholdRepository = HouseholdRepository(),
-    private val householdId: String
-) : AndroidViewModel(application) {
+@HiltViewModel
+class HouseholdSettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    savedStateHandle: SavedStateHandle,
+    private val householdRepository: HouseholdRepository,
+    private val firebaseAuth: FirebaseAuth
+) : ViewModel() {
+    private val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
     private val _uiState = MutableStateFlow<HouseholdSettingsUiState>(HouseholdSettingsUiState.Loading)
     val uiState: StateFlow<HouseholdSettingsUiState> = _uiState.asStateFlow()
 
@@ -56,7 +60,7 @@ class HouseholdSettingsViewModel(
     private val _actionError = MutableStateFlow<String?>(null)
     val actionError: StateFlow<String?> = _actionError.asStateFlow()
 
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
+    val currentUserId = firebaseAuth.currentUser?.uid
 
     init {
         loadHouseholdDetails()
@@ -73,13 +77,13 @@ class HouseholdSettingsViewModel(
                 } else {
                     _uiState.value =
                         HouseholdSettingsUiState.Error(
-                            getApplication<Application>().getString(R.string.error_fridge_not_found)
+                            context.getString(R.string.error_fridge_not_found)
                         )
                 }
             } catch (e: Exception) {
                 _uiState.value =
                     HouseholdSettingsUiState.Error(
-                        e.message ?: getApplication<Application>().getString(R.string.error_failed_to_load_fridge)
+                        e.message ?: context.getString(R.string.error_failed_to_load_fridge)
                     )
                 Log.e("HouseholdSettingsVM", "Error loading household: ${e.message}", e)
             }
@@ -246,17 +250,4 @@ class HouseholdSettingsViewModel(
         data class Error(val message: String) : HouseholdSettingsUiState
     }
 
-    companion object {
-        fun provideFactory(
-            householdId: String,
-            householdRepository: HouseholdRepository = HouseholdRepository()
-        ): ViewModelProvider.Factory {
-            return viewModelFactory {
-                initializer {
-                    val app = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY]!!
-                    HouseholdSettingsViewModel(app, householdRepository, householdId)
-                }
-            }
-        }
-    }
 }

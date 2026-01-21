@@ -1,31 +1,34 @@
 package fyi.goodbye.fridgy.ui.adminPanel
 
-import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.AdminRepository
-import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel for the admin panel.
  * Manages fetching and displaying system-wide statistics and data.
+ *
+ * @param context Application context for accessing string resources.
+ * @param adminRepository Repository for admin operations.
  */
-class AdminPanelViewModel(
-    application: Application,
-    private val adminRepository: AdminRepository = AdminRepository()
-) : AndroidViewModel(application) {
+@HiltViewModel
+class AdminPanelViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val adminRepository: AdminRepository
+) : ViewModel() {
     private val _uiState = MutableStateFlow<AdminUiState>(AdminUiState.Loading)
     val uiState: StateFlow<AdminUiState> = _uiState.asStateFlow()
 
@@ -67,7 +70,7 @@ class AdminPanelViewModel(
                     )
             } catch (e: Exception) {
                 Log.e("AdminPanelViewModel", "Error loading admin data", e)
-                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_load_admin_data, e.message ?: ""))
+                _uiState.value = AdminUiState.Error(context.getString(R.string.error_failed_to_load_admin_data, e.message ?: ""))
             }
         }
     }
@@ -87,7 +90,7 @@ class AdminPanelViewModel(
                     refresh() // Reload data after deletion
                 }
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_delete_user, e.message ?: ""))
+                _uiState.value = AdminUiState.Error(context.getString(R.string.error_failed_to_delete_user, e.message ?: ""))
             }
         }
     }
@@ -107,7 +110,7 @@ class AdminPanelViewModel(
                     refresh() // Reload data after update
                 }
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_update_user, e.message ?: ""))
+                _uiState.value = AdminUiState.Error(context.getString(R.string.error_failed_to_update_user, e.message ?: ""))
             }
         }
     }
@@ -123,7 +126,7 @@ class AdminPanelViewModel(
                     refresh() // Reload data after deletion
                 }
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_delete_product, e.message ?: ""))
+                _uiState.value = AdminUiState.Error(context.getString(R.string.error_failed_to_delete_product, e.message ?: ""))
             }
         }
     }
@@ -144,7 +147,7 @@ class AdminPanelViewModel(
                     refresh()
                 }
             } catch (e: Exception) {
-                _uiState.value = AdminUiState.Error(getApplication<Application>().getString(R.string.error_failed_to_update_product, e.message ?: ""))
+                _uiState.value = AdminUiState.Error(context.getString(R.string.error_failed_to_update_product, e.message ?: ""))
             }
         }
     }
@@ -164,15 +167,5 @@ class AdminPanelViewModel(
         ) : AdminUiState
 
         data class Error(val message: String) : AdminUiState
-    }
-
-    companion object {
-        fun provideFactory(): ViewModelProvider.Factory =
-            viewModelFactory {
-                initializer {
-                    val application = this[ViewModelProvider.AndroidViewModelFactory.APPLICATION_KEY] as Application
-                    AdminPanelViewModel(application)
-                }
-            }
     }
 }

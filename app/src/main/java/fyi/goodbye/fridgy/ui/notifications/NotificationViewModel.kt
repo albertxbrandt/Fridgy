@@ -3,6 +3,7 @@ package fyi.goodbye.fridgy.ui.notifications
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import dagger.hilt.android.lifecycle.HiltViewModel
 import fyi.goodbye.fridgy.models.Notification
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +14,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel for managing notification state and operations.
@@ -20,10 +22,13 @@ import kotlinx.coroutines.launch
  * Follows MVVM pattern:
  * - Exposes UI state via StateFlow
  * - Handles business logic for notification operations
- * - Uses NotificationRepository for data access
+ * - Uses [NotificationRepository] for data access
+ *
+ * @param repository The notification repository for data operations.
  */
-class NotificationViewModel(
-    private val repository: NotificationRepository = NotificationRepository()
+@HiltViewModel
+class NotificationViewModel @Inject constructor(
+    private val repository: NotificationRepository
 ) : ViewModel() {
     companion object {
         private const val TAG = "NotificationViewModel"

@@ -10,12 +10,15 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import dagger.hilt.android.AndroidEntryPoint
 import fyi.goodbye.fridgy.MainActivity
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.repositories.NotificationRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * Firebase Cloud Messaging service for handling incoming push notifications.
@@ -26,7 +29,13 @@ import kotlinx.coroutines.launch
  * - Handles notification clicks
  * - Updates FCM token when it changes
  */
+@AndroidEntryPoint
 class FridgyMessagingService : FirebaseMessagingService() {
+    
+    /** Repository for managing notification and FCM token operations. */
+    @Inject
+    lateinit var notificationRepository: NotificationRepository
+    
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {
@@ -56,8 +65,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
         // Save the token to Firestore via repository
         serviceScope.launch {
             try {
-                val repository = fyi.goodbye.fridgy.repositories.NotificationRepository()
-                repository.refreshFcmToken()
+                notificationRepository.refreshFcmToken()
             } catch (e: Exception) {
                 Log.e(TAG, "Error saving new FCM token", e)
             }

@@ -25,7 +25,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.ui.fridgeSettings.SettingsItem
@@ -45,10 +45,7 @@ fun HouseholdSettingsScreen(
     householdId: String,
     onBackClick: () -> Unit,
     onDeleteSuccess: () -> Unit,
-    viewModel: HouseholdSettingsViewModel =
-        viewModel(
-            factory = HouseholdSettingsViewModel.provideFactory(householdId)
-        )
+    viewModel: HouseholdSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val inviteCodes by viewModel.inviteCodes.collectAsState()

@@ -27,7 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
@@ -43,7 +43,7 @@ fun ItemDetailScreen(
     fridgeId: String,
     itemId: String,
     onBackClick: () -> Unit,
-    viewModel: ItemDetailViewModel = viewModel(factory = ItemDetailViewModel.provideFactory(fridgeId, itemId))
+    viewModel: ItemDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val userNames by viewModel.userNames.collectAsState()

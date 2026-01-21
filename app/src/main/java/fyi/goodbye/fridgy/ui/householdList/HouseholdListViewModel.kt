@@ -1,14 +1,12 @@
 package fyi.goodbye.fridgy.ui.householdList
 
-import android.app.Application
+import android.content.Context
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.repositories.AdminRepository
@@ -19,25 +17,32 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel responsible for managing the main list of households.
  *
  * It coordinates with the [HouseholdRepository] to provide real-time updates for
  * the households the user belongs to.
+ *
+ * @param context Application context for accessing string resources.
+ * @param auth Firebase Auth instance for user identification.
+ * @param householdRepository Repository for household operations.
+ * @param adminRepository Repository for admin privilege checks.
+ * @param userRepository Repository for user operations.
  */
-class HouseholdListViewModel(
-    application: Application,
-    private val householdRepository: HouseholdRepository = HouseholdRepository(),
-    private val adminRepository: AdminRepository = AdminRepository(),
-    private val userRepository: UserRepository = UserRepository()
-) : AndroidViewModel(application) {
+@HiltViewModel
+class HouseholdListViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val auth: FirebaseAuth,
+    private val householdRepository: HouseholdRepository,
+    private val adminRepository: AdminRepository,
+    private val userRepository: UserRepository
+) : ViewModel() {
     private val _householdsUiState = MutableStateFlow<HouseholdUiState>(HouseholdUiState.Loading)
 
     /** The current state of the households list (Loading, Success, or Error). */
     val householdsUiState: StateFlow<HouseholdUiState> = _householdsUiState.asStateFlow()
-
-    private val auth = FirebaseAuth.getInstance()
 
     private val _isAdmin = MutableStateFlow(false)
 
@@ -69,7 +74,7 @@ class HouseholdListViewModel(
         if (currentUserId == null) {
             _householdsUiState.value =
                 HouseholdUiState.Error(
-                    getApplication<Application>().getString(R.string.error_user_not_logged_in)
+                    context.getString(R.string.error_user_not_logged_in)
                 )
         } else {
             // Check admin status
@@ -104,7 +109,7 @@ class HouseholdListViewModel(
      */
     fun createNewHousehold(name: String) {
         if (name.isBlank()) {
-            _createHouseholdError.value = getApplication<Application>().getString(R.string.error_please_fill_all_fields)
+            _createHouseholdError.value = context.getString(R.string.error_please_fill_all_fields)
             return
         }
 
@@ -115,7 +120,7 @@ class HouseholdListViewModel(
                 householdRepository.createHousehold(name)
             } catch (e: Exception) {
                 _createHouseholdError.value = e.message
-                    ?: getApplication<Application>().getString(R.string.error_failed_to_create_household)
+                    ?: context.getString(R.string.error_failed_to_create_household)
             } finally {
                 _isCreatingHousehold.value = false
             }
@@ -160,15 +165,5 @@ class HouseholdListViewModel(
         data class Success(val households: List<DisplayHousehold>) : HouseholdUiState
 
         data class Error(val message: String) : HouseholdUiState
-    }
-
-    companion object {
-        fun provideFactory(): ViewModelProvider.Factory =
-            viewModelFactory {
-                initializer {
-                    val app = this[APPLICATION_KEY]!!
-                    HouseholdListViewModel(app)
-                }
-            }
     }
 }

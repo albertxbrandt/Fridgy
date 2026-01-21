@@ -13,7 +13,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
@@ -35,7 +35,7 @@ fun FridgeSettingsScreen(
     fridgeId: String,
     onBackClick: () -> Unit,
     onDeleteSuccess: () -> Unit,
-    viewModel: FridgeSettingsViewModel = viewModel(factory = FridgeSettingsViewModel.provideFactory(fridgeId))
+    viewModel: FridgeSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isDeleting by viewModel.isDeleting.collectAsState()

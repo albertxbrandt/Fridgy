@@ -1,15 +1,12 @@
 package fyi.goodbye.fridgy.ui.fridgeList
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import android.content.Context
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
-import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.initializer
-import androidx.lifecycle.viewmodel.viewModelFactory
 import com.google.firebase.auth.FirebaseAuth
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.repositories.AdminRepository
@@ -19,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel responsible for managing the list of fridges within a household.
@@ -26,17 +24,20 @@ import kotlinx.coroutines.launch
  * It coordinates with the [FridgeRepository] to provide real-time updates for
  * the fridges belonging to a specific household.
  *
- * @param application The application context.
- * @param savedStateHandle Handle for accessing navigation arguments.
+ * @param context Application context for accessing string resources.
+ * @param savedStateHandle Handle for accessing navigation arguments (householdId).
+ * @param auth Firebase Auth instance for user identification.
  * @param fridgeRepository Repository for fridge operations.
  * @param adminRepository Repository for admin status checks.
  */
-class FridgeListViewModel(
-    application: Application,
+@HiltViewModel
+class FridgeListViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     savedStateHandle: SavedStateHandle,
-    private val fridgeRepository: FridgeRepository = FridgeRepository(),
-    private val adminRepository: AdminRepository = AdminRepository()
-) : AndroidViewModel(application) {
+    private val auth: FirebaseAuth,
+    private val fridgeRepository: FridgeRepository,
+    private val adminRepository: AdminRepository
+) : ViewModel() {
     /** The household ID this fridge list belongs to. */
     val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
 
@@ -44,8 +45,6 @@ class FridgeListViewModel(
 
     /** The current state of the fridges list (Loading, Success, or Error). */
     val fridgesUiState: StateFlow<FridgeUiState> = _fridgesUiState.asStateFlow()
-
-    private val auth = FirebaseAuth.getInstance()
 
     private val _isAdmin = MutableStateFlow(false)
 
@@ -65,9 +64,9 @@ class FridgeListViewModel(
     init {
         val currentUserId = auth.currentUser?.uid
         if (currentUserId == null) {
-            _fridgesUiState.value = FridgeUiState.Error(getApplication<Application>().getString(R.string.error_user_not_logged_in))
+            _fridgesUiState.value = FridgeUiState.Error(context.getString(R.string.error_user_not_logged_in))
         } else if (householdId.isEmpty()) {
-            _fridgesUiState.value = FridgeUiState.Error(getApplication<Application>().getString(R.string.error_no_household_selected))
+            _fridgesUiState.value = FridgeUiState.Error(context.getString(R.string.error_no_household_selected))
         } else {
             // Preload fridges from cache for instant display
             viewModelScope.launch {
@@ -90,7 +89,7 @@ class FridgeListViewModel(
                         fridges.map { fridge ->
                             val creatorName =
                                 usersMap[fridge.createdBy]?.username
-                                    ?: getApplication<Application>().getString(R.string.unknown)
+                                    ?: context.getString(R.string.unknown)
 
                             DisplayFridge(
                                 id = fridge.id,
@@ -121,7 +120,7 @@ class FridgeListViewModel(
         location: String = ""
     ) {
         if (householdId.isEmpty()) {
-            createdFridgeError.value = getApplication<Application>().getString(R.string.error_no_household_selected)
+            createdFridgeError.value = context.getString(R.string.error_no_household_selected)
             return
         }
 
@@ -131,7 +130,7 @@ class FridgeListViewModel(
             try {
                 fridgeRepository.createFridge(name, householdId, type, location)
             } catch (e: Exception) {
-                createdFridgeError.value = e.message ?: getApplication<Application>().getString(R.string.error_failed_to_create_fridge)
+                createdFridgeError.value = e.message ?: context.getString(R.string.error_failed_to_create_fridge)
             } finally {
                 _isCreatingFridge.value = false
             }
@@ -145,16 +144,5 @@ class FridgeListViewModel(
         data class Success(val fridges: List<DisplayFridge>) : FridgeUiState
 
         data class Error(val message: String) : FridgeUiState
-    }
-
-    companion object {
-        fun provideFactory(): ViewModelProvider.Factory =
-            viewModelFactory {
-                initializer {
-                    val app = this[APPLICATION_KEY]!!
-                    val savedStateHandle = createSavedStateHandle()
-                    FridgeListViewModel(app, savedStateHandle)
-                }
-            }
     }
 }

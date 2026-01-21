@@ -42,13 +42,15 @@ import kotlin.random.Random
  * - Presence tracking uses batch coroutine fetching to avoid race conditions
  * - Shopping list updates use Firestore transactions for atomicity
  *
+ * @param firestore The Firestore instance for database operations.
+ * @param auth The Auth instance for user identification.
  * @see FridgeRepository For fridge-level operations
  * @see InviteCode For invite code data model
  */
-class HouseholdRepository {
-    private val firestore = FirebaseFirestore.getInstance()
-    private val auth = FirebaseAuth.getInstance()
-
+class HouseholdRepository(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth
+) {
     companion object {
         private const val TAG = "HouseholdRepository"
         private const val INVITE_CODE_LENGTH = 6

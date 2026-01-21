@@ -10,7 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Category
@@ -31,8 +31,8 @@ import fyi.goodbye.fridgy.ui.theme.FridgyTheme
 @Composable
 fun AdminPanelScreen(
     onNavigateBack: () -> Unit,
-    viewModel: AdminPanelViewModel = viewModel(factory = AdminPanelViewModel.provideFactory()),
-    categoryViewModel: CategoryViewModel = viewModel(factory = CategoryViewModel.provideFactory())
+    viewModel: AdminPanelViewModel = hiltViewModel(),
+    categoryViewModel: CategoryViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val categoryState by categoryViewModel.uiState.collectAsState()
