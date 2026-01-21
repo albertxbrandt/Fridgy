@@ -18,6 +18,33 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+/**
+ * ViewModel for the item detail screen displaying all instances of a product in a fridge.
+ *
+ * This ViewModel manages:
+ * - Loading and displaying all instances of a product (grouped by UPC)
+ * - Adding new instances with expiration dates
+ * - Deleting individual item instances
+ * - Resolving usernames for "added by" and "updated by" fields
+ *
+ * ## Instance-Based Model
+ * Items are stored as individual instances rather than aggregated quantities.
+ * Each instance has its own expiration date and tracking metadata.
+ * The detail screen shows all instances of the same product (same UPC).
+ *
+ * ## State Management
+ * Uses [ItemDetailUiState] sealed interface with Loading, Success, and Error states.
+ * Success state includes the list of item instances and product information.
+ *
+ * @param application Application context for string resources.
+ * @param fridgeRepository Repository for item operations.
+ * @param productRepository Repository for product information.
+ * @param fridgeId The ID of the fridge containing the items.
+ * @param itemId The ID of the initially selected item (used to determine UPC).
+ *
+ * @see Item For item instance data model
+ * @see Product For product information model
+ */
 class ItemDetailViewModel(
     application: Application,
     private val fridgeRepository: FridgeRepository,

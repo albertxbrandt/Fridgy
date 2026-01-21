@@ -21,9 +21,30 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for managing shopping list UI state and operations.
+ * ViewModel for managing the household-level shopping list UI and operations.
  *
- * The shopping list is now at the household level, shared across all fridges.
+ * The shopping list is shared across all fridges in a household, enabling
+ * collaborative shopping where multiple users can:
+ * - Add items to buy (by UPC or manual entry)
+ * - Mark items as obtained with quantities
+ * - Select target fridges for each obtained item
+ * - See who else is currently shopping (presence indicators)
+ * - Complete shopping sessions to move items to fridges
+ *
+ * ## Real-Time Collaboration
+ * - Uses Firestore snapshot listeners for live updates
+ * - Presence system shows active viewers with 15-second heartbeat
+ * - Transactional updates prevent race conditions when multiple users shop
+ *
+ * ## State Management
+ * Uses [UiState] sealed interface with Loading, Success, and Error states.
+ * Success state contains [ShoppingListItemWithProduct] which pairs items with product info.
+ *
+ * @param householdId The ID of the household whose shopping list to manage.
+ * @param productRepository Repository for fetching product information.
+ *
+ * @see HouseholdRepository For underlying shopping list operations
+ * @see ShoppingListItem For shopping list item data model
  */
 class ShoppingListViewModel(
     private val householdId: String,
@@ -33,6 +54,13 @@ class ShoppingListViewModel(
     private val fridgeRepository = FridgeRepository()
     private var presenceJob: Job? = null
 
+    /**
+     * Data class combining a shopping list item with its resolved product information.
+     *
+     * @property item The shopping list item data from Firestore.
+     * @property productName Display name (from product DB or custom entry).
+     * @property productBrand Product brand (empty for custom entries).
+     */
     data class ShoppingListItemWithProduct(
         val item: ShoppingListItem,
         val productName: String,
@@ -148,6 +176,17 @@ class ShoppingListViewModel(
         }
     }
 
+    /**
+     * Updates the current user's obtained quantity and target fridge for an item.
+     *
+     * Uses Firestore transactions to prevent race conditions when multiple
+     * users update the same item simultaneously.
+     *
+     * @param upc The UPC of the item to update.
+     * @param obtainedQuantity How many the current user obtained.
+     * @param totalQuantity Total quantity needed.
+     * @param targetFridgeId Which fridge to add items to on completion.
+     */
     fun updateItemPickup(
         upc: String,
         obtainedQuantity: Int,
@@ -169,6 +208,11 @@ class ShoppingListViewModel(
         }
     }
 
+    /**
+     * Removes an item from the shopping list.
+     *
+     * @param upc The UPC of the item to remove.
+     */
     fun removeItem(upc: String) {
         viewModelScope.launch {
             try {
@@ -179,6 +223,14 @@ class ShoppingListViewModel(
         }
     }
 
+    /**
+     * Adds an item to the shopping list by UPC.
+     *
+     * @param upc The Universal Product Code.
+     * @param quantity How many to buy.
+     * @param store Optional store location hint.
+     * @param customName Optional custom name (for manual entries).
+     */
     fun addItem(
         upc: String,
         quantity: Int,
@@ -194,6 +246,16 @@ class ShoppingListViewModel(
         }
     }
 
+    /**
+     * Adds a manual (non-UPC) item to the shopping list.
+     *
+     * Generates a unique ID prefixed with "manual_" for manual entries.
+     * These can later be linked to real products via [linkManualItemToProduct].
+     *
+     * @param name Display name for the item.
+     * @param quantity How many to buy.
+     * @param store Optional store location hint.
+     */
     fun addManualItem(
         name: String,
         quantity: Int,
@@ -216,6 +278,11 @@ class ShoppingListViewModel(
         }
     }
 
+    /**
+     * Updates the product search query and triggers search.
+     *
+     * @param query The search query string. Empty clears results.
+     */
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
         if (query.isBlank()) {
@@ -237,6 +304,14 @@ class ShoppingListViewModel(
         }
     }
 
+    /**
+     * Completes the current user's shopping session.
+     *
+     * Moves obtained items to their designated fridges and removes
+     * fulfilled items from the shopping list.
+     *
+     * @param onSuccess Callback invoked after successful completion.
+     */
     fun completeShopping(onSuccess: () -> Unit) {
         viewModelScope.launch {
             try {

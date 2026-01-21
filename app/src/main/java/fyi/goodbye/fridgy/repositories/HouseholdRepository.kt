@@ -20,12 +20,30 @@ import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
 
 /**
- * Repository responsible for all household-related operations including:
- * - Household CRUD operations
- * - Member management
- * - Invite code generation and redemption
- * - Shopping list operations (moved from fridge-level to household-level)
- * - Migration of legacy fridges without householdId
+ * Repository for managing households, member management, and household-level operations.
+ *
+ * This is the primary repository for multi-user collaboration features in Fridgy:
+ * - Household CRUD operations (create, read, update, delete)
+ * - Member management via invite codes (join, leave, remove)
+ * - Household-level shopping list operations
+ * - Real-time presence tracking for collaborative shopping
+ * - Legacy fridge migration support
+ *
+ * ## Household Model
+ * A household is a shared space containing one or more fridges. Users can be members
+ * of multiple households. Each household has an owner (creator) and members.
+ *
+ * ## Invite Code System
+ * Users join households by redeeming 6-character alphanumeric codes. Codes can have
+ * optional expiration dates and are single-use by default.
+ *
+ * ## Thread Safety
+ * - Uses coroutines for async operations
+ * - Presence tracking uses batch coroutine fetching to avoid race conditions
+ * - Shopping list updates use Firestore transactions for atomicity
+ *
+ * @see FridgeRepository For fridge-level operations
+ * @see InviteCode For invite code data model
  */
 class HouseholdRepository {
     private val firestore = FirebaseFirestore.getInstance()

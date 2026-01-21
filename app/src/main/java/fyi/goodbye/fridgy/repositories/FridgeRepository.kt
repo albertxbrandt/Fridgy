@@ -25,11 +25,34 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
- * Repository class responsible for handling all data operations related to Fridges and Items.
+ * Repository for managing fridges and their inventory items in Firestore.
+ *
+ * This repository handles all data operations related to:
+ * - Fridge CRUD operations (create, read, update, delete)
+ * - Item management within fridges (add, update, delete instances)
+ * - Shopping list operations at the fridge level (legacy)
+ * - User presence tracking for collaborative shopping
+ * - User profile caching with LRU eviction
+ *
+ * ## Architecture Notes
+ * - Items are stored as individual instances in a subcollection (`fridges/{fridgeId}/items`)
+ * - Each item instance can have its own expiration date
+ * - User profiles are cached using an LRU cache to minimize Firestore reads
+ * - Real-time updates are provided via Kotlin Flows using Firestore snapshot listeners
+ *
+ * ## Thread Safety
+ * - Uses coroutines for async operations
+ * - Presence tracking uses batch coroutine fetching to avoid race conditions
+ *
+ * @see HouseholdRepository For household-level shopping list operations (preferred)
+ * @see ProductRepository For product information lookup
  */
 class FridgeRepository {
     /**
-     * Returns a Flow of shopping list items for a fridge (subcollection).
+     * Returns a Flow of shopping list items for a fridge subcollection.
+     *
+     * @param fridgeId The ID of the fridge to get shopping list items from.
+     * @return Flow emitting list of shopping list items, updates in real-time.
      */
     fun getShoppingListItems(fridgeId: String): Flow<List<fyi.goodbye.fridgy.models.ShoppingListItem>> =
         callbackFlow {
@@ -321,7 +344,13 @@ class FridgeRepository {
     }
 
     /**
-     * Returns a Flow of the shopping list UPCs for a fridge.
+     * Returns a Flow of shopping list UPCs for a fridge.
+     *
+     * This is a legacy method that reads from the fridge document's shopping list array.
+     * For household-level shopping lists, use [HouseholdRepository.getShoppingListItems].
+     *
+     * @param fridgeId The ID of the fridge.
+     * @return Flow emitting list of UPC strings.
      */
     fun getShoppingList(fridgeId: String): Flow<List<String>> =
         callbackFlow {
@@ -341,7 +370,10 @@ class FridgeRepository {
         }
 
     /**
-     * Adds a UPC to the fridge's shopping list.
+     * Adds a UPC to the fridge's shopping list array.
+     *
+     * @param fridgeId The ID of the fridge.
+     * @param upc The Universal Product Code to add.
      */
     suspend fun addItemToShoppingList(
         fridgeId: String,
@@ -352,7 +384,10 @@ class FridgeRepository {
     }
 
     /**
-     * Removes a UPC from the fridge's shopping list.
+     * Removes a UPC from the fridge's shopping list array.
+     *
+     * @param fridgeId The ID of the fridge.
+     * @param upc The Universal Product Code to remove.
      */
     suspend fun removeItemFromShoppingList(
         fridgeId: String,
@@ -431,6 +466,15 @@ class FridgeRepository {
         }
     }
 
+    /**
+     * Returns a Flow of all fridges belonging to a household.
+     *
+     * Emits updates in real-time when fridges are added, modified, or removed.
+     * Handles permission errors gracefully by emitting empty list.
+     *
+     * @param householdId The ID of the household.
+     * @return Flow emitting list of fridges, updates in real-time.
+     */
     fun getFridgesForHousehold(householdId: String): Flow<List<Fridge>> =
         callbackFlow {
             val fridgesListenerRegistration =
@@ -457,6 +501,12 @@ class FridgeRepository {
             awaitClose { fridgesListenerRegistration.remove() }
         }
 
+    /**
+     * Fetches a raw Fridge object by ID without user profile resolution.
+     *
+     * @param fridgeId The ID of the fridge to fetch.
+     * @return The Fridge object, or null if not found or on error.
+     */
     suspend fun getRawFridgeById(fridgeId: String): Fridge? {
         return try {
             val doc = firestore.collection("fridges").document(fridgeId).get().await()
@@ -467,6 +517,15 @@ class FridgeRepository {
         }
     }
 
+    /**
+     * Fetches a fridge by ID with optional user profile resolution for display.
+     *
+     * Uses multi-level caching: in-memory cache -> Firestore cache -> network.
+     *
+     * @param fridgeId The ID of the fridge to fetch.
+     * @param fetchUserDetails Whether to fetch creator's username (default: true).
+     * @return DisplayFridge with resolved user info, or null if not found.
+     */
     suspend fun getFridgeById(
         fridgeId: String,
         fetchUserDetails: Boolean = true
@@ -517,6 +576,16 @@ class FridgeRepository {
         )
     }
 
+    /**
+     * Creates a new fridge within a household.
+     *
+     * @param fridgeName Display name for the fridge.
+     * @param householdId The ID of the household this fridge belongs to.
+     * @param fridgeType Type of storage ("fridge", "freezer", "pantry").
+     * @param fridgeLocation Physical location description.
+     * @return The newly created Fridge object with generated ID.
+     * @throws IllegalStateException if user is not logged in.
+     */
     suspend fun createFridge(
         fridgeName: String,
         householdId: String,
@@ -765,6 +834,14 @@ class FridgeRepository {
         }
     }
 
+    /**
+     * Deletes a fridge and all its items.
+     *
+     * Performs a batch delete of all items in the fridge's subcollection
+     * followed by the fridge document itself.
+     *
+     * @param fridgeId The ID of the fridge to delete.
+     */
     suspend fun deleteFridge(fridgeId: String) {
         val fridgeRef = firestore.collection("fridges").document(fridgeId)
         val items = fridgeRef.collection("items").get().await()
@@ -774,6 +851,12 @@ class FridgeRepository {
         batch.commit().await()
     }
 
+    /**
+     * Fetches a user by ID from the users collection.
+     *
+     * @param userId The user's Firebase UID.
+     * @return User object, or null if not found.
+     */
     suspend fun getUserById(userId: String): User? {
         return try {
             val doc = firestore.collection("users").document(userId).get().await()
@@ -783,6 +866,12 @@ class FridgeRepository {
         }
     }
 
+    /**
+     * Fetches a user's public profile by ID.
+     *
+     * @param userId The user's Firebase UID.
+     * @return UserProfile with public data (username), or null if not found.
+     */
     suspend fun getUserProfileById(userId: String): UserProfile? {
         return try {
             val doc = firestore.collection("userProfiles").document(userId).get().await()
