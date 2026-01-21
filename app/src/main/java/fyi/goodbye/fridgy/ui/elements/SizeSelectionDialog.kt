@@ -7,9 +7,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.SizeUnit
 
 /**
@@ -46,7 +48,7 @@ fun SizeSelectionDialog(
                     .verticalScroll(rememberScrollState())
             ) {
                 Text(
-                    text = "Add Size/Unit?",
+                    text = stringResource(R.string.add_size_unit),
                     style = MaterialTheme.typography.headlineSmall,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )
@@ -61,7 +63,7 @@ fun SizeSelectionDialog(
                 OutlinedTextField(
                     value = sizeText,
                     onValueChange = { sizeText = it },
-                    label = { Text("Size/Quantity") },
+                    label = { Text(stringResource(R.string.size_quantity)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
@@ -86,7 +88,7 @@ fun SizeSelectionDialog(
                             }
                         },
                         readOnly = !showCustomUnitInput,
-                        label = { Text("Unit") },
+                        label = { Text(stringResource(R.string.unit)) },
                         trailingIcon = {
                             if (!showCustomUnitInput) {
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitDropdown)
@@ -130,14 +132,14 @@ fun SizeSelectionDialog(
                         onClick = onDismiss,
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Cancel")
+                        Text(stringResource(R.string.cancel))
                     }
 
                     TextButton(
                         onClick = { onSizeSelected(null, null) },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Skip")
+                        Text(stringResource(R.string.skip))
                     }
 
                     Button(
@@ -158,7 +160,7 @@ fun SizeSelectionDialog(
                         },
                         modifier = Modifier.weight(1f)
                     ) {
-                        Text("Set")
+                        Text(stringResource(R.string.set))
                     }
                 }
             }

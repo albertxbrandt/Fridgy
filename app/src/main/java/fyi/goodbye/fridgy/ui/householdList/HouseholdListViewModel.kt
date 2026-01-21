@@ -13,6 +13,7 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,7 +29,8 @@ import kotlinx.coroutines.launch
 class HouseholdListViewModel(
     application: Application,
     private val householdRepository: HouseholdRepository = HouseholdRepository(),
-    private val adminRepository: AdminRepository = AdminRepository()
+    private val adminRepository: AdminRepository = AdminRepository(),
+    private val userRepository: UserRepository = UserRepository()
 ) : AndroidViewModel(application) {
     private val _householdsUiState = MutableStateFlow<HouseholdUiState>(HouseholdUiState.Loading)
 
@@ -141,6 +143,14 @@ class HouseholdListViewModel(
     /** Clears the create household error. */
     fun clearError() {
         _createHouseholdError.value = null
+    }
+
+    /**
+     * Signs out the current user.
+     * Call the navigation callback after this to navigate to the login screen.
+     */
+    fun logout() {
+        userRepository.signOut()
     }
 
     /** Sealed interface representing the UI states for the household list. */

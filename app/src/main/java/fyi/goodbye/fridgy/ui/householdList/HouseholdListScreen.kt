@@ -25,7 +25,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.UserProfile
@@ -82,7 +81,7 @@ fun HouseholdListScreen(
         onNavigateToNotifications = onNavigateToNotifications,
         onNavigateToAdminPanel = onNavigateToAdminPanel,
         onLogout = {
-            FirebaseAuth.getInstance().signOut()
+            viewModel.logout()
             onLogout()
         },
         onCreateHousehold = { name -> viewModel.createNewHousehold(name) },
@@ -128,7 +127,7 @@ private fun HouseholdListContent(
             add(
                 SidebarMenuItem(
                     icon = Icons.Default.Notifications,
-                    label = "Notifications",
+                    label = stringResource(R.string.notifications),
                     onClick = {
                         isSidebarOpen = false
                         onNavigateToNotifications()
@@ -138,7 +137,7 @@ private fun HouseholdListContent(
             add(
                 SidebarMenuItem(
                     icon = Icons.Default.Link,
-                    label = "Join Household",
+                    label = stringResource(R.string.join_household),
                     onClick = {
                         isSidebarOpen = false
                         showJoinHouseholdDialog = true
@@ -148,14 +147,14 @@ private fun HouseholdListContent(
             add(
                 SidebarMenuItem(
                     icon = Icons.Default.AccountCircle,
-                    label = "Account",
+                    label = stringResource(R.string.account),
                     onClick = { isSidebarOpen = false }
                 )
             )
             add(
                 SidebarMenuItem(
                     icon = Icons.AutoMirrored.Filled.Logout,
-                    label = "Logout",
+                    label = stringResource(R.string.logout),
                     onClick = onLogout
                 )
             )
@@ -163,7 +162,7 @@ private fun HouseholdListContent(
                 add(
                     SidebarMenuItem(
                         icon = Icons.Default.AdminPanelSettings,
-                        label = "Admin Panel",
+                        label = stringResource(R.string.admin_panel),
                         onClick = {
                             isSidebarOpen = false
                             onNavigateToAdminPanel()
@@ -192,7 +191,7 @@ private fun HouseholdListContent(
                     IconButton(onClick = { isSidebarOpen = !isSidebarOpen }) {
                         Icon(
                             imageVector = if (isSidebarOpen) Icons.Default.Close else Icons.Default.Menu,
-                            contentDescription = if (isSidebarOpen) "Close menu" else "Open menu",
+                            contentDescription = stringResource(if (isSidebarOpen) R.string.cd_close_menu else R.string.cd_open_menu),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -402,7 +401,7 @@ private fun HouseholdListContent(
             onDismissRequest = { /* Don't allow dismissing */ },
             title = {
                 Text(
-                    text = "Migration Required",
+                    text = stringResource(R.string.migration_required),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -410,11 +409,11 @@ private fun HouseholdListContent(
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "We've updated Fridgy to use Households! Your existing fridges need to be migrated to a new household.",
+                        text = stringResource(R.string.migration_description),
                         style = MaterialTheme.typography.bodyMedium
                     )
                     Text(
-                        text = "This will create a new household called \"My Household\" and move all your fridges into it.",
+                        text = stringResource(R.string.migration_details),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -434,7 +433,7 @@ private fun HouseholdListContent(
                             strokeWidth = 2.dp
                         )
                     } else {
-                        Text("Migrate Now")
+                        Text(stringResource(R.string.migrate_now))
                     }
                 }
             },

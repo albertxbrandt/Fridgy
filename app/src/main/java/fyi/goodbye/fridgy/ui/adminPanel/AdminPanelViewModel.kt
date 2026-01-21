@@ -12,6 +12,7 @@ import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.AdminRepository
+import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

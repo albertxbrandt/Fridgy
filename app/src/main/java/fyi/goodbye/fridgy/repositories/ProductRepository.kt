@@ -8,6 +8,7 @@ import android.net.Uri
 import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
 import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.models.Product
@@ -271,16 +272,26 @@ class ProductRepository(private val context: Context? = null) {
     /**
      * Saves a product to the global database.
      * Optimistically updates the cache before hitting the network.
+     * Automatically generates searchTokens for efficient searching.
      */
     suspend fun saveProductWithImage(
         product: Product,
         imageUri: Uri?
     ): Product {
+        // Generate search tokens if not already present
+        val searchTokens = if (product.searchTokens.isEmpty()) {
+            Product.generateSearchTokens(product.name, product.brand)
+        } else {
+            product.searchTokens
+        }
+        
+        val productWithTokens = product.copy(searchTokens = searchTokens)
+        
         // Update cache immediately for optimistic UI
-        productCache[product.upc] = product
+        productCache[product.upc] = productWithTokens
 
-        var finalImageUrl = product.imageUrl
-        var productToSave = product
+        var finalImageUrl = productWithTokens.imageUrl
+        var productToSave = productWithTokens
 
         // 1. Upload Image to Firebase Storage FIRST if provided
         if (imageUri != null) {
@@ -296,7 +307,7 @@ class ProductRepository(private val context: Context? = null) {
                     finalImageUrl = storageRef.downloadUrl.await().toString()
 
                     // Create updated product with Storage URL
-                    productToSave = product.copy(imageUrl = finalImageUrl)
+                    productToSave = productWithTokens.copy(imageUrl = finalImageUrl)
                     productCache[product.upc] = productToSave
                     Log.d("ProductRepo", "Compressed product image uploaded: ${product.upc}")
                 } else {
@@ -311,7 +322,7 @@ class ProductRepository(private val context: Context? = null) {
         // 2. Save metadata to Firestore with proper Storage URL (or empty string)
         try {
             productsCollection.document(product.upc).set(productToSave).await()
-            Log.d("ProductRepo", "Product metadata saved: ${product.upc}")
+            Log.d("ProductRepo", "Product metadata saved with ${searchTokens.size} search tokens: ${product.upc}")
         } catch (e: Exception) {
             Log.e("ProductRepo", "Failed to save product metadata: ${e.message}")
         }
@@ -324,28 +335,97 @@ class ProductRepository(private val context: Context? = null) {
     }
 
     /**
-     * Search products by name using case-insensitive matching.
-     * Returns products where name contains the search query.
+     * Search products by name using a three-tiered approach:
+     * 1. Array-contains query on searchTokens (most efficient for products with tokens)
+     * 2. Firestore range query for prefix matching on name field
+     * 3. Fallback to recent products with client-side filtering
+     * 
+     * Note: Firestore doesn't support full-text search natively. This implementation:
+     * - Uses searchTokens array-contains for efficient word/prefix matching
+     * - Falls back to range queries for older products without tokens
+     * - Client-side filters only a limited subset (last 100 products)
+     * 
+     * For production-grade search with typo tolerance, consider:
+     * - Algolia (https://www.algolia.com/)
+     * - Typesense (https://typesense.org/)
+     * - Meilisearch (https://www.meilisearch.com/)
+     * 
+     * @param query The search query (case insensitive)
+     * @return List of matching products, limited to 20 results
      */
     suspend fun searchProductsByName(query: String): List<Product> {
         if (query.isBlank()) return emptyList()
 
         return try {
-            val queryLower = query.lowercase()
-            productsCollection
+            val queryLower = query.trim().lowercase()
+            
+            // Approach 1: Use searchTokens array-contains (best for products with tokens)
+            // This requires a composite index: searchTokens (ARRAY) + lastUpdated (DESCENDING)
+            val tokenResults = productsCollection
+                .whereArrayContains("searchTokens", queryLower)
+                .orderBy("lastUpdated", Query.Direction.DESCENDING)
+                .limit(20)
                 .get()
                 .await()
                 .documents
-                .mapNotNull { it.toObject(Product::class.java) }
+                .mapNotNull { doc ->
+                    doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                }
+            
+            // If we found results with tokens, return them
+            if (tokenResults.isNotEmpty()) {
+                Log.d("ProductRepo", "Search found ${tokenResults.size} products via searchTokens")
+                return tokenResults
+            }
+
+            // Approach 2: Firestore range query for prefix matching
+            // Works only for queries that start with the product name
+            // Requires composite index: name (ASCENDING) + lastUpdated (DESCENDING)
+            // Example: "choc" matches "Chocolate Milk" but not "Dark Chocolate"
+            val prefixResults = productsCollection
+                .orderBy("name")
+                .startAt(queryLower)
+                .endAt(queryLower + "\uf8ff") // Unicode high character for range end
+                .limit(20)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { doc ->
+                    doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                }
+                .sortedByDescending { it.lastUpdated } // Sort by recency
+
+            if (prefixResults.isNotEmpty()) {
+                Log.d("ProductRepo", "Search found ${prefixResults.size} products via prefix matching")
+                return prefixResults
+            }
+
+            // Approach 3: Fallback - query recent 100 products, filter client-side
+            // This is safe because we're limiting the query size
+            Log.d("ProductRepo", "Falling back to recent products search")
+            val recentResults = productsCollection
+                .orderBy("lastUpdated", Query.Direction.DESCENDING)
+                .limit(100)
+                .get()
+                .await()
+                .documents
+                .mapNotNull { doc ->
+                    doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                }
                 .filter { product ->
                     product.name.lowercase().contains(queryLower) ||
-                        product.brand.lowercase().contains(queryLower)
+                            product.brand.lowercase().contains(queryLower) ||
+                            product.upc.contains(query, ignoreCase = true)
                 }
-                .sortedBy { it.name }
-                .take(20) // Limit results to 20
+                .take(20)
+
+            Log.d("ProductRepo", "Search completed: ${recentResults.size} results")
+            recentResults
         } catch (e: Exception) {
             Log.e("ProductRepo", "Search failed: ${e.message}")
             emptyList()
         }
     }
+
 }
+

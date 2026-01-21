@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.DisplayItem
@@ -23,6 +24,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -48,6 +50,8 @@ class FridgeInventoryViewModel(
     private val fridgeId: String,
     initialFridgeName: String = ""
 ) : AndroidViewModel(application) {
+    
+    private val currentUserId: String? = FirebaseAuth.getInstance().currentUser?.uid
     private val _displayFridgeState =
         MutableStateFlow<FridgeDetailUiState>(
             if (initialFridgeName.isNotBlank()) {
@@ -70,6 +74,23 @@ class FridgeInventoryViewModel(
     /** The householdId of the current fridge, or null if not loaded yet. */
     val householdId: String?
         get() = (_displayFridgeState.value as? FridgeDetailUiState.Success)?.fridge?.householdId
+
+    /** 
+     * Indicates whether the current user is the owner (creator) of this fridge.
+     * Derived from the fridge state to update automatically when fridge data loads.
+     */
+    val isCurrentUserOwner: StateFlow<Boolean> = _displayFridgeState
+        .map { state ->
+            when (state) {
+                is FridgeDetailUiState.Success -> state.fridge.createdByUid == currentUserId
+                else -> false
+            }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
 
     private val _itemsUiState = MutableStateFlow<ItemsUiState>(ItemsUiState.Loading)
     val itemsUiState: StateFlow<ItemsUiState> = _itemsUiState.asStateFlow()

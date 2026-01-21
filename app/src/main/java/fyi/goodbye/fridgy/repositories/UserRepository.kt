@@ -1,0 +1,157 @@
+package fyi.goodbye.fridgy.repositories
+
+import android.util.Log
+import com.google.firebase.auth.AuthResult
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import fyi.goodbye.fridgy.models.UserProfile
+import kotlinx.coroutines.tasks.await
+
+/**
+ * Repository for managing user-related data operations.
+ * 
+ * Handles:
+ * - User authentication (signup, login, logout)
+ * - User profile CRUD operations
+ * - Username availability checks
+ * 
+ * This repository abstracts Firebase Auth and Firestore operations
+ * for user management, following the MVVM architecture pattern.
+ */
+class UserRepository {
+    private val auth = FirebaseAuth.getInstance()
+    private val firestore = FirebaseFirestore.getInstance()
+
+    companion object {
+        private const val TAG = "UserRepository"
+        private const val COLLECTION_USERS = "users"
+        private const val COLLECTION_USER_PROFILES = "userProfiles"
+    }
+
+    /**
+     * Gets the current authenticated user's UID.
+     * 
+     * @return The current user's UID, or null if not authenticated.
+     */
+    fun getCurrentUserId(): String? = auth.currentUser?.uid
+
+    /**
+     * Checks if a username is already taken.
+     * 
+     * @param username The username to check.
+     * @return True if the username is already in use, false otherwise.
+     */
+    suspend fun isUsernameTaken(username: String): Boolean {
+        return try {
+            val existingProfiles = firestore.collection(COLLECTION_USER_PROFILES)
+                .whereEqualTo("username", username)
+                .get()
+                .await()
+            !existingProfiles.isEmpty
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking username availability", e)
+            // Return true (taken) on error to be safe
+            true
+        }
+    }
+
+    /**
+     * Creates a new user account with email and password.
+     * 
+     * @param email The user's email address.
+     * @param password The user's password.
+     * @return The AuthResult from Firebase Auth.
+     * @throws Exception If account creation fails.
+     */
+    suspend fun createAuthAccount(email: String, password: String): AuthResult {
+        return auth.createUserWithEmailAndPassword(email, password).await()
+    }
+
+    /**
+     * Creates the user's Firestore documents after successful authentication.
+     * Creates both the private 'users' document and public 'userProfiles' document.
+     * 
+     * @param uid The user's UID from Firebase Auth.
+     * @param email The user's email address.
+     * @param username The user's chosen username.
+     * @throws Exception If document creation fails.
+     */
+    suspend fun createUserDocuments(uid: String, email: String, username: String) {
+        val timestamp = System.currentTimeMillis()
+
+        // Create private user data (email, createdAt)
+        val userMap = hashMapOf(
+            "email" to email,
+            "createdAt" to timestamp
+        )
+
+        // Create public profile data (username only)
+        val profileMap = hashMapOf(
+            "username" to username
+        )
+
+        // Write both documents
+        firestore.collection(COLLECTION_USERS).document(uid).set(userMap).await()
+        firestore.collection(COLLECTION_USER_PROFILES).document(uid).set(profileMap).await()
+        
+        Log.d(TAG, "Created user documents for UID: $uid")
+    }
+
+    /**
+     * Signs up a new user with email, password, and username.
+     * This is a convenience method that combines account creation and document creation.
+     * 
+     * @param email The user's email address.
+     * @param password The user's password.
+     * @param username The user's chosen username (should be validated and checked for availability first).
+     * @return The user's UID if successful.
+     * @throws Exception If signup fails at any step.
+     */
+    suspend fun signUp(email: String, password: String, username: String): String {
+        val authResult = createAuthAccount(email, password)
+        val uid = authResult.user?.uid 
+            ?: throw IllegalStateException("User created but UID is null")
+        
+        createUserDocuments(uid, email, username)
+        return uid
+    }
+
+    /**
+     * Signs in an existing user with email and password.
+     * 
+     * @param email The user's email address.
+     * @param password The user's password.
+     * @return The AuthResult from Firebase Auth.
+     * @throws Exception If sign in fails.
+     */
+    suspend fun signIn(email: String, password: String): AuthResult {
+        return auth.signInWithEmailAndPassword(email, password).await()
+    }
+
+    /**
+     * Signs out the current user.
+     */
+    fun signOut() {
+        auth.signOut()
+        Log.d(TAG, "User signed out")
+    }
+
+    /**
+     * Gets the public profile for a user.
+     * 
+     * @param userId The UID of the user.
+     * @return The UserProfile, or null if not found.
+     */
+    suspend fun getUserProfile(userId: String): UserProfile? {
+        return try {
+            val doc = firestore.collection(COLLECTION_USER_PROFILES)
+                .document(userId)
+                .get()
+                .await()
+            doc.toObject(UserProfile::class.java)?.copy(uid = userId)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching user profile: ${e.message}", e)
+            null
+        }
+    }
+}

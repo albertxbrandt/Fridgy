@@ -168,7 +168,7 @@ fun HouseholdSettingsScreen(
                                 SwipeToDismissMember(
                                     name =
                                         if (member.uid == household.createdByUid) {
-                                            "${member.username} (Owner)"
+                                            stringResource(R.string.owner_suffix, member.username)
                                         } else {
                                             member.username
                                         },
@@ -207,7 +207,7 @@ fun HouseholdSettingsScreen(
                         ) {
                             if (inviteCodes.isEmpty()) {
                                 Text(
-                                    text = "No invite codes yet. Create one to invite members.",
+                                    text = stringResource(R.string.no_invite_codes_yet),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -313,7 +313,7 @@ fun HouseholdSettingsScreen(
             },
             title = {
                 Text(
-                    "Invite Code Created!",
+                    stringResource(R.string.invite_code_created),
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold
                 )
@@ -373,7 +373,7 @@ fun HouseholdSettingsScreen(
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, shareText)
                             }
-                        context.startActivity(Intent.createChooser(intent, "Share Invite Code"))
+                        context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_invite_code_chooser)))
                     }
                 ) {
                     Icon(
@@ -397,7 +397,7 @@ fun HouseholdSettingsScreen(
                         modifier = Modifier.size(18.dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Copy")
+                    Text(stringResource(R.string.cd_copy))
                 }
             },
             shape = MaterialTheme.shapes.extraLarge,
@@ -531,17 +531,19 @@ fun CreateInviteCodeDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    "How long should this invite code be valid?",
+                    stringResource(R.string.invite_code_validity_question),
                     style = MaterialTheme.typography.bodyMedium
                 )
 
                 Column {
-                    listOf(
-                        1 to "1 day",
-                        7 to "7 days",
-                        30 to "30 days",
-                        -1 to "Never expires"
-                    ).forEach { (days, label) ->
+                    @Composable
+                    fun expiryOptions() = listOf(
+                        1 to stringResource(R.string.one_day),
+                        7 to stringResource(R.string.seven_days),
+                        30 to stringResource(R.string.thirty_days),
+                        -1 to stringResource(R.string.invite_code_never_expires)
+                    )
+                    expiryOptions().forEach { (days, label) ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
@@ -623,35 +625,35 @@ fun InviteCodeItem(
                 when {
                     isUsed -> {
                         Text(
-                            text = "Used",
+                            text = stringResource(R.string.invite_code_used),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.tertiary
                         )
                     }
                     isExpired -> {
                         Text(
-                            text = "Expired",
+                            text = stringResource(R.string.invite_code_expired),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error
                         )
                     }
                     !inviteCode.isActive -> {
                         Text(
-                            text = "Revoked",
+                            text = stringResource(R.string.invite_code_revoked),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.error
                         )
                     }
                     inviteCode.expiresAt != null -> {
                         Text(
-                            text = "Expires ${dateFormatter.format(Date(inviteCode.expiresAt!!))}",
+                            text = stringResource(R.string.expires_on, dateFormatter.format(Date(inviteCode.expiresAt!!))),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     else -> {
                         Text(
-                            text = "Never expires",
+                            text = stringResource(R.string.invite_code_never_expires),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -663,7 +665,7 @@ fun InviteCodeItem(
                 IconButton(onClick = onCopy, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Default.ContentCopy,
-                        contentDescription = "Copy",
+                        contentDescription = stringResource(R.string.cd_copy),
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -671,7 +673,7 @@ fun InviteCodeItem(
                 IconButton(onClick = onShare, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Default.Share,
-                        contentDescription = "Share",
+                        contentDescription = stringResource(R.string.cd_share),
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -679,7 +681,7 @@ fun InviteCodeItem(
                 IconButton(onClick = onRevoke, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "Revoke",
+                        contentDescription = stringResource(R.string.cd_revoke),
                         modifier = Modifier.size(18.dp),
                         tint = MaterialTheme.colorScheme.error
                     )

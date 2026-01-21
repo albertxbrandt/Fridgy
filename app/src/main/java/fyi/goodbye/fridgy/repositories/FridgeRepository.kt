@@ -16,9 +16,12 @@ import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
 import fyi.goodbye.fridgy.utils.LruCache
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -85,6 +88,9 @@ class FridgeRepository {
     /**
      * Returns a Flow of detailed viewer information for users currently viewing the shopping list.
      * Filters out presence older than 30 seconds (stale sessions).
+     *
+     * Thread-safe implementation that batch fetches user profiles using coroutines
+     * instead of async callbacks to avoid race conditions on shared mutable state.
      */
     fun getShoppingListPresence(fridgeId: String): Flow<List<ActiveViewer>> =
         callbackFlow {
@@ -102,29 +108,37 @@ class FridgeRepository {
                     }
 
                     val currentTime = System.currentTimeMillis()
-                    val activeViewers = mutableListOf<ActiveViewer>()
-
-                    snapshot?.documents?.forEach { doc ->
+                    
+                    // Collect active user IDs and their timestamps first (no async here)
+                    val activeUserData = snapshot?.documents?.mapNotNull { doc ->
                         val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
                         val userId = doc.getString("userId")
-
                         // Consider active if seen within last 30 seconds
-                        if (userId != null && (currentTime - lastSeen) < 30_000) {
-                            // Fetch username from userProfiles collection
-                            firestore.collection("userProfiles").document(userId)
-                                .get()
-                                .addOnSuccessListener { userDoc ->
-                                    val username = userDoc.getString("username") ?: "Unknown User"
-                                    activeViewers.add(ActiveViewer(userId, username, lastSeen))
-                                    // Send updated list after each username is fetched
-                                    trySend(activeViewers.toList()).isSuccess
-                                }
-                        }
+                        if (userId != null && (currentTime - lastSeen) < PRESENCE_TIMEOUT_MS) {
+                            userId to lastSeen
+                        } else null
+                    } ?: emptyList()
+
+                    if (activeUserData.isEmpty()) {
+                        trySend(emptyList()).isSuccess
+                        return@addSnapshotListener
                     }
 
-                    // Send empty list if no active viewers
-                    if (snapshot?.documents?.isEmpty() == true) {
-                        trySend(emptyList()).isSuccess
+                    // Batch fetch all user profiles in a coroutine (thread-safe)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val userIds = activeUserData.map { it.first }
+                            val profiles = getUsersByIds(userIds)
+                            
+                            val viewers = activeUserData.mapNotNull { (userId, lastSeen) ->
+                                val username = profiles[userId]?.username ?: return@mapNotNull null
+                                ActiveViewer(userId, username, lastSeen)
+                            }
+                            trySend(viewers).isSuccess
+                        } catch (ex: Exception) {
+                            Log.e("FridgeRepo", "Error fetching user profiles for presence", ex)
+                            trySend(emptyList()).isSuccess
+                        }
                     }
                 }
 
@@ -376,6 +390,7 @@ class FridgeRepository {
 
     companion object {
         private const val TAG = "FridgeRepository"
+        private const val PRESENCE_TIMEOUT_MS = 30_000L
 
         /** Maximum number of user profiles to cache. */
         private const val USER_PROFILE_CACHE_SIZE = 100
@@ -440,49 +455,6 @@ class FridgeRepository {
                         trySend(fridgesList).isSuccess
                     }
             awaitClose { fridgesListenerRegistration.remove() }
-        }
-
-    /**
-     * @deprecated Use getFridgesForHousehold instead. This is kept for migration compatibility.
-     */
-    @Deprecated("Use getFridgesForHousehold with householdId", ReplaceWith("getFridgesForHousehold(householdId)"))
-    fun getFridgesForCurrentUser(): Flow<List<Fridge>> =
-        callbackFlow {
-            val currentUserId = auth.currentUser?.uid ?: return@callbackFlow
-
-            // Legacy query - will find fridges without householdId
-            val fridgesListenerRegistration =
-                firestore.collection("fridges")
-                    .whereArrayContains("members", currentUserId)
-                    .addSnapshotListener { snapshot, e ->
-                        if (e != null) {
-                            // Check if this is a permission error
-                            if (e.message?.contains("PERMISSION_DENIED") == true) {
-                                Log.w("FridgeRepo", "Permission denied fetching fridges - clearing cache")
-                                fridgeCache = emptyList()
-                            } else {
-                                Log.e("FridgeRepo", "Error listening to fridges: ${e.message}", e)
-                            }
-                            // Send empty list instead of closing with error to prevent app crash
-                            trySend(emptyList()).isSuccess
-                            return@addSnapshotListener
-                        }
-                        val fridgesList = snapshot?.documents?.mapNotNull { it.toFridgeCompat() } ?: emptyList()
-                        fridgeCache = fridgesList
-                        trySend(fridgesList).isSuccess
-                    }
-            awaitClose { fridgesListenerRegistration.remove() }
-        }
-
-    /**
-     * @deprecated Invites are now handled at household level via invite codes.
-     */
-    @Deprecated("Invites moved to HouseholdRepository with invite codes")
-    fun getInvitesForCurrentUser(): Flow<List<Fridge>> =
-        callbackFlow {
-            // Return empty flow - invites are now handled at household level
-            trySend(emptyList()).isSuccess
-            awaitClose { }
         }
 
     suspend fun getRawFridgeById(fridgeId: String): Fridge? {
@@ -571,62 +543,9 @@ class FridgeRepository {
         return newFridge
     }
 
-    /**
-     * @deprecated Member management moved to HouseholdRepository with invite codes.
-     */
-    @Deprecated("Use HouseholdRepository.createInviteCode instead")
-    suspend fun inviteUserByEmail(
-        fridgeId: String,
-        email: String
-    ) {
-        throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
-    }
-
-    /**
-     * @deprecated Member management moved to HouseholdRepository with invite codes.
-     */
-    @Deprecated("Use HouseholdRepository.redeemInviteCode instead")
-    suspend fun acceptInvite(fridgeId: String) {
-        throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
-    }
-
-    /**
-     * @deprecated Member management moved to HouseholdRepository with invite codes.
-     */
-    @Deprecated("Invites handled at household level")
-    suspend fun declineInvite(fridgeId: String) {
-        throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
-    }
-
-    /**
-     * @deprecated Member management moved to HouseholdRepository.
-     */
-    @Deprecated("Use HouseholdRepository.removeMember instead")
-    suspend fun removeMember(
-        fridgeId: String,
-        userId: String
-    ) {
-        throw UnsupportedOperationException("Member management is now at household level")
-    }
-
-    /**
-     * @deprecated Member management moved to HouseholdRepository.
-     */
-    @Deprecated("Invites handled at household level")
-    suspend fun revokeInvite(
-        fridgeId: String,
-        userId: String
-    ) {
-        throw UnsupportedOperationException("Invites are now handled at household level via invite codes")
-    }
-
-    /**
-     * @deprecated Member management moved to HouseholdRepository.
-     */
-    @Deprecated("Use HouseholdRepository.leaveHousehold instead")
-    suspend fun leaveFridge(fridgeId: String) {
-        throw UnsupportedOperationException("Member management is now at household level")
-    }
+    // NOTE: Member management (invite, accept, decline, remove, revoke, leave) has been moved
+    // to HouseholdRepository with invite code-based joining. The old fridge-level invitation
+    // system is no longer supported.
 
     /**
      * Preloads items for a specific fridge from Firestore cache to memory.

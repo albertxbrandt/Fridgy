@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
@@ -57,8 +56,8 @@ fun FridgeInventoryScreen(
     val addItemError by viewModel.addItemError.collectAsState()
     val pendingUpc by viewModel.pendingScannedUpc.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
+    val isOwner by viewModel.isCurrentUserOwner.collectAsState()
 
-    val currentUserId = remember { FirebaseAuth.getInstance().currentUser?.uid }
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
     val errorLoadingString = stringResource(R.string.error_loading_fridge)
@@ -79,16 +78,6 @@ fun FridgeInventoryScreen(
                 is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.name
                 is FridgeInventoryViewModel.FridgeDetailUiState.Error -> errorLoadingString
                 FridgeInventoryViewModel.FridgeDetailUiState.Loading -> loadingString
-            }
-        }
-    }
-
-    // OPTIMIZATION: derivedStateOf for ownership check
-    val isOwner by remember {
-        derivedStateOf {
-            when (val state = fridgeDetailUiState) {
-                is FridgeInventoryViewModel.FridgeDetailUiState.Success -> state.fridge.createdByUid == currentUserId
-                else -> false
             }
         }
     }

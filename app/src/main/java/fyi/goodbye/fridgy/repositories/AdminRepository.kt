@@ -100,11 +100,22 @@ class AdminRepository {
                     .orderBy("lastUpdated", com.google.firebase.firestore.Query.Direction.DESCENDING)
                     .get()
                     .await()
-            snapshot.documents.mapNotNull { doc ->
-                doc.toObject(Product::class.java)?.copy(upc = doc.id)
+            
+            Log.d("AdminRepo", "Fetched ${snapshot.documents.size} product documents from Firestore")
+            
+            val products = snapshot.documents.mapNotNull { doc ->
+                try {
+                    doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                } catch (e: Exception) {
+                    Log.e("AdminRepo", "Failed to deserialize product ${doc.id}: ${e.message}")
+                    null
+                }
             }
+            
+            Log.d("AdminRepo", "Successfully deserialized ${products.size} products")
+            products
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error fetching products: ${e.message}")
+            Log.e("AdminRepo", "Error fetching products: ${e.message}", e)
             emptyList()
         }
     }

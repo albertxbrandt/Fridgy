@@ -35,6 +35,7 @@ class HouseholdRepository {
         private const val TAG = "HouseholdRepository"
         private const val INVITE_CODE_LENGTH = 6
         private const val INVITE_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // Exclude confusing chars (I, O, 0, 1)
+        private const val PRESENCE_TIMEOUT_MS = 30_000L
     }
 
     // ==================== Household CRUD ====================
@@ -158,7 +159,7 @@ class HouseholdRepository {
             val householdData = mutableMapOf<String, Pair<Household, Int>>() // household to (household, fridgeCount)
 
             fun emitDisplayHouseholds() {
-                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                CoroutineScope(Dispatchers.IO).launch {
                     try {
                         // Collect all unique user IDs
                         val allUserIds =
@@ -885,6 +886,9 @@ class HouseholdRepository {
     /**
      * Returns a Flow of active viewers for the shopping list.
      * Closes gracefully on permission errors.
+     *
+     * Thread-safe implementation that batch fetches user profiles using coroutines
+     * instead of async callbacks to avoid race conditions on shared mutable state.
      */
     fun getShoppingListPresence(householdId: String): Flow<List<ActiveViewer>> =
         callbackFlow {
@@ -901,25 +905,37 @@ class HouseholdRepository {
                     }
 
                     val currentTime = System.currentTimeMillis()
-                    val activeViewers = mutableListOf<ActiveViewer>()
-
-                    snapshot?.documents?.forEach { doc ->
+                    
+                    // Collect active user IDs and their timestamps first (no async here)
+                    val activeUserData = snapshot?.documents?.mapNotNull { doc ->
                         val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
                         val userId = doc.getString("userId")
+                        // Consider active if seen within last 30 seconds
+                        if (userId != null && (currentTime - lastSeen) < PRESENCE_TIMEOUT_MS) {
+                            userId to lastSeen
+                        } else null
+                    } ?: emptyList()
 
-                        if (userId != null && (currentTime - lastSeen) < 30_000) {
-                            firestore.collection("userProfiles").document(userId)
-                                .get()
-                                .addOnSuccessListener { userDoc ->
-                                    val username = userDoc.getString("username") ?: "Unknown User"
-                                    activeViewers.add(ActiveViewer(userId, username, lastSeen))
-                                    trySend(activeViewers.toList()).isSuccess
-                                }
-                        }
+                    if (activeUserData.isEmpty()) {
+                        trySend(emptyList()).isSuccess
+                        return@addSnapshotListener
                     }
 
-                    if (snapshot?.documents?.isEmpty() == true) {
-                        trySend(emptyList()).isSuccess
+                    // Batch fetch all user profiles in a coroutine (thread-safe)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val userIds = activeUserData.map { it.first }
+                            val profiles = getUsersByIds(userIds)
+                            
+                            val viewers = activeUserData.mapNotNull { (userId, lastSeen) ->
+                                val username = profiles[userId]?.username ?: return@mapNotNull null
+                                ActiveViewer(userId, username, lastSeen)
+                            }
+                            trySend(viewers).isSuccess
+                        } catch (ex: Exception) {
+                            Log.e(TAG, "Error fetching user profiles for presence", ex)
+                            trySend(emptyList()).isSuccess
+                        }
                     }
                 }
 

@@ -80,7 +80,7 @@ private fun JoinHouseholdDialogContent(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Enter the 6-character invite code you received from a household member.",
+                    text = stringResource(R.string.enter_invite_code_description),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -154,7 +154,7 @@ private fun JoinHouseholdDialogContent(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "You're about to join:",
+                                text = stringResource(R.string.about_to_join),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
@@ -187,7 +187,7 @@ private fun JoinHouseholdDialogContent(
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Text(
-                                text = "You're already a member of:",
+                                text = stringResource(R.string.already_member_of),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSecondaryContainer
                             )
@@ -224,7 +224,7 @@ private fun JoinHouseholdDialogContent(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Validating...")
+                        Text(stringResource(R.string.validating))
                     }
                 }
                 is JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid -> {
@@ -243,7 +243,7 @@ private fun JoinHouseholdDialogContent(
                             disabledContentColor = MaterialTheme.colorScheme.onSecondaryContainer
                         )
                     ) {
-                        Text("Already a Member")
+                        Text(stringResource(R.string.already_a_member))
                     }
                 }
                 is JoinHouseholdViewModel.JoinHouseholdUiState.Joining -> {
@@ -256,7 +256,7 @@ private fun JoinHouseholdDialogContent(
                             strokeWidth = 2.dp
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("Joining...")
+                        Text(stringResource(R.string.joining))
                     }
                 }
                 is JoinHouseholdViewModel.JoinHouseholdUiState.Success -> {

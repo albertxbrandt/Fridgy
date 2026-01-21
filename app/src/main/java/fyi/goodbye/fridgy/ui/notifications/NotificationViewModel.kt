@@ -4,7 +4,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fyi.goodbye.fridgy.models.Notification
-import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -24,8 +23,7 @@ import kotlinx.coroutines.launch
  * - Uses NotificationRepository for data access
  */
 class NotificationViewModel(
-    private val repository: NotificationRepository = NotificationRepository(),
-    private val fridgeRepository: FridgeRepository = FridgeRepository()
+    private val repository: NotificationRepository = NotificationRepository()
 ) : ViewModel() {
     companion object {
         private const val TAG = "NotificationViewModel"
@@ -153,45 +151,41 @@ class NotificationViewModel(
 
     /**
      * Accept a fridge invitation from a notification.
+     * 
+     * NOTE: This feature is deprecated. Invitations are now handled at the
+     * household level via invite codes. Legacy fridge invites are no longer supported.
      */
+    @Deprecated("Fridge invites are now handled at household level via invite codes")
     fun acceptFridgeInvite(
         fridgeId: String,
         notificationId: String
     ) {
         viewModelScope.launch {
-            _operationState.value = OperationState.Processing
-            try {
-                fridgeRepository.acceptInvite(fridgeId)
-                // Delete the notification after accepting
-                repository.deleteNotification(notificationId)
-                _operationState.value = OperationState.Success("Invite accepted")
-                Log.d(TAG, "Fridge invite accepted: $fridgeId")
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Failed to accept invite")
-                Log.e(TAG, "Error accepting fridge invite", e)
-            }
+            _operationState.value = OperationState.Error(
+                "This invite type is no longer supported. Please ask for a household invite code instead."
+            )
+            // Clean up the notification since it can't be processed
+            repository.deleteNotification(notificationId)
+            Log.w(TAG, "Legacy fridge invite attempted: $fridgeId - feature deprecated")
         }
     }
 
     /**
      * Decline a fridge invitation from a notification.
+     * 
+     * NOTE: This feature is deprecated. Invitations are now handled at the
+     * household level via invite codes. Legacy fridge invites are no longer supported.
      */
+    @Deprecated("Fridge invites are now handled at household level via invite codes")
     fun declineFridgeInvite(
         fridgeId: String,
         notificationId: String
     ) {
         viewModelScope.launch {
-            _operationState.value = OperationState.Processing
-            try {
-                fridgeRepository.declineInvite(fridgeId)
-                // Delete the notification after declining
-                repository.deleteNotification(notificationId)
-                _operationState.value = OperationState.Success("Invite declined")
-                Log.d(TAG, "Fridge invite declined: $fridgeId")
-            } catch (e: Exception) {
-                _operationState.value = OperationState.Error(e.message ?: "Failed to decline invite")
-                Log.e(TAG, "Error declining fridge invite", e)
-            }
+            // Just delete the notification - can't process legacy invites
+            repository.deleteNotification(notificationId)
+            _operationState.value = OperationState.Success("Invite removed")
+            Log.w(TAG, "Legacy fridge invite declined: $fridgeId - feature deprecated")
         }
     }
 }

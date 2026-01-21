@@ -233,6 +233,7 @@
     <string name="link_product_description">To complete picking up \"%1$s\", scan or enter its UPC code to link it to the product database.</string>
     <string name="upc_code">UPC Code</string>
     <string name="skip">Skip</string>
+    <string name="unit">Unit</string>
     <!-- Other -->
     <string name="error_prefix">Error: %1$s</string>
     <string name="product_brand_category">%1$s • %2$s</string>
@@ -314,4 +315,71 @@
     <string name="cd_share_invite">Share invite</string>
     <string name="type">Type</string>
     <string name="created_by">Created by</string>
+
+    <!-- Additional UI Strings -->
+    <string name="no_invite_codes_yet">No invite codes yet. Create one to invite members.</string>
+    <string name="share_invite_code_chooser">Share Invite Code</string>
+    <string name="invite_code_created">Invite Code Created!</string>
+    <string name="invite_code_validity_question">How long should this invite code be valid?</string>
+    <string name="one_day">1 day</string>
+    <string name="seven_days">7 days</string>
+    <string name="thirty_days">30 days</string>
+    <string name="invite_code_used">Used</string>
+    <string name="invite_code_expired">Expired</string>
+    <string name="invite_code_revoked">Revoked</string>
+    <string name="expires_on">Expires %1$s</string>
+    <string name="owner_suffix">%1$s (Owner)</string>
+    
+    <!-- Join Household Dialog -->
+    <string name="enter_invite_code_description">Enter the 6-character invite code you received from a household member.</string>
+    <string name="about_to_join">You\'re about to join:</string>
+    <string name="already_member_of">You\'re already a member of:</string>
+    <string name="validating">Validating…</string>
+    <string name="already_a_member">Already a Member</string>
+    <string name="joining">Joining…</string>
+    <string name="invite_code_placeholder">ABC123</string>
+
+    <!-- Migration -->
+    <string name="migration_required">Migration Required</string>
+    <string name="migration_description">We\'ve updated Fridgy to use Households! Your existing fridges need to be migrated to a new household.</string>
+    <string name="migration_details">This will create a new household called \"My Household\" and move all your fridges into it.</string>
+    <string name="migrate_now">Migrate Now</string>
+
+    <!-- Sidebar & Menu -->
+    <string name="menu">Menu</string>
+    <string name="account">Account</string>
+    <string name="logout">Logout</string>
+
+    <!-- Item Details -->
+    <string name="instances_count">Instances (%1$d)</string>
+    <string name="expiration_date">Expiration Date</string>
+    <string name="expired">Expired</string>
+    <string name="expiring_soon">Expiring soon</string>
+    <string name="no_expiration">No expiration</string>
+
+    <!-- Size/Unit (Extra) -->
+    <string name="add_size_unit">Add Size/Unit?</string>
+    <string name="size_quantity">Size/Quantity</string>
+    <string name="size_unit_optional">Size/Unit (Optional)</string>
+    <string name="set">Set</string>
+
+    <!-- Content Descriptions (Extra) -->
+    <string name="cd_copy">Copy</string>
+    <string name="cd_share">Share</string>
+    <string name="cd_revoke">Revoke</string>
+    <string name="cd_add_instance">Add instance</string>
+    <string name="cd_close_menu">Close menu</string>
+    <string name="cd_open_menu">Open menu</string>
+
+    <!-- Camera/Scanner -->
+    <string name="camera_permission_required">Camera Permission Required</string>
+    <string name="camera_permission_description">To scan barcodes, Fridgy needs access to your camera. Please grant camera permission to continue.</string>
+    <string name="grant_permission">Grant Permission</string>
+
+    <!-- Fridge Creation -->
+    <string name="location_optional">Location (Optional)</string>
+    <string name="location_hint">e.g., Kitchen, Garage</string>
+
+    <!-- Misc -->
+    <string name="just_now">Just now</string>
 </resources>

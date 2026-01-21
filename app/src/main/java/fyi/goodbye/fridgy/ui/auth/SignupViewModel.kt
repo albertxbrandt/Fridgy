@@ -7,13 +7,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.repositories.UserRepository
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.tasks.await
 
 /**
  * ViewModel responsible for managing the user signup process.
@@ -21,10 +19,13 @@ import kotlinx.coroutines.tasks.await
  * This class handles input validation, Firebase Authentication account creation,
  * and the subsequent creation of a user profile document in Firestore. It exposes
  * various UI states to the [SignupScreen] including loading status and error messages.
+ * 
+ * Uses [UserRepository] for all Firebase operations following MVVM architecture.
  */
-class SignupViewModel(application: Application) : AndroidViewModel(application) {
-    private val auth = FirebaseAuth.getInstance()
-    private val firestore = FirebaseFirestore.getInstance()
+class SignupViewModel(
+    application: Application,
+    private val userRepository: UserRepository = UserRepository()
+) : AndroidViewModel(application) {
 
     /** The email address entered by the user. */
     var email by mutableStateOf("")
@@ -120,42 +121,15 @@ class SignupViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             try {
                 // Check if username already exists
-                val existingProfiles =
-                    firestore.collection("userProfiles")
-                        .whereEqualTo("username", trimmedUsername)
-                        .get()
-                        .await()
-
-                if (!existingProfiles.isEmpty) {
+                if (userRepository.isUsernameTaken(trimmedUsername)) {
                     errorMessage = getApplication<Application>().getString(R.string.error_username_taken, trimmedUsername)
                     isLoading = false
                     return@launch
                 }
 
-                val authResult = auth.createUserWithEmailAndPassword(email, password).await()
-                val uid = authResult.user?.uid
-
-                if (uid != null) {
-                    val timestamp = System.currentTimeMillis()
-
-                    // Create private user data (email, createdAt)
-                    val userMap =
-                        hashMapOf(
-                            "email" to email,
-                            "createdAt" to timestamp
-                        )
-
-                    // Create public profile data (username only)
-                    val profileMap =
-                        hashMapOf(
-                            "username" to trimmedUsername
-                        )
-                    // Write both documents
-                    firestore.collection("users").document(uid).set(userMap).await()
-                    firestore.collection("userProfiles").document(uid).set(profileMap).await()
-
-                    _signupSuccess.emit(true)
-                }
+                // Sign up the user (creates auth account and Firestore documents)
+                userRepository.signUp(email, password, trimmedUsername)
+                _signupSuccess.emit(true)
             } catch (e: Exception) {
                 Log.w("SignupViewModel", "createUserWithEmail:failure", e)
                 errorMessage = e.message ?: getApplication<Application>().getString(R.string.error_signup_failed)

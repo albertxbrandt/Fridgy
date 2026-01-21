@@ -37,6 +37,7 @@ fun AdminPanelScreen(
     val uiState by viewModel.uiState.collectAsState()
     val categoryState by categoryViewModel.uiState.collectAsState()
 
+
     Log.d("AdminPanelScreen", "Current UI state: ${uiState::class.simpleName}")
 
     // State for dialogs
