@@ -13,6 +13,30 @@
     <string name="sign_up">Sign Up</string>
     <string name="dont_have_account">Don\'t have an account? Sign Up</string>
     <string name="already_have_account">Already have an account? Log In</string>
+    <string name="username">Username</string>
+
+    <!-- Magic Link Auth -->
+    <string name="magic_link_description">Enter your email to receive a sign-in link. No password needed!</string>
+    <string name="send_magic_link">Send Sign-In Link</string>
+    <string name="magic_link_sent_title">Check Your Email</string>
+    <string name="magic_link_sent_description">We\'ve sent a sign-in link to %1$s. Click the link in the email to continue.</string>
+    <string name="magic_link_check_spam">Don\'t see it? Check your spam folder.</string>
+    <string name="resend_magic_link">Resend Link</string>
+    <string name="choose_username_description">Almost there! Choose a username that others will see when you share fridges.</string>
+    <string name="username_requirements">3–16 characters. Letters, numbers, underscores, and periods only.</string>
+    <string name="complete_signup">Complete Signup</string>
+    <string name="signing_you_in">Signing you in…</string>
+    <string name="oops_something_went_wrong">Oops! Something went wrong</string>
+    <string name="try_again">Try Again</string>
+    <string name="back">Back</string>
+    <string name="error_please_enter_email">Please enter your email address.</string>
+    <string name="error_invalid_email_format">Please enter a valid email address.</string>
+    <string name="error_sending_magic_link">Failed to send sign-in link. Please try again.</string>
+    <string name="error_email_not_found_reenter">Please enter your email address again to complete sign-in.</string>
+    <string name="error_auth_failed">Authentication failed. Please try again.</string>
+    <string name="error_please_enter_username">Please enter a username.</string>
+    <string name="error_not_authenticated">You are not authenticated. Please restart the sign-in process.</string>
+    <string name="error_creating_profile">Failed to create your profile. Please try again.</string>
 
     <!-- Fridge List Screen -->
     <string name="my_fridges">My Fridges</string>
@@ -178,7 +202,6 @@
     <string name="delete_user">Delete User</string>
     <string name="delete_product">Delete Product</string>
     <string name="delete_category">Delete Category</string>
-    <string name="username">Username</string>
     <string name="sort_order">Sort Order</string>
     <string name="lower_numbers_first">Lower numbers appear first</string>
     <string name="add">Add</string>
@@ -257,7 +280,6 @@
     <string name="notification_channel_name">Fridgy Notifications</string>
     <string name="notifications">Notifications</string>
     <string name="unread_count">%d unread</string>
-    <string name="back">Back</string>
     <string name="mark_all_as_read">Mark all as read</string>
     <string name="error_loading_notifications">Error loading notifications</string>
     <string name="failed_to_load_notifications">Failed to load notifications</string>

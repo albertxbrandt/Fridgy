@@ -1,6 +1,7 @@
 package fyi.goodbye.fridgy
 
 import android.Manifest
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -37,8 +38,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import fyi.goodbye.fridgy.ui.adminPanel.AdminPanelScreen
-import fyi.goodbye.fridgy.ui.auth.LoginScreen
-import fyi.goodbye.fridgy.ui.auth.SignupScreen
+import fyi.goodbye.fridgy.ui.auth.MagicLinkScreen
 import fyi.goodbye.fridgy.ui.fridgeInventory.BarcodeScannerScreen
 import fyi.goodbye.fridgy.ui.fridgeInventory.FridgeInventoryScreen
 import fyi.goodbye.fridgy.ui.fridgeList.FridgeListScreen
@@ -86,12 +86,19 @@ class MainActivity : ComponentActivity() {
     /** Repository for managing household data and membership validation. */
     @Inject
     lateinit var householdRepository: HouseholdRepository
+    
+    /** Handler for magic link deep links. */
+    @Inject
+    lateinit var magicLinkHandler: fyi.goodbye.fridgy.ui.auth.MagicLinkHandler
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
+        
+        // Handle magic link if the app was launched from one
+        handleMagicLinkIntent(intent)
 
         // Configure Firestore for optimal offline performance
         // Note: Persistence is enabled by default in recent Firestore SDK versions
@@ -264,27 +271,12 @@ class MainActivity : ComponentActivity() {
                         popExitTransition = { ExitTransition.None }
                     ) {
                         composable("login") {
-                            LoginScreen(
-                                onLoginSuccess = {
+                            MagicLinkScreen(
+                                onAuthSuccess = {
                                     navController.navigate("householdList") {
                                         popUpTo("login") { inclusive = true }
-                                    }
-                                },
-                                onNavigateToSignup = {
-                                    navController.navigate("signup") {
-                                        launchSingleTop = true
                                     }
                                 }
-                            )
-                        }
-                        composable("signup") {
-                            SignupScreen(
-                                onSignupSuccess = {
-                                    navController.navigate("householdList") {
-                                        popUpTo("login") { inclusive = true }
-                                    }
-                                },
-                                onNavigateToLogin = { navController.popBackStack() }
                             )
                         }
 
@@ -588,6 +580,57 @@ class MainActivity : ComponentActivity() {
                 .onFailure { error ->
                     Log.e("Fridgy_FCM", "Failed to initialize FCM token: ${error.message}", error)
                 }
+        }
+    }
+
+    /**
+     * Handle new intents when the activity is already running.
+     * This is needed for magic link handling when app is in singleTask launch mode.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        Log.d("Fridgy_MagicLink", "onNewIntent received")
+        handleMagicLinkIntent(intent)
+    }
+
+    /**
+     * Check if the intent contains a magic link and pass it to the handler.
+     * Handles both direct Firebase links and redirects from our web page via fridgy:// scheme.
+     */
+    private fun handleMagicLinkIntent(intent: Intent?) {
+        val data = intent?.data
+        if (data != null) {
+            Log.d("Fridgy_MagicLink", "Checking intent data: $data")
+            
+            // Check if it's our custom scheme redirect from the web page
+            // The web page redirects: fridgy://auth?apiKey=...&oobCode=...&mode=signIn
+            if (data.scheme == "fridgy" && data.host == "auth") {
+                Log.d("Fridgy_MagicLink", "Custom scheme magic link detected")
+                
+                // Reconstruct the original Firebase link format for verification
+                val originalLink = "https://fridgyapp.com/auth${data.query?.let { "?$it" } ?: ""}"
+                Log.d("Fridgy_MagicLink", "Reconstructed link: $originalLink")
+                
+                val auth = FirebaseAuth.getInstance()
+                if (auth.isSignInWithEmailLink(originalLink)) {
+                    Log.d("Fridgy_MagicLink", "Valid magic link, passing to handler")
+                    // Create a new intent with the reconstructed URL
+                    val reconstructedIntent = Intent(intent).apply {
+                        setData(android.net.Uri.parse(originalLink))
+                    }
+                    magicLinkHandler.handleIntent(reconstructedIntent)
+                } else {
+                    Log.w("Fridgy_MagicLink", "Link failed Firebase validation")
+                }
+                return
+            }
+            
+            // Also handle direct https links (in case user opens link directly)
+            val auth = FirebaseAuth.getInstance()
+            if (auth.isSignInWithEmailLink(data.toString())) {
+                Log.d("Fridgy_MagicLink", "Direct HTTPS magic link detected, passing to handler")
+                magicLinkHandler.handleIntent(intent)
+            }
         }
     }
 }
