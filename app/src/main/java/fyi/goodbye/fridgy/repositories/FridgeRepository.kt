@@ -249,14 +249,20 @@ class FridgeRepository {
 
     /**
      * Completes shopping session for current user only:
-     * - Adds their obtained items to fridge inventory
+     * - Adds their obtained items to fridge inventory as individual instances
      * - Removes their contribution from shopping list
      * - Keeps items if other users still need them
+     *
+     * @param fridgeId The ID of the fridge (legacy fridge-level shopping list).
      */
     suspend fun completeShoppingSession(fridgeId: String) {
         val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in.")
         val shoppingListRef = firestore.collection("fridges").document(fridgeId).collection("shoppingList")
         val itemsRef = firestore.collection("fridges").document(fridgeId).collection("items")
+        
+        // Get the householdId for the fridge (needed for item creation)
+        val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
+        val householdId = fridgeDoc.getString("householdId") ?: ""
 
         try {
             // Get all shopping list items
@@ -270,49 +276,31 @@ class FridgeRepository {
             val batch = firestore.batch()
 
             items.forEach { item ->
-                val userQuantity = item.obtainedBy[currentUserId] ?: 0
+                val userQuantity = item.obtainedBy[currentUserId]?.toInt() ?: 0
 
                 if (userQuantity > 0) {
-                    // Add user's obtained quantity to fridge inventory
-                    val itemRef = itemsRef.document(item.upc)
-                    val fridgeItemSnapshot = itemRef.get().await()
-
-                    if (fridgeItemSnapshot.exists()) {
-                        // Item exists, increment quantity
-                        val currentQty = fridgeItemSnapshot.getLong("quantity") ?: 0L
-                        batch.update(
-                            itemRef,
-                            mapOf(
-                                "quantity" to currentQty + userQuantity,
-                                "lastUpdatedBy" to currentUserId,
-                                "lastUpdatedAt" to System.currentTimeMillis()
-                            )
+                    // Create individual item instances for each unit obtained
+                    repeat(userQuantity) {
+                        val newItemRef = itemsRef.document() // Auto-generate ID
+                        val newItem = Item(
+                            upc = item.upc,
+                            expirationDate = null,
+                            addedBy = currentUserId,
+                            addedAt = System.currentTimeMillis(),
+                            lastUpdatedBy = currentUserId,
+                            lastUpdatedAt = System.currentTimeMillis(),
+                            householdId = householdId
                         )
-                    } else {
-                        // TODO: Update for instance-based items
-                        // Need to create userQuantity individual instances
-                        // For now, skip item creation in shopping list completion
-                        /*
-                        val newItem =
-                            Item(
-                                upc = item.upc,
-                                quantity = userQuantity,
-                                addedBy = currentUserId,
-                                addedAt = System.currentTimeMillis(),
-                                lastUpdatedBy = currentUserId,
-                                lastUpdatedAt = System.currentTimeMillis()
-                            )
-                        batch.set(itemRef, newItem)
-                        */
+                        batch.set(newItemRef, newItem)
                     }
+
+                    Log.d(TAG, "Adding $userQuantity instance(s) of ${item.upc} to fridge $fridgeId")
 
                     // Update shopping list item
                     val shoppingItemRef = shoppingListRef.document(item.upc)
                     val remainingObtainedBy = item.obtainedBy.toMutableMap()
                     remainingObtainedBy.remove(currentUserId)
 
-                    // Calculate remaining quantity needed after removing current user's contribution
-                    val totalObtainedByAllUsers = item.obtainedBy.values.sum()
                     val remainingQuantityNeeded = item.quantity - userQuantity
                     val newTotalObtained = remainingObtainedBy.values.sum()
 
@@ -337,6 +325,7 @@ class FridgeRepository {
             }
 
             batch.commit().await()
+            Log.d(TAG, "Shopping session completed successfully for fridge $fridgeId")
         } catch (e: Exception) {
             Log.e(TAG, "Error completing shopping session", e)
             throw e

@@ -793,43 +793,31 @@ class HouseholdRepository {
             val batch = firestore.batch()
 
             items.forEach { item ->
-                val userQuantity = item.obtainedBy[currentUserId] ?: 0
+                val userQuantity = item.obtainedBy[currentUserId]?.toInt() ?: 0
                 val targetFridgeId = item.targetFridgeId[currentUserId]
 
                 if (userQuantity > 0 && targetFridgeId != null) {
-                    // Add to the designated fridge
-                    val itemRef =
-                        firestore.collection("fridges").document(targetFridgeId)
-                            .collection("items").document(item.upc)
+                    // Create individual item instances for each unit obtained
+                    // Items are now stored as individual instances, not aggregated by UPC
+                    val itemsCollection = firestore.collection("fridges")
+                        .document(targetFridgeId)
+                        .collection("items")
 
-                    val fridgeItemSnapshot = itemRef.get().await()
-
-                    if (fridgeItemSnapshot.exists()) {
-                        val currentQty = fridgeItemSnapshot.getLong("quantity") ?: 0L
-                        batch.update(
-                            itemRef,
-                            mapOf(
-                                "quantity" to currentQty + userQuantity,
-                                "lastUpdatedBy" to currentUserId,
-                                "lastUpdatedAt" to System.currentTimeMillis()
-                            )
+                    repeat(userQuantity) {
+                        val newItemRef = itemsCollection.document() // Auto-generate ID
+                        val newItem = Item(
+                            upc = item.upc,
+                            expirationDate = null, // No expiration from shopping list
+                            addedBy = currentUserId,
+                            addedAt = System.currentTimeMillis(),
+                            lastUpdatedBy = currentUserId,
+                            lastUpdatedAt = System.currentTimeMillis(),
+                            householdId = householdId
                         )
-                    } else {
-                        // TODO: Update for instance-based items
-                        /*
-                        val newItem =
-                            Item(
-                                upc = item.upc,
-                                quantity = userQuantity,
-                                addedBy = currentUserId,
-                                addedAt = System.currentTimeMillis(),
-                                lastUpdatedBy = currentUserId,
-                                lastUpdatedAt = System.currentTimeMillis(),
-                                householdId = householdId
-                            )
-                        batch.set(itemRef, newItem)
-                        */
+                        batch.set(newItemRef, newItem)
                     }
+
+                    Log.d(TAG, "Adding $userQuantity instance(s) of ${item.upc} to fridge $targetFridgeId")
 
                     // Update shopping list item
                     val shoppingItemRef = shoppingListRef.document(item.upc)
@@ -861,6 +849,7 @@ class HouseholdRepository {
             }
 
             batch.commit().await()
+            Log.d(TAG, "Shopping session completed successfully")
         } catch (e: Exception) {
             Log.e(TAG, "Error completing shopping session", e)
             throw e
