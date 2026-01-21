@@ -2,9 +2,8 @@ package fyi.goodbye.fridgy.repositories
 
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.models.Category
-import kotlinx.coroutines.channels.awaitClose
+import fyi.goodbye.fridgy.utils.asFlow
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -20,23 +19,9 @@ class CategoryRepository {
      * Returns a real-time Flow of all categories, ordered by their sort order.
      */
     fun getCategories(): Flow<List<Category>> =
-        callbackFlow {
-            val listener =
-                categoriesCollection
-                    .orderBy("order")
-                    .addSnapshotListener { snapshot, error ->
-                        if (error != null) {
-                            close(error)
-                            return@addSnapshotListener
-                        }
-                        val categories =
-                            snapshot?.documents?.mapNotNull { doc ->
-                                doc.toObject(Category::class.java)
-                            } ?: emptyList()
-                        trySend(categories).isSuccess
-                    }
-            awaitClose { listener.remove() }
-        }
+        categoriesCollection
+            .orderBy("order")
+            .asFlow<Category>()
 
     /**
      * Creates a new category.
