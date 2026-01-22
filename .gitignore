@@ -12,9 +12,13 @@ local.properties
 .kotlin/
 
 # Firebase & Secrets
+.firebaserc
 app/google-services.json
 *.jks
 *.keystore
+*.secret.local
+.secret.local
+functions/.secret.local
 
 # JVM/Crash Logs
 hs_err_pid*
@@ -25,3 +29,14 @@ replay_pid*
 
 # Node.js dependencies
 node_modules/
+
+# Firebase Functions
+functions/.runtimeconfig.json
+firebase-debug.log
+firebase-debug.*.log
+ui-debug.log
+*.log
+
+# Testing
+coverage/
+.nyc_output/

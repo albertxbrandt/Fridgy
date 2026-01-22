@@ -12,7 +12,7 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
             min-height: 100vh;
             display: flex;
             align-items: center;
@@ -21,58 +21,66 @@
         }
         .container {
             background: white;
-            border-radius: 16px;
+            border-radius: 12px;
             padding: 40px;
             max-width: 400px;
             width: 100%;
             text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            box-shadow: 0 20px 60px rgba(37, 99, 235, 0.3);
         }
         .logo {
-            width: 80px;
-            height: 80px;
+            font-size: 48px;
+            font-weight: bold;
+            color: #2563EB;
             margin-bottom: 24px;
+            letter-spacing: -1px;
         }
         h1 {
-            color: #333;
+            color: #0F172A;
             margin-bottom: 12px;
             font-size: 24px;
+            font-weight: 600;
         }
         p {
-            color: #666;
+            color: #475569;
             margin-bottom: 24px;
             line-height: 1.5;
         }
         .btn {
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background-color: #2563EB;
             color: white;
             padding: 16px 32px;
-            border-radius: 8px;
+            border-radius: 0;
             text-decoration: none;
             font-weight: 600;
             font-size: 16px;
-            transition: transform 0.2s, box-shadow 0.2s;
+            transition: all 0.2s;
+            box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
         }
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+            background-color: #1D4ED8;
+            box-shadow: 0 6px 8px rgba(37, 99, 235, 0.3);
         }
         .fallback {
             margin-top: 24px;
             font-size: 14px;
-            color: #999;
+            color: #64748B;
         }
         .fallback a {
-            color: #667eea;
+            color: #2563EB;
+            text-decoration: none;
+        }
+        .fallback a:hover {
+            text-decoration: underline;
         }
         .spinner {
             display: none;
             margin: 20px auto;
             width: 40px;
             height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #667eea;
+            border: 4px solid #E2E8F0;
+            border-top: 4px solid #2563EB;
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
@@ -84,20 +92,7 @@
 </head>
 <body>
     <div class="container">
-        <!-- You can add your logo here -->
-        <svg class="logo" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="100" height="100" rx="20" fill="url(#gradient)"/>
-            <path d="M30 25h40c2.5 0 5 2.5 5 5v45c0 2.5-2.5 5-5 5H30c-2.5 0-5-2.5-5-5V30c0-2.5 2.5-5 5-5z" fill="white"/>
-            <rect x="35" y="35" width="30" height="4" rx="2" fill="#667eea"/>
-            <rect x="35" y="45" width="20" height="4" rx="2" fill="#667eea"/>
-            <rect x="35" y="55" width="25" height="4" rx="2" fill="#667eea"/>
-            <defs>
-                <linearGradient id="gradient" x1="0" y1="0" x2="100" y2="100">
-                    <stop offset="0%" stop-color="#667eea"/>
-                    <stop offset="100%" stop-color="#764ba2"/>
-                </linearGradient>
-            </defs>
-        </svg>
+        <div class="logo">Fridgy</div>
         
         <h1>Open Fridgy</h1>
         <p>Tap the button below to complete your sign-in.</p>

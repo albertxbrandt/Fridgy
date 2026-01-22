@@ -94,6 +94,7 @@ dependencies {
     implementation(libs.firebase.auth.ktx)
     implementation(libs.firebase.storage.ktx) // Added Storage
     implementation(libs.firebase.messaging.ktx) // Firebase Cloud Messaging
+    implementation(libs.firebase.functions.ktx) // Firebase Cloud Functions
     implementation(libs.firebase.appcheck.playintegrity)
     implementation(libs.firebase.appcheck.debug)
     implementation(libs.androidx.camera.camera2)

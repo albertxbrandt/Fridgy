@@ -8,8 +8,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.firebase.auth.ActionCodeSettings
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.functions.FirebaseFunctions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
@@ -78,6 +78,8 @@ class MagicLinkViewModel @Inject constructor(
         /** Package name for the Android app. */
         private const val PACKAGE_NAME = "fyi.goodbye.fridgy"
     }
+    
+    private val functions: FirebaseFunctions = FirebaseFunctions.getInstance()
 
     /** Current UI state of the authentication flow. */
     var uiState by mutableStateOf<MagicLinkUiState>(MagicLinkUiState.EnterEmail)
@@ -112,18 +114,6 @@ class MagicLinkViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Action code settings for the magic link email.
-     * Configures how the link behaves and where it redirects.
-     */
-    private val actionCodeSettings: ActionCodeSettings by lazy {
-        ActionCodeSettings.newBuilder()
-            .setUrl("https://$AUTH_DOMAIN/auth")
-            .setHandleCodeInApp(true)
-            .setAndroidPackageName(PACKAGE_NAME, true, null)
-            .build()
-    }
-
     /** Updates the email state. */
     fun onEmailChange(newEmail: String) {
         email = newEmail
@@ -143,10 +133,11 @@ class MagicLinkViewModel @Inject constructor(
     }
 
     /**
-     * Sends a magic link to the provided email address.
+     * Sends a magic link to the provided email address via SendGrid.
      *
      * The email will contain a link that, when clicked, will sign the user in
-     * without requiring a password.
+     * without requiring a password. This uses a custom Cloud Function to send
+     * the email with a fully customized template.
      */
     fun sendMagicLink() {
         if (email.isBlank()) {
@@ -163,16 +154,20 @@ class MagicLinkViewModel @Inject constructor(
 
         viewModelScope.launch {
             try {
-                // Send the sign-in link to the email
-                auth.sendSignInLinkToEmail(email, actionCodeSettings).await()
+                // Call the Cloud Function to send magic link via SendGrid
+                val data = hashMapOf("email" to email)
+                val result = functions
+                    .getHttpsCallable("sendMagicLink")
+                    .call(data)
+                    .await()
                 
                 // Save the email locally so we can use it when the user clicks the link
                 saveEmailForSignIn(email)
                 
-                Log.d(TAG, "Magic link sent to: $email")
+                Log.d(TAG, "Magic link sent to: $email via SendGrid")
                 uiState = MagicLinkUiState.EmailSent
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to send magic link", e)
+                Log.e(TAG, "Failed to send magic link via Cloud Function", e)
                 uiState = MagicLinkUiState.Error(
                     e.message ?: context.getString(R.string.error_sending_magic_link)
                 )

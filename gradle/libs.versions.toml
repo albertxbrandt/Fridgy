@@ -18,6 +18,7 @@ firebaseFirestoreKtx = "25.1.4"
 firebaseAuthKtx = "23.2.1"
 firebaseStorageKtx = "21.0.2"
 firebaseMessagingKtx = "24.1.0"
+firebaseFunctionsKtx = "21.2.0"
 cameraCamera2 = "1.5.1"
 cameraExtensions = "1.5.1"
 cameraCore = "1.5.1"
@@ -62,6 +63,7 @@ firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-fires
 firebase-auth-ktx = { group = "com.google.firebase", name = "firebase-auth-ktx", version.ref = "firebaseAuthKtx" }
 firebase-storage-ktx = { group = "com.google.firebase", name = "firebase-storage-ktx", version.ref = "firebaseStorageKtx" }
 firebase-messaging-ktx = { group = "com.google.firebase", name = "firebase-messaging-ktx", version.ref = "firebaseMessagingKtx" }
+firebase-functions-ktx = { group = "com.google.firebase", name = "firebase-functions-ktx", version.ref = "firebaseFunctionsKtx" }
 firebase-appcheck-playintegrity = { group = "com.google.firebase", name = "firebase-appcheck-playintegrity" }
 firebase-appcheck-debug = { group = "com.google.firebase", name = "firebase-appcheck-debug" }
 androidx-camera-camera2 = { group = "androidx.camera", name = "camera-camera2", version.ref = "cameraCamera2" }

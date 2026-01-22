@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signing in to Fridgy...</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #2563EB 0%, #1E40AF 100%);
+            color: white;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+        }
+        .logo {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 2rem;
+            letter-spacing: -1px;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        h1 {
+            margin: 0 0 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        p {
+            margin: 0;
+            opacity: 0.9;
+            color: rgba(255, 255, 255, 0.95);
+        }
+        .error {
+            background: rgba(220, 38, 38, 0.2);
+            padding: 1rem;
+            border-radius: 12px;
+            margin-top: 1rem;
+            border: 2px solid rgba(220, 38, 38, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">Fridgy</div>
+        <div class="spinner"></div>
+        <h1>Signing you in...</h1>
+        <p>Please wait while we authenticate your request.</p>
+        <div id="error" class="error" style="display: none;"></div>
+    </div>
+
+    <script>
+        // Get the token from URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('token');
+
+        if (!token) {
+            // No token provided
+            document.querySelector('.spinner').style.display = 'none';
+            document.querySelector('h1').textContent = 'Invalid Link';
+            document.querySelector('p').textContent = 'This sign-in link is missing required information.';
+            document.getElementById('error').style.display = 'block';
+            document.getElementById('error').textContent = 'Please request a new sign-in link from the app.';
+        } else {
+            try {
+                // Decode the base64 token to get the real Firebase link
+                const firebaseLink = atob(token);
+                
+                // Redirect to the actual Firebase authentication link
+                window.location.href = firebaseLink;
+            } catch (error) {
+                // Invalid token format
+                document.querySelector('.spinner').style.display = 'none';
+                document.querySelector('h1').textContent = 'Invalid Link';
+                document.querySelector('p').textContent = 'This sign-in link appears to be corrupted.';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('error').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+</body>
+</html>
