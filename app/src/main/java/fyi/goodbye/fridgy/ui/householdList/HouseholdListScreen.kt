@@ -191,7 +191,10 @@ private fun HouseholdListContent(
                     IconButton(onClick = { isSidebarOpen = !isSidebarOpen }) {
                         Icon(
                             imageVector = if (isSidebarOpen) Icons.Default.Close else Icons.Default.Menu,
-                            contentDescription = stringResource(if (isSidebarOpen) R.string.cd_close_menu else R.string.cd_open_menu),
+                            contentDescription =
+                                stringResource(
+                                    if (isSidebarOpen) R.string.cd_close_menu else R.string.cd_open_menu
+                                ),
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
@@ -505,54 +508,58 @@ private fun HouseholdListPreviewEmpty() {
 private fun HouseholdListPreviewWithHouseholds() {
     FridgyTheme {
         HouseholdListContent(
-            householdsUiState = HouseholdListViewModel.HouseholdUiState.Success(
-                listOf(
-                    DisplayHousehold(
-                        id = "1",
-                        name = "Smith Family",
-                        createdByUid = "user1",
-                        ownerDisplayName = "John Smith",
-                        memberUsers = listOf(
-                            UserProfile(uid = "user1", username = "John Smith"),
-                            UserProfile(uid = "user2", username = "Jane Smith"),
-                            UserProfile(uid = "user3", username = "Bobby Smith"),
-                            UserProfile(uid = "user4", username = "Sally Smith")
+            householdsUiState =
+                HouseholdListViewModel.HouseholdUiState.Success(
+                    listOf(
+                        DisplayHousehold(
+                            id = "1",
+                            name = "Smith Family",
+                            createdByUid = "user1",
+                            ownerDisplayName = "John Smith",
+                            memberUsers =
+                                listOf(
+                                    UserProfile(uid = "user1", username = "John Smith"),
+                                    UserProfile(uid = "user2", username = "Jane Smith"),
+                                    UserProfile(uid = "user3", username = "Bobby Smith"),
+                                    UserProfile(uid = "user4", username = "Sally Smith")
+                                ),
+                            fridgeCount = 3,
+                            createdAt = System.currentTimeMillis()
                         ),
-                        fridgeCount = 3,
-                        createdAt = System.currentTimeMillis()
-                    ),
-                    DisplayHousehold(
-                        id = "2",
-                        name = "Beach House",
-                        createdByUid = "user1",
-                        ownerDisplayName = "John Smith",
-                        memberUsers = listOf(
-                            UserProfile(uid = "user1", username = "John Smith"),
-                            UserProfile(uid = "user5", username = "Mike Johnson")
+                        DisplayHousehold(
+                            id = "2",
+                            name = "Beach House",
+                            createdByUid = "user1",
+                            ownerDisplayName = "John Smith",
+                            memberUsers =
+                                listOf(
+                                    UserProfile(uid = "user1", username = "John Smith"),
+                                    UserProfile(uid = "user5", username = "Mike Johnson")
+                                ),
+                            fridgeCount = 1,
+                            createdAt = System.currentTimeMillis()
                         ),
-                        fridgeCount = 1,
-                        createdAt = System.currentTimeMillis()
-                    ),
-                    DisplayHousehold(
-                        id = "3",
-                        name = "Office Kitchen",
-                        createdByUid = "user2",
-                        ownerDisplayName = "Jane Smith",
-                        memberUsers = listOf(
-                            UserProfile(uid = "user2", username = "Jane Smith"),
-                            UserProfile(uid = "user6", username = "Alice Brown"),
-                            UserProfile(uid = "user7", username = "Bob White"),
-                            UserProfile(uid = "user8", username = "Charlie Green"),
-                            UserProfile(uid = "user9", username = "Diana Blue"),
-                            UserProfile(uid = "user10", username = "Eve Red"),
-                            UserProfile(uid = "user11", username = "Frank Yellow"),
-                            UserProfile(uid = "user12", username = "Grace Purple")
-                        ),
-                        fridgeCount = 2,
-                        createdAt = System.currentTimeMillis()
+                        DisplayHousehold(
+                            id = "3",
+                            name = "Office Kitchen",
+                            createdByUid = "user2",
+                            ownerDisplayName = "Jane Smith",
+                            memberUsers =
+                                listOf(
+                                    UserProfile(uid = "user2", username = "Jane Smith"),
+                                    UserProfile(uid = "user6", username = "Alice Brown"),
+                                    UserProfile(uid = "user7", username = "Bob White"),
+                                    UserProfile(uid = "user8", username = "Charlie Green"),
+                                    UserProfile(uid = "user9", username = "Diana Blue"),
+                                    UserProfile(uid = "user10", username = "Eve Red"),
+                                    UserProfile(uid = "user11", username = "Frank Yellow"),
+                                    UserProfile(uid = "user12", username = "Grace Purple")
+                                ),
+                            fridgeCount = 2,
+                            createdAt = System.currentTimeMillis()
+                        )
                     )
-                )
-            ),
+                ),
             isAdmin = true,
             isCreatingHousehold = false,
             createHouseholdError = null,

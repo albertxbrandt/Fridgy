@@ -31,11 +31,10 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class FridgyMessagingService : FirebaseMessagingService() {
-    
     /** Repository for managing notification and FCM token operations. */
     @Inject
     lateinit var notificationRepository: NotificationRepository
-    
+
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {

@@ -5,9 +5,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 
-/**
- * Firestore extension functions to reduce boilerplate code across repositories.
- */
+// Firestore extension functions to reduce boilerplate code across repositories.
 
 /**
  * Converts a Firestore [Query] to a [Flow] that emits real-time updates.
@@ -31,16 +29,18 @@ import kotlinx.coroutines.flow.callbackFlow
  */
 fun <T> Query.asFlow(clazz: Class<T>): Flow<List<T>> =
     callbackFlow {
-        val listener = addSnapshotListener { snapshot, error ->
-            if (error != null) {
-                close(error)
-                return@addSnapshotListener
+        val listener =
+            addSnapshotListener { snapshot, error ->
+                if (error != null) {
+                    close(error)
+                    return@addSnapshotListener
+                }
+                val items =
+                    snapshot?.documents?.mapNotNull { doc ->
+                        doc.toObject(clazz)
+                    } ?: emptyList()
+                trySend(items).isSuccess
             }
-            val items = snapshot?.documents?.mapNotNull { doc ->
-                doc.toObject(clazz)
-            } ?: emptyList()
-            trySend(items).isSuccess
-        }
         awaitClose { listener.remove() }
     }
 

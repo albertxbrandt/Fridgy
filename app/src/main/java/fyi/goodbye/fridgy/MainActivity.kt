@@ -78,15 +78,14 @@ import javax.inject.Inject
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    
     /** Repository for managing push notifications and FCM tokens. */
     @Inject
     lateinit var notificationRepository: NotificationRepository
-    
+
     /** Repository for managing household data and membership validation. */
     @Inject
     lateinit var householdRepository: HouseholdRepository
-    
+
     /** Handler for magic link deep links. */
     @Inject
     lateinit var magicLinkHandler: fyi.goodbye.fridgy.ui.auth.MagicLinkHandler
@@ -96,7 +95,7 @@ class MainActivity : ComponentActivity() {
 
         // Initialize Firebase
         FirebaseApp.initializeApp(this)
-        
+
         // Handle magic link if the app was launched from one
         handleMagicLinkIntent(intent)
 
@@ -601,30 +600,31 @@ class MainActivity : ComponentActivity() {
         val data = intent?.data
         if (data != null) {
             Log.d("Fridgy_MagicLink", "Checking intent data: $data")
-            
+
             // Check if it's our custom scheme redirect from the web page
             // The web page redirects: fridgy://auth?apiKey=...&oobCode=...&mode=signIn
             if (data.scheme == "fridgy" && data.host == "auth") {
                 Log.d("Fridgy_MagicLink", "Custom scheme magic link detected")
-                
+
                 // Reconstruct the original Firebase link format for verification
                 val originalLink = "https://fridgyapp.com/auth${data.query?.let { "?$it" } ?: ""}"
                 Log.d("Fridgy_MagicLink", "Reconstructed link: $originalLink")
-                
+
                 val auth = FirebaseAuth.getInstance()
                 if (auth.isSignInWithEmailLink(originalLink)) {
                     Log.d("Fridgy_MagicLink", "Valid magic link, passing to handler")
                     // Create a new intent with the reconstructed URL
-                    val reconstructedIntent = Intent(intent).apply {
-                        setData(android.net.Uri.parse(originalLink))
-                    }
+                    val reconstructedIntent =
+                        Intent(intent).apply {
+                            setData(android.net.Uri.parse(originalLink))
+                        }
                     magicLinkHandler.handleIntent(reconstructedIntent)
                 } else {
                     Log.w("Fridgy_MagicLink", "Link failed Firebase validation")
                 }
                 return
             }
-            
+
             // Also handle direct https links (in case user opens link directly)
             val auth = FirebaseAuth.getInstance()
             if (auth.isSignInWithEmailLink(data.toString())) {

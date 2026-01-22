@@ -6,11 +6,11 @@ import kotlinx.parcelize.Parcelize
 
 /**
  * Data model representing a single item instance in a fridge inventory.
- * 
+ *
  * Items are now stored as individual instances rather than aggregated by UPC,
  * allowing each instance to have its own expiration date. This enables tracking
  * multiple units of the same product with different expiration dates.
- * 
+ *
  * @property id Unique identifier for this item instance (Firestore auto-generated)
  * @property upc Product barcode/UPC for linking to product information
  * @property expirationDate Expiration date in milliseconds since epoch (null = no expiration)
@@ -35,21 +35,21 @@ data class Item(
     companion object {
         private const val EXPIRING_SOON_THRESHOLD_DAYS = 3
         private const val MS_PER_DAY = 86400000L
-        
+
         /**
          * Check if this item is expired.
          */
         fun isExpired(expirationDate: Long?): Boolean {
             return expirationDate != null && expirationDate < System.currentTimeMillis()
         }
-        
+
         /**
          * Check if this item is expiring soon (within threshold days).
          */
         fun isExpiringSoon(expirationDate: Long?): Boolean {
             val now = System.currentTimeMillis()
-            return expirationDate != null && 
-                expirationDate > now && 
+            return expirationDate != null &&
+                expirationDate > now &&
                 expirationDate - now < (EXPIRING_SOON_THRESHOLD_DAYS * MS_PER_DAY)
         }
     }

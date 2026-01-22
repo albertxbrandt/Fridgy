@@ -24,90 +24,91 @@ import javax.inject.Inject
  * @param categoryRepository Repository for category operations.
  */
 @HiltViewModel
-class CategoryViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val categoryRepository: CategoryRepository
-) : ViewModel() {
+class CategoryViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+        private val categoryRepository: CategoryRepository
+    ) : ViewModel() {
+        sealed interface CategoryUiState {
+            data object Loading : CategoryUiState
 
-    sealed interface CategoryUiState {
-        data object Loading : CategoryUiState
+            data class Success(val categories: List<Category>) : CategoryUiState
 
-        data class Success(val categories: List<Category>) : CategoryUiState
+            data class Error(val message: String) : CategoryUiState
+        }
 
-        data class Error(val message: String) : CategoryUiState
-    }
+        private val _uiState = MutableStateFlow<CategoryUiState>(CategoryUiState.Loading)
+        val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
 
-    private val _uiState = MutableStateFlow<CategoryUiState>(CategoryUiState.Loading)
-    val uiState: StateFlow<CategoryUiState> = _uiState.asStateFlow()
+        // Job reference to cancel previous collector if loadCategories() is called again
+        private var categoriesJob: Job? = null
 
-    // Job reference to cancel previous collector if loadCategories() is called again
-    private var categoriesJob: Job? = null
+        init {
+            loadCategories()
+        }
 
-    init {
-        loadCategories()
-    }
+        private fun loadCategories() {
+            // Cancel any existing collection to prevent multiple collectors
+            categoriesJob?.cancel()
+            categoriesJob =
+                viewModelScope.launch {
+                    try {
+                        categoryRepository.getCategories().collect { categories ->
+                            _uiState.value = CategoryUiState.Success(categories)
+                        }
+                    } catch (e: Exception) {
+                        _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_categories))
+                    }
+                }
+        }
 
-    private fun loadCategories() {
-        // Cancel any existing collection to prevent multiple collectors
-        categoriesJob?.cancel()
-        categoriesJob =
+        /**
+         * Creates a new category.
+         *
+         * @param name The display name for the category.
+         * @param order The sort order (defaults to [Category.DEFAULT_ORDER]).
+         */
+        fun createCategory(
+            name: String,
+            order: Int = Category.DEFAULT_ORDER
+        ) {
             viewModelScope.launch {
                 try {
-                    categoryRepository.getCategories().collect { categories ->
-                        _uiState.value = CategoryUiState.Success(categories)
-                    }
+                    categoryRepository.createCategory(name, order)
                 } catch (e: Exception) {
-                    _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_categories))
+                    _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_create_category))
                 }
             }
-    }
+        }
 
-    /**
-     * Creates a new category.
-     *
-     * @param name The display name for the category.
-     * @param order The sort order (defaults to [Category.DEFAULT_ORDER]).
-     */
-    fun createCategory(
-        name: String,
-        order: Int = Category.DEFAULT_ORDER
-    ) {
-        viewModelScope.launch {
-            try {
-                categoryRepository.createCategory(name, order)
-            } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_create_category))
+        /**
+         * Updates an existing category.
+         */
+        fun updateCategory(
+            categoryId: String,
+            name: String,
+            order: Int
+        ) {
+            viewModelScope.launch {
+                try {
+                    categoryRepository.updateCategory(categoryId, name, order)
+                } catch (e: Exception) {
+                    _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_update_category))
+                }
+            }
+        }
+
+        /**
+         * Deletes a category.
+         */
+        fun deleteCategory(categoryId: String) {
+            viewModelScope.launch {
+                try {
+                    categoryRepository.deleteCategory(categoryId)
+                } catch (e: Exception) {
+                    _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_delete_category))
+                }
             }
         }
     }
-
-    /**
-     * Updates an existing category.
-     */
-    fun updateCategory(
-        categoryId: String,
-        name: String,
-        order: Int
-    ) {
-        viewModelScope.launch {
-            try {
-                categoryRepository.updateCategory(categoryId, name, order)
-            } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_update_category))
-            }
-        }
-    }
-
-    /**
-     * Deletes a category.
-     */
-    fun deleteCategory(categoryId: String) {
-        viewModelScope.launch {
-            try {
-                categoryRepository.deleteCategory(categoryId)
-            } catch (e: Exception) {
-                _uiState.value = CategoryUiState.Error(e.message ?: context.getString(R.string.error_failed_to_delete_category))
-            }
-        }
-    }
-}

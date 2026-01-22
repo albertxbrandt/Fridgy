@@ -27,170 +27,173 @@ import javax.inject.Inject
  * @param repository The notification repository for data operations.
  */
 @HiltViewModel
-class NotificationViewModel @Inject constructor(
-    private val repository: NotificationRepository
-) : ViewModel() {
-    companion object {
-        private const val TAG = "NotificationViewModel"
-    }
+class NotificationViewModel
+    @Inject
+    constructor(
+        private val repository: NotificationRepository
+    ) : ViewModel() {
+        companion object {
+            private const val TAG = "NotificationViewModel"
+        }
 
-    /**
-     * Sealed interface representing the UI state for notifications.
-     */
-    sealed interface NotificationUiState {
-        data object Loading : NotificationUiState
+        /**
+         * Sealed interface representing the UI state for notifications.
+         */
+        sealed interface NotificationUiState {
+            data object Loading : NotificationUiState
 
-        data class Success(val notifications: List<Notification>) : NotificationUiState
+            data class Success(val notifications: List<Notification>) : NotificationUiState
 
-        data class Error(val message: String) : NotificationUiState
-    }
+            data class Error(val message: String) : NotificationUiState
+        }
 
-    /**
-     * UI state for the notifications screen.
-     */
-    val uiState: StateFlow<NotificationUiState> =
-        repository.getNotificationsFlow()
-            .map<List<Notification>, NotificationUiState> { notifications ->
-                NotificationUiState.Success(notifications)
+        /**
+         * UI state for the notifications screen.
+         */
+        val uiState: StateFlow<NotificationUiState> =
+            repository.getNotificationsFlow()
+                .map<List<Notification>, NotificationUiState> { notifications ->
+                    NotificationUiState.Success(notifications)
+                }
+                .catch { error ->
+                    Log.e(TAG, "Error loading notifications", error)
+                    emit(
+                        NotificationUiState.Error(error.message ?: "Failed to load notifications")
+                    ) // TODO: Pass context for string resources
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = NotificationUiState.Loading
+                )
+
+        /**
+         * Unread notification count for badge display.
+         */
+        val unreadCount: StateFlow<Int> =
+            repository.getUnreadCountFlow()
+                .catch { error ->
+                    Log.e(TAG, "Error loading unread count", error)
+                    emit(0)
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = 0
+                )
+
+        private val _operationState = MutableStateFlow<OperationState>(OperationState.Idle)
+        val operationState: StateFlow<OperationState> = _operationState.asStateFlow()
+
+        sealed interface OperationState {
+            data object Idle : OperationState
+
+            data object Processing : OperationState
+
+            data class Success(val message: String) : OperationState
+
+            data class Error(val message: String) : OperationState
+        }
+
+        /**
+         * Mark a notification as read.
+         */
+        fun markAsRead(notificationId: String) {
+            viewModelScope.launch {
+                _operationState.value = OperationState.Processing
+                repository.markAsRead(notificationId)
+                    .onSuccess {
+                        _operationState.value = OperationState.Success("Marked as read")
+                        Log.d(TAG, "Notification $notificationId marked as read")
+                    }
+                    .onFailure { error ->
+                        _operationState.value = OperationState.Error("Failed to mark as read")
+                        Log.e(TAG, "Error marking notification as read", error)
+                    }
             }
-            .catch { error ->
-                Log.e(TAG, "Error loading notifications", error)
-                emit(
-                    NotificationUiState.Error(error.message ?: "Failed to load notifications")
-                ) // TODO: Pass context for string resources
+        }
+
+        /**
+         * Mark all notifications as read.
+         */
+        fun markAllAsRead() {
+            viewModelScope.launch {
+                _operationState.value = OperationState.Processing
+                repository.markAllAsRead()
+                    .onSuccess {
+                        _operationState.value = OperationState.Success("All marked as read")
+                        Log.d(TAG, "All notifications marked as read")
+                    }
+                    .onFailure { error ->
+                        _operationState.value = OperationState.Error("Failed to mark all as read")
+                        Log.e(TAG, "Error marking all notifications as read", error)
+                    }
             }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = NotificationUiState.Loading
-            )
+        }
 
-    /**
-     * Unread notification count for badge display.
-     */
-    val unreadCount: StateFlow<Int> =
-        repository.getUnreadCountFlow()
-            .catch { error ->
-                Log.e(TAG, "Error loading unread count", error)
-                emit(0)
+        /**
+         * Delete a notification.
+         */
+        fun deleteNotification(notificationId: String) {
+            viewModelScope.launch {
+                _operationState.value = OperationState.Processing
+                repository.deleteNotification(notificationId)
+                    .onSuccess {
+                        _operationState.value = OperationState.Success("Notification deleted")
+                        Log.d(TAG, "Notification $notificationId deleted")
+                    }
+                    .onFailure { error ->
+                        _operationState.value = OperationState.Error("Failed to delete notification")
+                        Log.e(TAG, "Error deleting notification", error)
+                    }
             }
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = 0
-            )
+        }
 
-    private val _operationState = MutableStateFlow<OperationState>(OperationState.Idle)
-    val operationState: StateFlow<OperationState> = _operationState.asStateFlow()
+        /**
+         * Reset operation state to idle.
+         */
+        fun resetOperationState() {
+            _operationState.value = OperationState.Idle
+        }
 
-    sealed interface OperationState {
-        data object Idle : OperationState
+        /**
+         * Accept a fridge invitation from a notification.
+         *
+         * NOTE: This feature is deprecated. Invitations are now handled at the
+         * household level via invite codes. Legacy fridge invites are no longer supported.
+         */
+        @Deprecated("Fridge invites are now handled at household level via invite codes")
+        fun acceptFridgeInvite(
+            fridgeId: String,
+            notificationId: String
+        ) {
+            viewModelScope.launch {
+                _operationState.value =
+                    OperationState.Error(
+                        "This invite type is no longer supported. Please ask for a household invite code instead."
+                    )
+                // Clean up the notification since it can't be processed
+                repository.deleteNotification(notificationId)
+                Log.w(TAG, "Legacy fridge invite attempted: $fridgeId - feature deprecated")
+            }
+        }
 
-        data object Processing : OperationState
-
-        data class Success(val message: String) : OperationState
-
-        data class Error(val message: String) : OperationState
-    }
-
-    /**
-     * Mark a notification as read.
-     */
-    fun markAsRead(notificationId: String) {
-        viewModelScope.launch {
-            _operationState.value = OperationState.Processing
-            repository.markAsRead(notificationId)
-                .onSuccess {
-                    _operationState.value = OperationState.Success("Marked as read")
-                    Log.d(TAG, "Notification $notificationId marked as read")
-                }
-                .onFailure { error ->
-                    _operationState.value = OperationState.Error("Failed to mark as read")
-                    Log.e(TAG, "Error marking notification as read", error)
-                }
+        /**
+         * Decline a fridge invitation from a notification.
+         *
+         * NOTE: This feature is deprecated. Invitations are now handled at the
+         * household level via invite codes. Legacy fridge invites are no longer supported.
+         */
+        @Deprecated("Fridge invites are now handled at household level via invite codes")
+        fun declineFridgeInvite(
+            fridgeId: String,
+            notificationId: String
+        ) {
+            viewModelScope.launch {
+                // Just delete the notification - can't process legacy invites
+                repository.deleteNotification(notificationId)
+                _operationState.value = OperationState.Success("Invite removed")
+                Log.w(TAG, "Legacy fridge invite declined: $fridgeId - feature deprecated")
+            }
         }
     }
-
-    /**
-     * Mark all notifications as read.
-     */
-    fun markAllAsRead() {
-        viewModelScope.launch {
-            _operationState.value = OperationState.Processing
-            repository.markAllAsRead()
-                .onSuccess {
-                    _operationState.value = OperationState.Success("All marked as read")
-                    Log.d(TAG, "All notifications marked as read")
-                }
-                .onFailure { error ->
-                    _operationState.value = OperationState.Error("Failed to mark all as read")
-                    Log.e(TAG, "Error marking all notifications as read", error)
-                }
-        }
-    }
-
-    /**
-     * Delete a notification.
-     */
-    fun deleteNotification(notificationId: String) {
-        viewModelScope.launch {
-            _operationState.value = OperationState.Processing
-            repository.deleteNotification(notificationId)
-                .onSuccess {
-                    _operationState.value = OperationState.Success("Notification deleted")
-                    Log.d(TAG, "Notification $notificationId deleted")
-                }
-                .onFailure { error ->
-                    _operationState.value = OperationState.Error("Failed to delete notification")
-                    Log.e(TAG, "Error deleting notification", error)
-                }
-        }
-    }
-
-    /**
-     * Reset operation state to idle.
-     */
-    fun resetOperationState() {
-        _operationState.value = OperationState.Idle
-    }
-
-    /**
-     * Accept a fridge invitation from a notification.
-     * 
-     * NOTE: This feature is deprecated. Invitations are now handled at the
-     * household level via invite codes. Legacy fridge invites are no longer supported.
-     */
-    @Deprecated("Fridge invites are now handled at household level via invite codes")
-    fun acceptFridgeInvite(
-        fridgeId: String,
-        notificationId: String
-    ) {
-        viewModelScope.launch {
-            _operationState.value = OperationState.Error(
-                "This invite type is no longer supported. Please ask for a household invite code instead."
-            )
-            // Clean up the notification since it can't be processed
-            repository.deleteNotification(notificationId)
-            Log.w(TAG, "Legacy fridge invite attempted: $fridgeId - feature deprecated")
-        }
-    }
-
-    /**
-     * Decline a fridge invitation from a notification.
-     * 
-     * NOTE: This feature is deprecated. Invitations are now handled at the
-     * household level via invite codes. Legacy fridge invites are no longer supported.
-     */
-    @Deprecated("Fridge invites are now handled at household level via invite codes")
-    fun declineFridgeInvite(
-        fridgeId: String,
-        notificationId: String
-    ) {
-        viewModelScope.launch {
-            // Just delete the notification - can't process legacy invites
-            repository.deleteNotification(notificationId)
-            _operationState.value = OperationState.Success("Invite removed")
-            Log.w(TAG, "Legacy fridge invite declined: $fridgeId - feature deprecated")
-        }
-    }
-}

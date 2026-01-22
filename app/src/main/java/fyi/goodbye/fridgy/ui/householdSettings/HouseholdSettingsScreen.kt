@@ -370,7 +370,9 @@ fun HouseholdSettingsScreen(
                                 type = "text/plain"
                                 putExtra(Intent.EXTRA_TEXT, shareText)
                             }
-                        context.startActivity(Intent.createChooser(intent, context.getString(R.string.share_invite_code_chooser)))
+                        context.startActivity(
+                            Intent.createChooser(intent, context.getString(R.string.share_invite_code_chooser))
+                        )
                     }
                 ) {
                     Icon(
@@ -534,12 +536,13 @@ fun CreateInviteCodeDialog(
 
                 Column {
                     @Composable
-                    fun expiryOptions() = listOf(
-                        1 to stringResource(R.string.one_day),
-                        7 to stringResource(R.string.seven_days),
-                        30 to stringResource(R.string.thirty_days),
-                        -1 to stringResource(R.string.invite_code_never_expires)
-                    )
+                    fun expiryOptions() =
+                        listOf(
+                            1 to stringResource(R.string.one_day),
+                            7 to stringResource(R.string.seven_days),
+                            30 to stringResource(R.string.thirty_days),
+                            -1 to stringResource(R.string.invite_code_never_expires)
+                        )
                     expiryOptions().forEach { (days, label) ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -643,7 +646,11 @@ fun InviteCodeItem(
                     }
                     inviteCode.expiresAt != null -> {
                         Text(
-                            text = stringResource(R.string.expires_on, dateFormatter.format(Date(inviteCode.expiresAt!!))),
+                            text =
+                                stringResource(
+                                    R.string.expires_on,
+                                    dateFormatter.format(Date(inviteCode.expiresAt!!))
+                                ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

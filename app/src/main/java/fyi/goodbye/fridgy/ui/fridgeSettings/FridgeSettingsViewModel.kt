@@ -9,7 +9,6 @@ import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import javax.inject.Inject
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.repositories.FridgeRepository
@@ -17,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel responsible for managing the settings of a specific fridge.
@@ -28,82 +28,83 @@ import kotlinx.coroutines.launch
  * @property fridgeId The unique ID of the fridge being managed.
  */
 @HiltViewModel
-class FridgeSettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    savedStateHandle: SavedStateHandle,
-    private val fridgeRepository: FridgeRepository,
-    private val firebaseAuth: FirebaseAuth
-) : ViewModel() {
-    private val fridgeId: String = savedStateHandle.get<String>("fridgeId") ?: ""
-    private val _uiState = MutableStateFlow<FridgeSettingsUiState>(FridgeSettingsUiState.Loading)
+class FridgeSettingsViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+        savedStateHandle: SavedStateHandle,
+        private val fridgeRepository: FridgeRepository,
+        private val firebaseAuth: FirebaseAuth
+    ) : ViewModel() {
+        private val fridgeId: String = savedStateHandle.get<String>("fridgeId") ?: ""
+        private val _uiState = MutableStateFlow<FridgeSettingsUiState>(FridgeSettingsUiState.Loading)
 
-    /** The current UI state of the fridge settings (Loading, Success, or Error). */
-    val uiState: StateFlow<FridgeSettingsUiState> = _uiState.asStateFlow()
+        /** The current UI state of the fridge settings (Loading, Success, or Error). */
+        val uiState: StateFlow<FridgeSettingsUiState> = _uiState.asStateFlow()
 
-    private val _isDeleting = MutableStateFlow(false)
+        private val _isDeleting = MutableStateFlow(false)
 
-    /** Indicates if a delete operation is currently in progress. */
-    val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
+        /** Indicates if a delete operation is currently in progress. */
+        val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
 
-    private val _actionError = MutableStateFlow<String?>(null)
+        private val _actionError = MutableStateFlow<String?>(null)
 
-    /** Any error message resulting from a failed delete action. */
-    val actionError: StateFlow<String?> = _actionError.asStateFlow()
+        /** Any error message resulting from a failed delete action. */
+        val actionError: StateFlow<String?> = _actionError.asStateFlow()
 
-    /** The User ID of the currently authenticated user. */
-    val currentUserId = firebaseAuth.currentUser?.uid
+        /** The User ID of the currently authenticated user. */
+        val currentUserId = firebaseAuth.currentUser?.uid
 
-    init {
-        loadFridgeDetails()
-    }
+        init {
+            loadFridgeDetails()
+        }
 
-    private fun loadFridgeDetails() {
-        viewModelScope.launch {
-            _uiState.value = FridgeSettingsUiState.Loading
-            try {
-                val displayFridge = fridgeRepository.getFridgeById(fridgeId)
-                val rawFridge = fridgeRepository.getRawFridgeById(fridgeId)
+        private fun loadFridgeDetails() {
+            viewModelScope.launch {
+                _uiState.value = FridgeSettingsUiState.Loading
+                try {
+                    val displayFridge = fridgeRepository.getFridgeById(fridgeId)
+                    val rawFridge = fridgeRepository.getRawFridgeById(fridgeId)
 
-                if (displayFridge != null && rawFridge != null) {
-                    _uiState.value = FridgeSettingsUiState.Success(displayFridge, rawFridge)
-                } else {
-                    _uiState.value = FridgeSettingsUiState.Error(context.getString(R.string.error_fridge_not_found))
+                    if (displayFridge != null && rawFridge != null) {
+                        _uiState.value = FridgeSettingsUiState.Success(displayFridge, rawFridge)
+                    } else {
+                        _uiState.value = FridgeSettingsUiState.Error(context.getString(R.string.error_fridge_not_found))
+                    }
+                } catch (e: Exception) {
+                    _uiState.value = FridgeSettingsUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_fridge))
+                    Log.e("FridgeSettingsVM", "Error fetching fridge details for $fridgeId: ${e.message}", e)
                 }
-            } catch (e: Exception) {
-                _uiState.value = FridgeSettingsUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_fridge))
-                Log.e("FridgeSettingsVM", "Error fetching fridge details for $fridgeId: ${e.message}", e)
             }
         }
-    }
 
-    /**
-     * Permanently deletes the fridge and all its data.
-     *
-     * @param onSuccess Callback triggered after successful deletion.
-     */
-    fun deleteFridge(onSuccess: () -> Unit) {
-        _isDeleting.value = true
-        _actionError.value = null
-        viewModelScope.launch {
-            try {
-                fridgeRepository.deleteFridge(fridgeId)
-                onSuccess()
-            } catch (e: Exception) {
-                _actionError.value = e.message
-                Log.e("FridgeSettingsVM", "Error deleting fridge: ${e.message}")
-            } finally {
-                _isDeleting.value = false
+        /**
+         * Permanently deletes the fridge and all its data.
+         *
+         * @param onSuccess Callback triggered after successful deletion.
+         */
+        fun deleteFridge(onSuccess: () -> Unit) {
+            _isDeleting.value = true
+            _actionError.value = null
+            viewModelScope.launch {
+                try {
+                    fridgeRepository.deleteFridge(fridgeId)
+                    onSuccess()
+                } catch (e: Exception) {
+                    _actionError.value = e.message
+                    Log.e("FridgeSettingsVM", "Error deleting fridge: ${e.message}")
+                } finally {
+                    _isDeleting.value = false
+                }
             }
         }
+
+        /** Sealed interface representing the possible UI states for fridge settings. */
+        sealed interface FridgeSettingsUiState {
+            data object Loading : FridgeSettingsUiState
+
+            data class Success(val fridge: DisplayFridge, val fridgeData: Fridge) : FridgeSettingsUiState
+
+            data class Error(val message: String) : FridgeSettingsUiState
+        }
     }
-
-    /** Sealed interface representing the possible UI states for fridge settings. */
-    sealed interface FridgeSettingsUiState {
-        data object Loading : FridgeSettingsUiState
-
-        data class Success(val fridge: DisplayFridge, val fridgeData: Fridge) : FridgeSettingsUiState
-
-        data class Error(val message: String) : FridgeSettingsUiState
-    }
-
-}

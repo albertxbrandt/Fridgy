@@ -41,7 +41,6 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
-
     /**
      * Provides the fridge repository for fridge and item operations.
      *
@@ -124,9 +123,7 @@ object RepositoryModule {
      */
     @Provides
     @Singleton
-    fun provideCategoryRepository(
-        firestore: FirebaseFirestore
-    ): CategoryRepository = CategoryRepository(firestore)
+    fun provideCategoryRepository(firestore: FirebaseFirestore): CategoryRepository = CategoryRepository(firestore)
 
     /**
      * Provides the admin repository for admin operations.

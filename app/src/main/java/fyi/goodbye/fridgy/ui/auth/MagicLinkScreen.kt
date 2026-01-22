@@ -74,11 +74,12 @@ fun MagicLinkScreen(
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp)
-                .background(MaterialTheme.colorScheme.background),
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(horizontal = 24.dp)
+                    .background(MaterialTheme.colorScheme.background),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -86,9 +87,10 @@ fun MagicLinkScreen(
             Image(
                 painter = painterResource(id = R.drawable.logo),
                 contentDescription = stringResource(R.string.cd_fridge_logo),
-                modifier = Modifier
-                    .size(160.dp)
-                    .padding(bottom = 32.dp)
+                modifier =
+                    Modifier
+                        .size(160.dp)
+                        .padding(bottom = 32.dp)
             )
 
             AnimatedContent(
@@ -172,10 +174,11 @@ private fun EmailEntryContent(
             value = email,
             onValueChange = onEmailChange,
             label = { Text(stringResource(R.string.email)) },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Done
-            ),
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Done
+                ),
             singleLine = true,
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth()
@@ -186,9 +189,10 @@ private fun EmailEntryContent(
         SquaredButton(
             onClick = onSendLink,
             enabled = email.isNotBlank() && !isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -265,9 +269,10 @@ private fun EmailSentContent(
         SquaredButton(
             onClick = onResendLink,
             enabled = !isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -325,10 +330,11 @@ private fun UsernameEntryContent(
             value = username,
             onValueChange = onUsernameChange,
             label = { Text(stringResource(R.string.username)) },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Done
-            ),
+            keyboardOptions =
+                KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done
+                ),
             singleLine = true,
             enabled = !isLoading,
             modifier = Modifier.fillMaxWidth()
@@ -346,9 +352,10 @@ private fun UsernameEntryContent(
         SquaredButton(
             onClick = onComplete,
             enabled = username.isNotBlank() && !isLoading,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
@@ -370,9 +377,10 @@ private fun UsernameEntryContent(
 @Composable
 private fun ProcessingContent() {
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(32.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -417,9 +425,10 @@ private fun ErrorContent(
 
         SquaredButton(
             onClick = onRetry,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
         ) {
             Text(
                 text = stringResource(R.string.try_again),

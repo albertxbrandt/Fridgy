@@ -20,6 +20,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -28,7 +29,6 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -179,9 +179,9 @@ fun NewProductDialog(
                     shape = MaterialTheme.shapes.medium,
                     singleLine = true
                 )
-                
+
                 Spacer(modifier = Modifier.height(12.dp))
-                
+
                 // Size/Unit Section
                 Text(
                     "Size/Unit (Optional)",
@@ -189,7 +189,7 @@ fun NewProductDialog(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -204,7 +204,7 @@ fun NewProductDialog(
                         shape = MaterialTheme.shapes.medium,
                         singleLine = true
                     )
-                    
+
                     // Unit dropdown
                     ExposedDropdownMenuBox(
                         expanded = showUnitDropdown,
@@ -212,11 +212,12 @@ fun NewProductDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         OutlinedTextField(
-                            value = when {
-                                showCustomUnitInput -> customUnit
-                                selectedUnit != null -> selectedUnit!!.displayName
-                                else -> ""
-                            },
+                            value =
+                                when {
+                                    showCustomUnitInput -> customUnit
+                                    selectedUnit != null -> selectedUnit!!.displayName
+                                    else -> ""
+                                },
                             onValueChange = {
                                 if (showCustomUnitInput) {
                                     customUnit = it
@@ -229,13 +230,14 @@ fun NewProductDialog(
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitDropdown)
                                 }
                             },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .menuAnchor(),
                             shape = MaterialTheme.shapes.medium,
                             singleLine = true
                         )
-                        
+
                         ExposedDropdownMenu(
                             expanded = showUnitDropdown,
                             onDismissRequest = { showUnitDropdown = false }
@@ -256,7 +258,7 @@ fun NewProductDialog(
                         }
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(20.dp))
                 Text(
                     stringResource(R.string.category),
@@ -287,14 +289,15 @@ fun NewProductDialog(
         },
         confirmButton = {
             FilledTonalButton(
-                onClick = { 
+                onClick = {
                     val size = sizeText.toDoubleOrNull()
-                    val unit = when {
-                        showCustomUnitInput && customUnit.isNotBlank() -> customUnit
-                        selectedUnit != null && selectedUnit != SizeUnit.OTHER -> selectedUnit!!.name
-                        else -> null
-                    }
-                    onConfirm(productName, productBrand, selectedCategory, capturedImageUri, size, unit) 
+                    val unit =
+                        when {
+                            showCustomUnitInput && customUnit.isNotBlank() -> customUnit
+                            selectedUnit != null && selectedUnit != SizeUnit.OTHER -> selectedUnit!!.name
+                            else -> null
+                        }
+                    onConfirm(productName, productBrand, selectedCategory, capturedImageUri, size, unit)
                 },
                 enabled = productName.isNotBlank()
             ) {

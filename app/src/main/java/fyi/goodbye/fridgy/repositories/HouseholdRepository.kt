@@ -173,7 +173,7 @@ class HouseholdRepository(
 
             // Cache for user profiles to avoid repeated queries
             val userProfileCache = mutableMapOf<String, UserProfile>()
-            
+
             // Map to track fridge count listeners for each household
             val fridgeCountListeners = mutableMapOf<String, com.google.firebase.firestore.ListenerRegistration>()
             val householdData = mutableMapOf<String, Pair<Household, Int>>() // household to (household, fridgeCount)
@@ -255,7 +255,10 @@ class HouseholdRepository(
                                             if (fridgeError != null) {
                                                 // Handle permission errors gracefully (user might not have access yet)
                                                 if (fridgeError.message?.contains("PERMISSION_DENIED") == true) {
-                                                    Log.d(TAG, "Permission denied for fridge count in household ${household.id} - setting count to 0")
+                                                    Log.d(
+                                                        TAG,
+                                                        "Permission denied for fridge count in household ${household.id} - setting count to 0"
+                                                    )
                                                     householdData[household.id] = household to 0
                                                 } else {
                                                     Log.e(TAG, "Error in fridge count listener: ${fridgeError.message}")
@@ -401,7 +404,7 @@ class HouseholdRepository(
         // still attempt to remove user from members list
         try {
             val household = getHouseholdById(householdId)
-            
+
             if (household != null) {
                 if (currentUserId == household.createdBy) {
                     throw IllegalStateException("Owner cannot leave the household. Delete it instead.")
@@ -801,21 +804,25 @@ class HouseholdRepository(
                 if (userQuantity > 0 && targetFridgeId != null) {
                     // Create individual item instances for each unit obtained
                     // Items are now stored as individual instances, not aggregated by UPC
-                    val itemsCollection = firestore.collection("fridges")
-                        .document(targetFridgeId)
-                        .collection("items")
+                    val itemsCollection =
+                        firestore.collection("fridges")
+                            .document(targetFridgeId)
+                            .collection("items")
 
                     repeat(userQuantity) {
-                        val newItemRef = itemsCollection.document() // Auto-generate ID
-                        val newItem = Item(
-                            upc = item.upc,
-                            expirationDate = null, // No expiration from shopping list
-                            addedBy = currentUserId,
-                            addedAt = System.currentTimeMillis(),
-                            lastUpdatedBy = currentUserId,
-                            lastUpdatedAt = System.currentTimeMillis(),
-                            householdId = householdId
-                        )
+                        // Auto-generate ID
+                        val newItemRef = itemsCollection.document()
+                        val newItem =
+                            Item(
+                                upc = item.upc,
+                                // No expiration from shopping list
+                                expirationDate = null,
+                                addedBy = currentUserId,
+                                addedAt = System.currentTimeMillis(),
+                                lastUpdatedBy = currentUserId,
+                                lastUpdatedAt = System.currentTimeMillis(),
+                                householdId = householdId
+                            )
                         batch.set(newItemRef, newItem)
                     }
 
@@ -914,16 +921,19 @@ class HouseholdRepository(
                     }
 
                     val currentTime = System.currentTimeMillis()
-                    
+
                     // Collect active user IDs and their timestamps first (no async here)
-                    val activeUserData = snapshot?.documents?.mapNotNull { doc ->
-                        val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
-                        val userId = doc.getString("userId")
-                        // Consider active if seen within last 30 seconds
-                        if (userId != null && (currentTime - lastSeen) < PRESENCE_TIMEOUT_MS) {
-                            userId to lastSeen
-                        } else null
-                    } ?: emptyList()
+                    val activeUserData =
+                        snapshot?.documents?.mapNotNull { doc ->
+                            val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+                            val userId = doc.getString("userId")
+                            // Consider active if seen within last 30 seconds
+                            if (userId != null && (currentTime - lastSeen) < PRESENCE_TIMEOUT_MS) {
+                                userId to lastSeen
+                            } else {
+                                null
+                            }
+                        } ?: emptyList()
 
                     if (activeUserData.isEmpty()) {
                         trySend(emptyList()).isSuccess
@@ -935,11 +945,12 @@ class HouseholdRepository(
                         try {
                             val userIds = activeUserData.map { it.first }
                             val profiles = getUsersByIds(userIds)
-                            
-                            val viewers = activeUserData.mapNotNull { (userId, lastSeen) ->
-                                val username = profiles[userId]?.username ?: return@mapNotNull null
-                                ActiveViewer(userId, username, lastSeen)
-                            }
+
+                            val viewers =
+                                activeUserData.mapNotNull { (userId, lastSeen) ->
+                                    val username = profiles[userId]?.username ?: return@mapNotNull null
+                                    ActiveViewer(userId, username, lastSeen)
+                                }
                             trySend(viewers).isSuccess
                         } catch (ex: Exception) {
                             Log.e(TAG, "Error fetching user profiles for presence", ex)

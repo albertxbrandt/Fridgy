@@ -282,14 +282,15 @@ class ProductRepository(
         imageUri: Uri?
     ): Product {
         // Generate search tokens if not already present
-        val searchTokens = if (product.searchTokens.isEmpty()) {
-            Product.generateSearchTokens(product.name, product.brand)
-        } else {
-            product.searchTokens
-        }
-        
+        val searchTokens =
+            if (product.searchTokens.isEmpty()) {
+                Product.generateSearchTokens(product.name, product.brand)
+            } else {
+                product.searchTokens
+            }
+
         val productWithTokens = product.copy(searchTokens = searchTokens)
-        
+
         // Update cache immediately for optimistic UI
         productCache[product.upc] = productWithTokens
 
@@ -342,17 +343,17 @@ class ProductRepository(
      * 1. Array-contains query on searchTokens (most efficient for products with tokens)
      * 2. Firestore range query for prefix matching on name field
      * 3. Fallback to recent products with client-side filtering
-     * 
+     *
      * Note: Firestore doesn't support full-text search natively. This implementation:
      * - Uses searchTokens array-contains for efficient word/prefix matching
      * - Falls back to range queries for older products without tokens
      * - Client-side filters only a limited subset (last 100 products)
-     * 
+     *
      * For production-grade search with typo tolerance, consider:
      * - Algolia (https://www.algolia.com/)
      * - Typesense (https://typesense.org/)
      * - Meilisearch (https://www.meilisearch.com/)
-     * 
+     *
      * @param query The search query (case insensitive)
      * @return List of matching products, limited to 20 results
      */
@@ -361,20 +362,21 @@ class ProductRepository(
 
         return try {
             val queryLower = query.trim().lowercase()
-            
+
             // Approach 1: Use searchTokens array-contains (best for products with tokens)
             // This requires a composite index: searchTokens (ARRAY) + lastUpdated (DESCENDING)
-            val tokenResults = productsCollection
-                .whereArrayContains("searchTokens", queryLower)
-                .orderBy("lastUpdated", Query.Direction.DESCENDING)
-                .limit(20)
-                .get()
-                .await()
-                .documents
-                .mapNotNull { doc ->
-                    doc.toObject(Product::class.java)?.copy(upc = doc.id)
-                }
-            
+            val tokenResults =
+                productsCollection
+                    .whereArrayContains("searchTokens", queryLower)
+                    .orderBy("lastUpdated", Query.Direction.DESCENDING)
+                    .limit(20)
+                    .get()
+                    .await()
+                    .documents
+                    .mapNotNull { doc ->
+                        doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                    }
+
             // If we found results with tokens, return them
             if (tokenResults.isNotEmpty()) {
                 Log.d("ProductRepo", "Search found ${tokenResults.size} products via searchTokens")
@@ -385,18 +387,19 @@ class ProductRepository(
             // Works only for queries that start with the product name
             // Requires composite index: name (ASCENDING) + lastUpdated (DESCENDING)
             // Example: "choc" matches "Chocolate Milk" but not "Dark Chocolate"
-            val prefixResults = productsCollection
-                .orderBy("name")
-                .startAt(queryLower)
-                .endAt(queryLower + "\uf8ff") // Unicode high character for range end
-                .limit(20)
-                .get()
-                .await()
-                .documents
-                .mapNotNull { doc ->
-                    doc.toObject(Product::class.java)?.copy(upc = doc.id)
-                }
-                .sortedByDescending { it.lastUpdated } // Sort by recency
+            val prefixResults =
+                productsCollection
+                    .orderBy("name")
+                    .startAt(queryLower)
+                    .endAt(queryLower + "\uf8ff") // Unicode high character for range end
+                    .limit(20)
+                    .get()
+                    .await()
+                    .documents
+                    .mapNotNull { doc ->
+                        doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                    }
+                    .sortedByDescending { it.lastUpdated } // Sort by recency
 
             if (prefixResults.isNotEmpty()) {
                 Log.d("ProductRepo", "Search found ${prefixResults.size} products via prefix matching")
@@ -406,21 +409,22 @@ class ProductRepository(
             // Approach 3: Fallback - query recent 100 products, filter client-side
             // This is safe because we're limiting the query size
             Log.d("ProductRepo", "Falling back to recent products search")
-            val recentResults = productsCollection
-                .orderBy("lastUpdated", Query.Direction.DESCENDING)
-                .limit(100)
-                .get()
-                .await()
-                .documents
-                .mapNotNull { doc ->
-                    doc.toObject(Product::class.java)?.copy(upc = doc.id)
-                }
-                .filter { product ->
-                    product.name.lowercase().contains(queryLower) ||
+            val recentResults =
+                productsCollection
+                    .orderBy("lastUpdated", Query.Direction.DESCENDING)
+                    .limit(100)
+                    .get()
+                    .await()
+                    .documents
+                    .mapNotNull { doc ->
+                        doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                    }
+                    .filter { product ->
+                        product.name.lowercase().contains(queryLower) ||
                             product.brand.lowercase().contains(queryLower) ||
                             product.upc.contains(query, ignoreCase = true)
-                }
-                .take(20)
+                    }
+                    .take(20)
 
             Log.d("ProductRepo", "Search completed: ${recentResults.size} results")
             recentResults
@@ -429,6 +433,4 @@ class ProductRepository(
             emptyList()
         }
     }
-
 }
-

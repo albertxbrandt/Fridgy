@@ -16,7 +16,7 @@ import fyi.goodbye.fridgy.models.SizeUnit
 
 /**
  * Dialog for selecting size and unit for an item.
- * 
+ *
  * @param productName The name of the product
  * @param onSizeSelected Called when user confirms with size/unit (null for both means skip)
  * @param onDismiss Called when user cancels
@@ -36,16 +36,18 @@ fun SizeSelectionDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight(),
             shape = MaterialTheme.shapes.large
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp)
-                    .verticalScroll(rememberScrollState())
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp)
+                        .verticalScroll(rememberScrollState())
             ) {
                 Text(
                     text = stringResource(R.string.add_size_unit),
@@ -77,12 +79,13 @@ fun SizeSelectionDialog(
                     onExpandedChange = { showUnitDropdown = it }
                 ) {
                     OutlinedTextField(
-                        value = when {
-                            showCustomUnitInput -> customUnit
-                            selectedUnit != null -> selectedUnit!!.displayName
-                            else -> ""
-                        },
-                        onValueChange = { 
+                        value =
+                            when {
+                                showCustomUnitInput -> customUnit
+                                selectedUnit != null -> selectedUnit!!.displayName
+                                else -> ""
+                            },
+                        onValueChange = {
                             if (showCustomUnitInput) {
                                 customUnit = it
                             }
@@ -94,9 +97,10 @@ fun SizeSelectionDialog(
                                 ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitDropdown)
                             }
                         },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
                         singleLine = true,
                         enabled = !showCustomUnitInput || selectedUnit == SizeUnit.OTHER
                     )
@@ -145,12 +149,13 @@ fun SizeSelectionDialog(
                     Button(
                         onClick = {
                             val size = sizeText.toDoubleOrNull()
-                            val unit = when {
-                                showCustomUnitInput && customUnit.isNotBlank() -> customUnit
-                                selectedUnit != null && selectedUnit != SizeUnit.OTHER -> selectedUnit!!.name
-                                else -> null
-                            }
-                            
+                            val unit =
+                                when {
+                                    showCustomUnitInput && customUnit.isNotBlank() -> customUnit
+                                    selectedUnit != null && selectedUnit != SizeUnit.OTHER -> selectedUnit!!.name
+                                    else -> null
+                                }
+
                             if (size != null && unit != null) {
                                 onSizeSelected(size, unit)
                             } else {

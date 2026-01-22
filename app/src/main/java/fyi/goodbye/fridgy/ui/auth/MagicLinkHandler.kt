@@ -18,30 +18,31 @@ import javax.inject.Singleton
  * and restarted from the deep link.
  */
 @Singleton
-class MagicLinkHandler @Inject constructor() {
-    
-    private val _pendingIntent = MutableStateFlow<Intent?>(null)
-    
-    /**
-     * Flow of pending magic link intents.
-     * MagicLinkViewModel observes this to handle incoming magic links.
-     */
-    val pendingIntent: StateFlow<Intent?> = _pendingIntent.asStateFlow()
-    
-    /**
-     * Called by MainActivity when a new intent is received that could be a magic link.
-     * 
-     * @param intent The incoming intent from the deep link.
-     */
-    fun handleIntent(intent: Intent?) {
-        _pendingIntent.value = intent
+class MagicLinkHandler
+    @Inject
+    constructor() {
+        private val _pendingIntent = MutableStateFlow<Intent?>(null)
+
+        /**
+         * Flow of pending magic link intents.
+         * MagicLinkViewModel observes this to handle incoming magic links.
+         */
+        val pendingIntent: StateFlow<Intent?> = _pendingIntent.asStateFlow()
+
+        /**
+         * Called by MainActivity when a new intent is received that could be a magic link.
+         *
+         * @param intent The incoming intent from the deep link.
+         */
+        fun handleIntent(intent: Intent?) {
+            _pendingIntent.value = intent
+        }
+
+        /**
+         * Clears the pending intent after it has been processed.
+         * This prevents the same magic link from being processed multiple times.
+         */
+        fun clearPendingIntent() {
+            _pendingIntent.value = null
+        }
     }
-    
-    /**
-     * Clears the pending intent after it has been processed.
-     * This prevents the same magic link from being processed multiple times.
-     */
-    fun clearPendingIntent() {
-        _pendingIntent.value = null
-    }
-}

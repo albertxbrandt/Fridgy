@@ -74,9 +74,10 @@ private fun JoinHouseholdDialogContent(
         },
         text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
@@ -102,9 +103,14 @@ private fun JoinHouseholdDialogContent(
                         ) {
                             Text(
                                 "ABC123",
-                                style = MaterialTheme.typography.headlineSmall.copy(
-                                    letterSpacing = androidx.compose.ui.unit.TextUnit(8f, androidx.compose.ui.unit.TextUnitType.Sp)
-                                )
+                                style =
+                                    MaterialTheme.typography.headlineSmall.copy(
+                                        letterSpacing =
+                                            androidx.compose.ui.unit.TextUnit(
+                                                8f,
+                                                androidx.compose.ui.unit.TextUnitType.Sp
+                                            )
+                                    )
                             )
                         }
                     },
@@ -119,7 +125,11 @@ private fun JoinHouseholdDialogContent(
                     textStyle =
                         MaterialTheme.typography.headlineSmall.copy(
                             textAlign = TextAlign.Center,
-                            letterSpacing = androidx.compose.ui.unit.TextUnit(8f, androidx.compose.ui.unit.TextUnitType.Sp)
+                            letterSpacing =
+                                androidx.compose.ui.unit.TextUnit(
+                                    8f,
+                                    androidx.compose.ui.unit.TextUnitType.Sp
+                                )
                         ),
                     isError = uiState is JoinHouseholdViewModel.JoinHouseholdUiState.Error,
                     enabled =
@@ -238,10 +248,11 @@ private fun JoinHouseholdDialogContent(
                     Button(
                         onClick = { },
                         enabled = false,
-                        colors = ButtonDefaults.buttonColors(
-                            disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                            disabledContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                disabledContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
                     ) {
                         Text(stringResource(R.string.already_a_member))
                     }

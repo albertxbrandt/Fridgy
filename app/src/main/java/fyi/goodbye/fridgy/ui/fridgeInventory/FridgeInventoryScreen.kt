@@ -228,7 +228,7 @@ fun FridgeInventoryScreen(
                                 ) {
                                     // Group items by UPC for bundled display
                                     val groupedItems = items.groupBy { it.product.upc }
-                                    
+
                                     groupedItems.forEach { (upc, itemGroup) ->
                                         item(key = upc) {
                                             InventoryItemCard(
@@ -262,7 +262,7 @@ fun FridgeInventoryScreen(
             onDismiss = { viewModel.cancelPendingProduct() }
         )
     }
-    
+
     // Show expiration date picker for scanned items
     val pendingItemForDate by viewModel.pendingItemForDate.collectAsState()
     if (pendingItemForDate != null) {
@@ -275,7 +275,7 @@ fun FridgeInventoryScreen(
                 productName = product.name
             }
         }
-        
+
         ExpirationDateDialog(
             productName = productName,
             onDateSelected = { date ->

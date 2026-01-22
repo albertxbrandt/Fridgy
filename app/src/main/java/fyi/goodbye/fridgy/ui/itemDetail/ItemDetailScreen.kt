@@ -9,13 +9,11 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,7 +47,7 @@ fun ItemDetailScreen(
     val userNames by viewModel.userNames.collectAsState()
     val pendingItemForDate by viewModel.pendingItemForDate.collectAsState()
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()) }
-    
+
     // Navigate back when all items are deleted
     LaunchedEffect(uiState) {
         if (uiState is ItemDetailViewModel.ItemDetailUiState.Success) {
@@ -59,7 +57,7 @@ fun ItemDetailScreen(
             }
         }
     }
-    
+
     // Show date picker dialog when needed
     pendingItemForDate?.let { upc ->
         LaunchedEffect(upc) {
@@ -68,7 +66,7 @@ fun ItemDetailScreen(
                 // Dialog will be shown below
             }
         }
-        
+
         val currentState = uiState
         if (currentState is ItemDetailViewModel.ItemDetailUiState.Success) {
             ExpirationDateDialog(
@@ -192,10 +190,14 @@ fun ItemDetailScreen(
                             fontSize = 14.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         // Product size/unit
                         if (product.size != null && product.unit != null) {
-                            val sizeUnitText = fyi.goodbye.fridgy.models.SizeUnit.formatSizeUnit(product.size, product.unit)
+                            val sizeUnitText =
+                                fyi.goodbye.fridgy.models.SizeUnit.formatSizeUnit(
+                                    product.size,
+                                    product.unit
+                                )
                             if (sizeUnitText != null) {
                                 Text(
                                     text = sizeUnitText,
@@ -225,7 +227,7 @@ fun ItemDetailScreen(
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 18.sp
                                     )
-                                    
+
                                     Button(
                                         onClick = { viewModel.showAddInstanceDialog() },
                                         modifier = Modifier.height(36.dp)
@@ -239,7 +241,7 @@ fun ItemDetailScreen(
                                         Text("Add")
                                     }
                                 }
-                                
+
                                 Spacer(modifier = Modifier.height(12.dp))
 
                                 items.forEachIndexed { index, item ->
@@ -249,14 +251,14 @@ fun ItemDetailScreen(
                                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                                         )
                                     }
-                                    
+
                                     ItemInstanceCard(
                                         item = item,
                                         product = product,
                                         userNames = userNames,
                                         dateFormatter = dateFormatter,
-                                        onDelete = { 
-                                            viewModel.deleteItem(item.id) 
+                                        onDelete = {
+                                            viewModel.deleteItem(item.id)
                                         }
                                     )
                                 }
@@ -290,23 +292,24 @@ fun ItemInstanceCard(
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 if (item.expirationDate != null) {
                     val expirationDateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
                     val isExpired = fyi.goodbye.fridgy.models.Item.isExpired(item.expirationDate)
                     val isExpiringSoon = fyi.goodbye.fridgy.models.Item.isExpiringSoon(item.expirationDate)
-                    
+
                     Text(
                         text = expirationDateFormatter.format(Date(item.expirationDate)),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = when {
-                            isExpired -> MaterialTheme.colorScheme.error
-                            isExpiringSoon -> Color(0xFFFFA726) // Orange
-                            else -> MaterialTheme.colorScheme.primary
-                        }
+                        color =
+                            when {
+                                isExpired -> MaterialTheme.colorScheme.error
+                                isExpiringSoon -> Color(0xFFFFA726) // Orange
+                                else -> MaterialTheme.colorScheme.primary
+                            }
                     )
-                    
+
                     if (isExpired) {
                         Text(
                             text = "Expired",

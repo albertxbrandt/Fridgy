@@ -100,9 +100,10 @@ fun ConfirmationDialog(
                         onConfirm()
                     },
                     enabled = !requiresTextConfirmation || confirmText == confirmationWord,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
-                    )
+                    colors =
+                        ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
                 ) {
                     Text(confirmButtonText)
                 }

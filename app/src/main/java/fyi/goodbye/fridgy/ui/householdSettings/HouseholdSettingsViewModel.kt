@@ -9,11 +9,9 @@ import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import javax.inject.Inject
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +20,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.temporal.ChronoUnit
+import javax.inject.Inject
 
 /**
  * ViewModel responsible for managing household settings.
@@ -29,225 +28,226 @@ import java.time.temporal.ChronoUnit
  * Handles member management, invite code generation, and household deletion/leave.
  */
 @HiltViewModel
-class HouseholdSettingsViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    savedStateHandle: SavedStateHandle,
-    private val householdRepository: HouseholdRepository,
-    private val firebaseAuth: FirebaseAuth
-) : ViewModel() {
-    private val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
-    private val _uiState = MutableStateFlow<HouseholdSettingsUiState>(HouseholdSettingsUiState.Loading)
-    val uiState: StateFlow<HouseholdSettingsUiState> = _uiState.asStateFlow()
+class HouseholdSettingsViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+        savedStateHandle: SavedStateHandle,
+        private val householdRepository: HouseholdRepository,
+        private val firebaseAuth: FirebaseAuth
+    ) : ViewModel() {
+        private val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
+        private val _uiState = MutableStateFlow<HouseholdSettingsUiState>(HouseholdSettingsUiState.Loading)
+        val uiState: StateFlow<HouseholdSettingsUiState> = _uiState.asStateFlow()
 
-    private val _inviteCodes = MutableStateFlow<List<InviteCode>>(emptyList())
-    val inviteCodes: StateFlow<List<InviteCode>> = _inviteCodes.asStateFlow()
+        private val _inviteCodes = MutableStateFlow<List<InviteCode>>(emptyList())
+        val inviteCodes: StateFlow<List<InviteCode>> = _inviteCodes.asStateFlow()
 
-    private val _isCreatingInvite = MutableStateFlow(false)
-    val isCreatingInvite: StateFlow<Boolean> = _isCreatingInvite.asStateFlow()
+        private val _isCreatingInvite = MutableStateFlow(false)
+        val isCreatingInvite: StateFlow<Boolean> = _isCreatingInvite.asStateFlow()
 
-    private val _newInviteCode = MutableStateFlow<InviteCode?>(null)
-    val newInviteCode: StateFlow<InviteCode?> = _newInviteCode.asStateFlow()
+        private val _newInviteCode = MutableStateFlow<InviteCode?>(null)
+        val newInviteCode: StateFlow<InviteCode?> = _newInviteCode.asStateFlow()
 
-    private val _isDeletingOrLeaving = MutableStateFlow(false)
-    val isDeletingOrLeaving: StateFlow<Boolean> = _isDeletingOrLeaving.asStateFlow()
+        private val _isDeletingOrLeaving = MutableStateFlow(false)
+        val isDeletingOrLeaving: StateFlow<Boolean> = _isDeletingOrLeaving.asStateFlow()
 
-    // Flag to prevent Flow errors when user is leaving/deleted
-    private var isLeavingOrDeleted = false
+        // Flag to prevent Flow errors when user is leaving/deleted
+        private var isLeavingOrDeleted = false
 
-    // Job reference for cancelling the invite codes listener
-    private var inviteCodesJob: Job? = null
+        // Job reference for cancelling the invite codes listener
+        private var inviteCodesJob: Job? = null
 
-    private val _actionError = MutableStateFlow<String?>(null)
-    val actionError: StateFlow<String?> = _actionError.asStateFlow()
+        private val _actionError = MutableStateFlow<String?>(null)
+        val actionError: StateFlow<String?> = _actionError.asStateFlow()
 
-    val currentUserId = firebaseAuth.currentUser?.uid
+        val currentUserId = firebaseAuth.currentUser?.uid
 
-    init {
-        loadHouseholdDetails()
-        loadInviteCodes()
-    }
-
-    private fun loadHouseholdDetails() {
-        viewModelScope.launch {
-            _uiState.value = HouseholdSettingsUiState.Loading
-            try {
-                val displayHousehold = householdRepository.getDisplayHouseholdById(householdId)
-                if (displayHousehold != null) {
-                    _uiState.value = HouseholdSettingsUiState.Success(displayHousehold)
-                } else {
-                    _uiState.value =
-                        HouseholdSettingsUiState.Error(
-                            context.getString(R.string.error_fridge_not_found)
-                        )
-                }
-            } catch (e: Exception) {
-                _uiState.value =
-                    HouseholdSettingsUiState.Error(
-                        e.message ?: context.getString(R.string.error_failed_to_load_fridge)
-                    )
-                Log.e("HouseholdSettingsVM", "Error loading household: ${e.message}", e)
-            }
+        init {
+            loadHouseholdDetails()
+            loadInviteCodes()
         }
-    }
 
-    private fun loadInviteCodes() {
-        inviteCodesJob =
+        private fun loadHouseholdDetails() {
             viewModelScope.launch {
+                _uiState.value = HouseholdSettingsUiState.Loading
                 try {
-                    householdRepository.getInviteCodesFlow(householdId).collectLatest { codes ->
-                        if (!isLeavingOrDeleted) {
-                            _inviteCodes.value = codes.sortedByDescending { it.createdAt }
-                        }
+                    val displayHousehold = householdRepository.getDisplayHouseholdById(householdId)
+                    if (displayHousehold != null) {
+                        _uiState.value = HouseholdSettingsUiState.Success(displayHousehold)
+                    } else {
+                        _uiState.value =
+                            HouseholdSettingsUiState.Error(
+                                context.getString(R.string.error_fridge_not_found)
+                            )
                     }
                 } catch (e: Exception) {
-                    // Ignore errors if we're leaving/deleted (permissions revoked)
-                    if (!isLeavingOrDeleted) {
-                        Log.e("HouseholdSettingsVM", "Error loading invite codes: ${e.message}")
-                    }
+                    _uiState.value =
+                        HouseholdSettingsUiState.Error(
+                            e.message ?: context.getString(R.string.error_failed_to_load_fridge)
+                        )
+                    Log.e("HouseholdSettingsVM", "Error loading household: ${e.message}", e)
                 }
             }
-    }
+        }
 
-    /**
-     * Cancels all active Firestore listeners to prevent permission errors.
-     */
-    private fun cancelAllListeners() {
-        inviteCodesJob?.cancel()
-        inviteCodesJob = null
-    }
-
-    /**
-     * Creates a new invite code for this household.
-     *
-     * @param expiresInDays Number of days until the code expires. Null for no expiration.
-     */
-    fun createInviteCode(expiresInDays: Int? = 7) {
-        _isCreatingInvite.value = true
-        _newInviteCode.value = null
-
-        viewModelScope.launch {
-            try {
-                val expiresAt =
-                    if (expiresInDays != null) {
-                        Instant.now().plus(expiresInDays.toLong(), ChronoUnit.DAYS).toEpochMilli()
-                    } else {
-                        null
+        private fun loadInviteCodes() {
+            inviteCodesJob =
+                viewModelScope.launch {
+                    try {
+                        householdRepository.getInviteCodesFlow(householdId).collectLatest { codes ->
+                            if (!isLeavingOrDeleted) {
+                                _inviteCodes.value = codes.sortedByDescending { it.createdAt }
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // Ignore errors if we're leaving/deleted (permissions revoked)
+                        if (!isLeavingOrDeleted) {
+                            Log.e("HouseholdSettingsVM", "Error loading invite codes: ${e.message}")
+                        }
                     }
+                }
+        }
 
-                val code = householdRepository.createInviteCode(householdId, expiresAt)
-                _newInviteCode.value = code
-            } catch (e: Exception) {
-                Log.e("HouseholdSettingsVM", "Error creating invite code: ${e.message}")
-                _actionError.value = "Failed to create invite code: ${e.message}"
-            } finally {
-                _isCreatingInvite.value = false
+        /**
+         * Cancels all active Firestore listeners to prevent permission errors.
+         */
+        private fun cancelAllListeners() {
+            inviteCodesJob?.cancel()
+            inviteCodesJob = null
+        }
+
+        /**
+         * Creates a new invite code for this household.
+         *
+         * @param expiresInDays Number of days until the code expires. Null for no expiration.
+         */
+        fun createInviteCode(expiresInDays: Int? = 7) {
+            _isCreatingInvite.value = true
+            _newInviteCode.value = null
+
+            viewModelScope.launch {
+                try {
+                    val expiresAt =
+                        if (expiresInDays != null) {
+                            Instant.now().plus(expiresInDays.toLong(), ChronoUnit.DAYS).toEpochMilli()
+                        } else {
+                            null
+                        }
+
+                    val code = householdRepository.createInviteCode(householdId, expiresAt)
+                    _newInviteCode.value = code
+                } catch (e: Exception) {
+                    Log.e("HouseholdSettingsVM", "Error creating invite code: ${e.message}")
+                    _actionError.value = "Failed to create invite code: ${e.message}"
+                } finally {
+                    _isCreatingInvite.value = false
+                }
             }
         }
-    }
 
-    /**
-     * Revokes an invite code so it can no longer be used.
-     */
-    fun revokeInviteCode(code: String) {
-        viewModelScope.launch {
-            try {
-                householdRepository.revokeInviteCode(code)
-            } catch (e: Exception) {
-                Log.e("HouseholdSettingsVM", "Error revoking invite code: ${e.message}")
-                _actionError.value = "Failed to revoke invite code: ${e.message}"
+        /**
+         * Revokes an invite code so it can no longer be used.
+         */
+        fun revokeInviteCode(code: String) {
+            viewModelScope.launch {
+                try {
+                    householdRepository.revokeInviteCode(code)
+                } catch (e: Exception) {
+                    Log.e("HouseholdSettingsVM", "Error revoking invite code: ${e.message}")
+                    _actionError.value = "Failed to revoke invite code: ${e.message}"
+                }
             }
         }
-    }
 
-    /**
-     * Removes a member from the household.
-     */
-    fun removeMember(userId: String) {
-        viewModelScope.launch {
-            try {
-                householdRepository.removeMember(householdId, userId)
-                loadHouseholdDetails() // Refresh
-            } catch (e: Exception) {
-                Log.e("HouseholdSettingsVM", "Error removing member: ${e.message}")
-                _actionError.value = "Failed to remove member: ${e.message}"
+        /**
+         * Removes a member from the household.
+         */
+        fun removeMember(userId: String) {
+            viewModelScope.launch {
+                try {
+                    householdRepository.removeMember(householdId, userId)
+                    loadHouseholdDetails() // Refresh
+                } catch (e: Exception) {
+                    Log.e("HouseholdSettingsVM", "Error removing member: ${e.message}")
+                    _actionError.value = "Failed to remove member: ${e.message}"
+                }
             }
         }
-    }
 
-    /**
-     * Leaves the household. Current user is removed from members list.
-     * Completes the operation first, then navigates to prevent cancellation.
-     */
-    fun leaveHousehold(onSuccess: () -> Unit) {
-        _isDeletingOrLeaving.value = true
-        _actionError.value = null
-        isLeavingOrDeleted = true // Set flag to prevent Flow errors
+        /**
+         * Leaves the household. Current user is removed from members list.
+         * Completes the operation first, then navigates to prevent cancellation.
+         */
+        fun leaveHousehold(onSuccess: () -> Unit) {
+            _isDeletingOrLeaving.value = true
+            _actionError.value = null
+            isLeavingOrDeleted = true // Set flag to prevent Flow errors
 
-        // Cancel all listeners BEFORE leaving to prevent permission errors
-        cancelAllListeners()
+            // Cancel all listeners BEFORE leaving to prevent permission errors
+            cancelAllListeners()
 
-        // Perform leave operation BEFORE navigating to ensure it completes
-        viewModelScope.launch {
-            try {
-                householdRepository.leaveHousehold(householdId)
-                Log.d("HouseholdSettingsVM", "Successfully left household")
-                
-                // Navigate away AFTER successful leave operation
-                onSuccess()
-            } catch (e: Exception) {
-                // Show error to user since we haven't navigated yet
-                _actionError.value = e.message ?: "Failed to leave household"
-                _isDeletingOrLeaving.value = false
-                Log.e("HouseholdSettingsVM", "Error leaving household: ${e.message}")
+            // Perform leave operation BEFORE navigating to ensure it completes
+            viewModelScope.launch {
+                try {
+                    householdRepository.leaveHousehold(householdId)
+                    Log.d("HouseholdSettingsVM", "Successfully left household")
+
+                    // Navigate away AFTER successful leave operation
+                    onSuccess()
+                } catch (e: Exception) {
+                    // Show error to user since we haven't navigated yet
+                    _actionError.value = e.message ?: "Failed to leave household"
+                    _isDeletingOrLeaving.value = false
+                    Log.e("HouseholdSettingsVM", "Error leaving household: ${e.message}")
+                }
             }
         }
-    }
 
-    /**
-     * Deletes the household entirely. Only the owner can do this.
-     * Completes the operation first, then navigates to prevent cancellation.
-     */
-    fun deleteHousehold(onSuccess: () -> Unit) {
-        _isDeletingOrLeaving.value = true
-        _actionError.value = null
-        isLeavingOrDeleted = true // Set flag to prevent Flow errors
+        /**
+         * Deletes the household entirely. Only the owner can do this.
+         * Completes the operation first, then navigates to prevent cancellation.
+         */
+        fun deleteHousehold(onSuccess: () -> Unit) {
+            _isDeletingOrLeaving.value = true
+            _actionError.value = null
+            isLeavingOrDeleted = true // Set flag to prevent Flow errors
 
-        // Cancel all listeners BEFORE deleting to prevent permission errors
-        cancelAllListeners()
+            // Cancel all listeners BEFORE deleting to prevent permission errors
+            cancelAllListeners()
 
-        // Perform delete operation BEFORE navigating to ensure it completes
-        viewModelScope.launch {
-            try {
-                householdRepository.deleteHousehold(householdId)
-                Log.d("HouseholdSettingsVM", "Successfully deleted household")
-                
-                // Navigate away AFTER successful deletion
-                onSuccess()
-            } catch (e: Exception) {
-                // Show error to user since we haven't navigated yet
-                _actionError.value = e.message ?: "Failed to delete household"
-                _isDeletingOrLeaving.value = false
-                Log.e("HouseholdSettingsVM", "Error deleting household: ${e.message}")
+            // Perform delete operation BEFORE navigating to ensure it completes
+            viewModelScope.launch {
+                try {
+                    householdRepository.deleteHousehold(householdId)
+                    Log.d("HouseholdSettingsVM", "Successfully deleted household")
+
+                    // Navigate away AFTER successful deletion
+                    onSuccess()
+                } catch (e: Exception) {
+                    // Show error to user since we haven't navigated yet
+                    _actionError.value = e.message ?: "Failed to delete household"
+                    _isDeletingOrLeaving.value = false
+                    Log.e("HouseholdSettingsVM", "Error deleting household: ${e.message}")
+                }
             }
         }
+
+        /** Clears the newly created invite code display. */
+        fun clearNewInviteCode() {
+            _newInviteCode.value = null
+        }
+
+        /** Clears any action error. */
+        fun clearError() {
+            _actionError.value = null
+        }
+
+        sealed interface HouseholdSettingsUiState {
+            data object Loading : HouseholdSettingsUiState
+
+            data class Success(val household: DisplayHousehold) : HouseholdSettingsUiState
+
+            data class Error(val message: String) : HouseholdSettingsUiState
+        }
     }
-
-    /** Clears the newly created invite code display. */
-    fun clearNewInviteCode() {
-        _newInviteCode.value = null
-    }
-
-    /** Clears any action error. */
-    fun clearError() {
-        _actionError.value = null
-    }
-
-    sealed interface HouseholdSettingsUiState {
-        data object Loading : HouseholdSettingsUiState
-
-        data class Success(val household: DisplayHousehold) : HouseholdSettingsUiState
-
-        data class Error(val message: String) : HouseholdSettingsUiState
-    }
-
-}

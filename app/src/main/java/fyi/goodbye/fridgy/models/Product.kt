@@ -36,28 +36,32 @@ data class Product(
          * Tokens include: whole words, prefixes (3+ chars), and normalized strings.
          * Filters out special characters and very short words for better search quality.
          */
-        fun generateSearchTokens(name: String, brand: String): List<String> {
+        fun generateSearchTokens(
+            name: String,
+            brand: String
+        ): List<String> {
             val tokens = mutableSetOf<String>()
             val text = "$name $brand".lowercase().trim()
-            
+
             // Split into words and filter out non-alphanumeric words
-            val words = text.split(Regex("\\s+"))
-                .filter { it.isNotEmpty() }
-                .filter { word -> word.any { char -> char.isLetterOrDigit() } }
-                .map { it.replace(Regex("[^a-z0-9]"), "") }  // Remove special chars
-                .filter { it.length >= 2 }  // Minimum 2 characters
-            
+            val words =
+                text.split(Regex("\\s+"))
+                    .filter { it.isNotEmpty() }
+                    .filter { word -> word.any { char -> char.isLetterOrDigit() } }
+                    .map { it.replace(Regex("[^a-z0-9]"), "") } // Remove special chars
+                    .filter { it.length >= 2 } // Minimum 2 characters
+
             words.forEach { word ->
                 // Add full word
                 tokens.add(word)
-                
+
                 // Add prefixes (minimum 3 characters for efficiency)
                 if (word.length >= 3) {
                     for (i in 3..word.length) {
                         tokens.add(word.substring(0, i))
                     }
                 }
-                
+
                 // Add suffixes (for matching words like "milk" in "oatmilk")
                 if (word.length >= 4) {
                     for (i in (word.length - 3) downTo 0) {
@@ -68,7 +72,7 @@ data class Product(
                     }
                 }
             }
-            
+
             return tokens.toList()
         }
     }

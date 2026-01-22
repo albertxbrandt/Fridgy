@@ -35,7 +35,6 @@ import fyi.goodbye.fridgy.ui.shoppingList.components.PartialPickupDialog
 import fyi.goodbye.fridgy.ui.shoppingList.components.ProductSearchResultCard
 import fyi.goodbye.fridgy.ui.shoppingList.components.ShoppingListItemCard
 import fyi.goodbye.fridgy.ui.shoppingList.components.UpcEntryDialog
-import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
 import kotlinx.coroutines.launch
 
 /**

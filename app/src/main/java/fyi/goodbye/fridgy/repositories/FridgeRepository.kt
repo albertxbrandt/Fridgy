@@ -12,7 +12,6 @@ import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.DisplayItem
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Item
-import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
 import fyi.goodbye.fridgy.utils.LruCache
@@ -136,16 +135,19 @@ class FridgeRepository(
                     }
 
                     val currentTime = System.currentTimeMillis()
-                    
+
                     // Collect active user IDs and their timestamps first (no async here)
-                    val activeUserData = snapshot?.documents?.mapNotNull { doc ->
-                        val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
-                        val userId = doc.getString("userId")
-                        // Consider active if seen within last 30 seconds
-                        if (userId != null && (currentTime - lastSeen) < PRESENCE_TIMEOUT_MS) {
-                            userId to lastSeen
-                        } else null
-                    } ?: emptyList()
+                    val activeUserData =
+                        snapshot?.documents?.mapNotNull { doc ->
+                            val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+                            val userId = doc.getString("userId")
+                            // Consider active if seen within last 30 seconds
+                            if (userId != null && (currentTime - lastSeen) < PRESENCE_TIMEOUT_MS) {
+                                userId to lastSeen
+                            } else {
+                                null
+                            }
+                        } ?: emptyList()
 
                     if (activeUserData.isEmpty()) {
                         trySend(emptyList()).isSuccess
@@ -157,11 +159,12 @@ class FridgeRepository(
                         try {
                             val userIds = activeUserData.map { it.first }
                             val profiles = getUsersByIds(userIds)
-                            
-                            val viewers = activeUserData.mapNotNull { (userId, lastSeen) ->
-                                val username = profiles[userId]?.username ?: return@mapNotNull null
-                                ActiveViewer(userId, username, lastSeen)
-                            }
+
+                            val viewers =
+                                activeUserData.mapNotNull { (userId, lastSeen) ->
+                                    val username = profiles[userId]?.username ?: return@mapNotNull null
+                                    ActiveViewer(userId, username, lastSeen)
+                                }
                             trySend(viewers).isSuccess
                         } catch (ex: Exception) {
                             Log.e("FridgeRepo", "Error fetching user profiles for presence", ex)
@@ -264,7 +267,7 @@ class FridgeRepository(
         val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in.")
         val shoppingListRef = firestore.collection("fridges").document(fridgeId).collection("shoppingList")
         val itemsRef = firestore.collection("fridges").document(fridgeId).collection("items")
-        
+
         // Get the householdId for the fridge (needed for item creation)
         val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
         val householdId = fridgeDoc.getString("householdId") ?: ""
@@ -287,15 +290,16 @@ class FridgeRepository(
                     // Create individual item instances for each unit obtained
                     repeat(userQuantity) {
                         val newItemRef = itemsRef.document() // Auto-generate ID
-                        val newItem = Item(
-                            upc = item.upc,
-                            expirationDate = null,
-                            addedBy = currentUserId,
-                            addedAt = System.currentTimeMillis(),
-                            lastUpdatedBy = currentUserId,
-                            lastUpdatedAt = System.currentTimeMillis(),
-                            householdId = householdId
-                        )
+                        val newItem =
+                            Item(
+                                upc = item.upc,
+                                expirationDate = null,
+                                addedBy = currentUserId,
+                                addedAt = System.currentTimeMillis(),
+                                lastUpdatedBy = currentUserId,
+                                lastUpdatedAt = System.currentTimeMillis(),
+                                householdId = householdId
+                            )
                         batch.set(newItemRef, newItem)
                     }
 
@@ -475,7 +479,10 @@ class FridgeRepository(
                         if (e != null) {
                             // Check if this is a permission error
                             if (e.message?.contains("PERMISSION_DENIED") == true) {
-                                Log.w("FridgeRepo", "Permission denied for household $householdId - user likely removed. Clearing cache.")
+                                Log.w(
+                                    "FridgeRepo",
+                                    "Permission denied for household $householdId - user likely removed. Clearing cache."
+                                )
                                 // Clear any cached fridges from this household
                                 fridgeCache = fridgeCache.filter { it.householdId != householdId }
                             } else {
@@ -632,10 +639,10 @@ class FridgeRepository(
 
     /**
      * Gets all items for a fridge with expiration status.
-     * 
+     *
      * Returns a flow that emits whenever items change. Product info is NOT included here -
      * the ViewModel layer should handle fetching product data using ProductRepository.
-     * 
+     *
      * @param fridgeId Target fridge ID
      * @return Flow of DisplayItem list (with null products), sorted by expiration date
      */
@@ -651,28 +658,30 @@ class FridgeRepository(
                             trySend(emptyList()).isSuccess
                             return@addSnapshotListener
                         }
-                        
-                        val items = snapshot?.documents?.mapNotNull { 
-                            it.toObject(Item::class.java)?.copy(id = it.id)
-                        } ?: emptyList()
-                        
+
+                        val items =
+                            snapshot?.documents?.mapNotNull {
+                                it.toObject(Item::class.java)?.copy(id = it.id)
+                            } ?: emptyList()
+
                         Log.d("FridgeRepo", "Items snapshot received for fridge $fridgeId: ${items.size} items")
-                        
+
                         // Create DisplayItems without product info (ViewModel will fetch products)
-                        val displayItems = items.map { item ->
-                            DisplayItem.from(item, null)
-                        }.sortedWith(
-                            compareBy<DisplayItem> { 
-                                // Sort expired first, then expiring soon, then by date
-                                when {
-                                    it.isExpired -> 0
-                                    it.isExpiringSoon -> 1
-                                    it.item.expirationDate != null -> 2
-                                    else -> 3
-                                }
-                            }.thenBy { it.item.expirationDate ?: Long.MAX_VALUE }
-                        )
-                        
+                        val displayItems =
+                            items.map { item ->
+                                DisplayItem.from(item, null)
+                            }.sortedWith(
+                                compareBy<DisplayItem> {
+                                    // Sort expired first, then expiring soon, then by date
+                                    when {
+                                        it.isExpired -> 0
+                                        it.isExpiringSoon -> 1
+                                        it.item.expirationDate != null -> 2
+                                        else -> 3
+                                    }
+                                }.thenBy { it.item.expirationDate ?: Long.MAX_VALUE }
+                            )
+
                         trySend(displayItems).isSuccess
                     }
             awaitClose { listener.remove() }
@@ -681,10 +690,10 @@ class FridgeRepository(
     /**
      * Adds a new item instance to a fridge.
      * Adds a new item instance to a fridge.
-     * 
+     *
      * Items are now stored as individual instances rather than aggregated quantities,
      * allowing each instance to have its own expiration date.
-     * 
+     *
      * @param fridgeId Target fridge ID
      * @param upc The Universal Product Code (barcode) of the item to add
      * @param expirationDate Optional expiration date in milliseconds since epoch
@@ -706,15 +715,16 @@ class FridgeRepository(
             fridgeDoc.getString("householdId")
                 ?: throw IllegalStateException("Fridge has no householdId")
 
-        val newItem = Item(
-            upc = upc,
-            expirationDate = expirationDate,
-            addedBy = currentUser.uid,
-            addedAt = System.currentTimeMillis(),
-            lastUpdatedBy = currentUser.uid,
-            lastUpdatedAt = System.currentTimeMillis(),
-            householdId = householdId
-        )
+        val newItem =
+            Item(
+                upc = upc,
+                expirationDate = expirationDate,
+                addedBy = currentUser.uid,
+                addedAt = System.currentTimeMillis(),
+                lastUpdatedBy = currentUser.uid,
+                lastUpdatedAt = System.currentTimeMillis(),
+                householdId = householdId
+            )
 
         Log.d("FridgeRepo", "=== ITEM CREATION DEBUG ===")
         Log.d("FridgeRepo", "Current User UID: ${currentUser.uid}")
@@ -725,7 +735,7 @@ class FridgeRepository(
         Log.d("FridgeRepo", "Item addedBy: ${newItem.addedBy}")
         Log.d("FridgeRepo", "Item lastUpdatedBy: ${newItem.lastUpdatedBy}")
         Log.d("FridgeRepo", "Item expirationDate: ${newItem.expirationDate}")
-        
+
         // Check if user is actually a member of this household
         try {
             val householdDoc = firestore.collection("households").document(householdId).get().await()
@@ -737,12 +747,13 @@ class FridgeRepository(
         }
 
         try {
-            val docRef = firestore.collection("fridges")
-                .document(fridgeId)
-                .collection("items")
-                .add(newItem)
-                .await()
-            
+            val docRef =
+                firestore.collection("fridges")
+                    .document(fridgeId)
+                    .collection("items")
+                    .add(newItem)
+                    .await()
+
             Log.d("FridgeRepo", "Added item instance: ${docRef.id} (UPC: $upc)")
             return newItem.copy(id = docRef.id)
         } catch (e: Exception) {
@@ -753,7 +764,7 @@ class FridgeRepository(
 
     /**
      * Updates the expiration date of a specific item instance.
-     * 
+     *
      * @param fridgeId Target fridge ID
      * @param itemId The unique item instance ID
      * @param expirationDate New expiration date in milliseconds (null to remove expiration)
@@ -764,7 +775,7 @@ class FridgeRepository(
         expirationDate: Long?
     ) {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
-        
+
         try {
             firestore.collection("fridges")
                 .document(fridgeId)
@@ -778,7 +789,7 @@ class FridgeRepository(
                     )
                 )
                 .await()
-            
+
             Log.d("FridgeRepo", "Updated expiration date for item: $itemId")
         } catch (e: Exception) {
             Log.e("FridgeRepo", "Error updating expiration date", e)
@@ -805,11 +816,14 @@ class FridgeRepository(
 
     /**
      * Deletes a specific item instance from a fridge.
-     * 
+     *
      * @param fridgeId Target fridge ID
      * @param itemId The unique item instance ID to delete
      */
-    suspend fun deleteItem(fridgeId: String, itemId: String) {
+    suspend fun deleteItem(
+        fridgeId: String,
+        itemId: String
+    ) {
         try {
             firestore.collection("fridges")
                 .document(fridgeId)
@@ -817,7 +831,7 @@ class FridgeRepository(
                 .document(itemId)
                 .delete()
                 .await()
-            
+
             Log.d("FridgeRepo", "Deleted item: $itemId")
         } catch (e: Exception) {
             Log.e("FridgeRepo", "Error deleting item", e)

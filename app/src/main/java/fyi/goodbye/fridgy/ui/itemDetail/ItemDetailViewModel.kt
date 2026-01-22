@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import javax.inject.Inject
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
@@ -18,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
 /**
  * ViewModel for the item detail screen displaying all instances of a product in a fridge.
@@ -47,174 +47,180 @@ import kotlinx.coroutines.launch
  * @see Product For product information model
  */
 @HiltViewModel
-class ItemDetailViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    savedStateHandle: SavedStateHandle,
-    private val fridgeRepository: FridgeRepository,
-    private val productRepository: ProductRepository
-) : ViewModel() {
-    private val fridgeId: String = savedStateHandle.get<String>("fridgeId") ?: ""
-    private val itemId: String = savedStateHandle.get<String>("itemId") ?: ""
-    private val _uiState = MutableStateFlow<ItemDetailUiState>(ItemDetailUiState.Loading)
-    val uiState: StateFlow<ItemDetailUiState> = _uiState.asStateFlow()
+class ItemDetailViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+        savedStateHandle: SavedStateHandle,
+        private val fridgeRepository: FridgeRepository,
+        private val productRepository: ProductRepository
+    ) : ViewModel() {
+        private val fridgeId: String = savedStateHandle.get<String>("fridgeId") ?: ""
+        private val itemId: String = savedStateHandle.get<String>("itemId") ?: ""
+        private val _uiState = MutableStateFlow<ItemDetailUiState>(ItemDetailUiState.Loading)
+        val uiState: StateFlow<ItemDetailUiState> = _uiState.asStateFlow()
 
-    private val _userNames = MutableStateFlow<Map<String, String>>(emptyMap())
-    val userNames: StateFlow<Map<String, String>> = _userNames.asStateFlow()
-    
-    private val _pendingItemForDate = MutableStateFlow<String?>(null)
-    val pendingItemForDate: StateFlow<String?> = _pendingItemForDate.asStateFlow()
+        private val _userNames = MutableStateFlow<Map<String, String>>(emptyMap())
+        val userNames: StateFlow<Map<String, String>> = _userNames.asStateFlow()
 
-    // Store the UPC from the first load to track items after deletion
-    private var trackedUpc: String? = null
+        private val _pendingItemForDate = MutableStateFlow<String?>(null)
+        val pendingItemForDate: StateFlow<String?> = _pendingItemForDate.asStateFlow()
 
-    // Job reference to cancel previous collector if loadDetails() is called again
-    private var itemsJob: Job? = null
+        // Store the UPC from the first load to track items after deletion
+        private var trackedUpc: String? = null
 
-    init {
-        loadDetails()
-    }
+        // Job reference to cancel previous collector if loadDetails() is called again
+        private var itemsJob: Job? = null
 
-    private fun loadDetails() {
-        // Cancel any existing collection to prevent multiple collectors
-        itemsJob?.cancel()
-        itemsJob =
-            viewModelScope.launch {
-                _uiState.value = ItemDetailUiState.Loading
-                try {
-                    fridgeRepository.getItemsForFridge(fridgeId).collect { displayItems ->
-                        // On first load, find the clicked item to get its UPC
-                        if (trackedUpc == null) {
-                            val clickedItem = displayItems.find { it.item.id == itemId }
-                            if (clickedItem != null) {
-                                trackedUpc = clickedItem.item.upc
+        init {
+            loadDetails()
+        }
+
+        private fun loadDetails() {
+            // Cancel any existing collection to prevent multiple collectors
+            itemsJob?.cancel()
+            itemsJob =
+                viewModelScope.launch {
+                    _uiState.value = ItemDetailUiState.Loading
+                    try {
+                        fridgeRepository.getItemsForFridge(fridgeId).collect { displayItems ->
+                            // On first load, find the clicked item to get its UPC
+                            if (trackedUpc == null) {
+                                val clickedItem = displayItems.find { it.item.id == itemId }
+                                if (clickedItem != null) {
+                                    trackedUpc = clickedItem.item.upc
+                                } else {
+                                    _uiState.value = ItemDetailUiState.Error(context.getString(R.string.error_item_not_found))
+                                    return@collect
+                                }
+                            }
+
+                            // Use stored UPC to find all instances (works even after deletions)
+                            val allInstances =
+                                displayItems
+                                    .filter { it.item.upc == trackedUpc }
+                                    .map { it.item }
+                                    .sortedWith(
+                                        compareBy<Item> { it.expirationDate == null }
+                                            .thenBy { it.expirationDate ?: Long.MAX_VALUE }
+                                    )
+
+                            if (allInstances.isNotEmpty()) {
+                                val product =
+                                    displayItems.find { it.item.upc == trackedUpc }?.product
+                                        ?: productRepository.getProductInfo(trackedUpc!!)
+                                if (product != null) {
+                                    _uiState.value = ItemDetailUiState.Success(allInstances, product)
+                                    loadUserNames(allInstances)
+                                } else {
+                                    _uiState.value = ItemDetailUiState.Error(context.getString(R.string.error_product_not_found))
+                                }
                             } else {
-                                _uiState.value = ItemDetailUiState.Error(context.getString(R.string.error_item_not_found))
-                                return@collect
+                                // All instances deleted - keep current success state, let UI handle navigation
+                                val currentState = _uiState.value
+                                if (currentState is ItemDetailUiState.Success) {
+                                    _uiState.value = ItemDetailUiState.Success(emptyList(), currentState.product)
+                                }
                             }
                         }
-                        
-                        // Use stored UPC to find all instances (works even after deletions)
-                        val allInstances = displayItems
-                            .filter { it.item.upc == trackedUpc }
-                            .map { it.item }
-                            .sortedWith(
-                                compareBy<Item> { it.expirationDate == null }
-                                    .thenBy { it.expirationDate ?: Long.MAX_VALUE }
-                            )
-                        
-                        if (allInstances.isNotEmpty()) {
-                            val product = displayItems.find { it.item.upc == trackedUpc }?.product 
-                                ?: productRepository.getProductInfo(trackedUpc!!)
-                            if (product != null) {
-                                _uiState.value = ItemDetailUiState.Success(allInstances, product)
-                                loadUserNames(allInstances)
-                            } else {
-                                _uiState.value = ItemDetailUiState.Error(context.getString(R.string.error_product_not_found))
-                            }
-                        } else {
-                            // All instances deleted - keep current success state, let UI handle navigation
-                            val currentState = _uiState.value
-                            if (currentState is ItemDetailUiState.Success) {
-                                _uiState.value = ItemDetailUiState.Success(emptyList(), currentState.product)
-                            }
-                        }
+                    } catch (e: Exception) {
+                        _uiState.value = ItemDetailUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_details))
                     }
+                }
+        }
+
+        private fun loadUserNames(items: List<Item>) {
+            viewModelScope.launch {
+                val uids = items.flatMap { listOf(it.addedBy, it.lastUpdatedBy) }.filter { it.isNotEmpty() }.toSet()
+                val names = _userNames.value.toMutableMap()
+                uids.forEach { uid ->
+                    if (!names.containsKey(uid)) {
+                        val userProfile = fridgeRepository.getUserProfileById(uid)
+                        names[uid] = userProfile?.username ?: context.getString(R.string.unknown_user)
+                    }
+                }
+                _userNames.value = names
+            }
+        }
+
+        /**
+         * Deletes a specific item instance by its ID.
+         * Since items are now individual instances, we delete this specific item.
+         */
+        fun deleteItem(itemIdToDelete: String) {
+            viewModelScope.launch {
+                try {
+                    fridgeRepository.deleteItem(fridgeId, itemIdToDelete)
                 } catch (e: Exception) {
-                    _uiState.value = ItemDetailUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_details))
+                    Log.e("ItemDetailVM", "Failed to delete item: ${e.message}")
                 }
             }
-    }
+        }
 
-    private fun loadUserNames(items: List<Item>) {
-        viewModelScope.launch {
-            val uids = items.flatMap { listOf(it.addedBy, it.lastUpdatedBy) }.filter { it.isNotEmpty() }.toSet()
-            val names = _userNames.value.toMutableMap()
-            uids.forEach { uid ->
-                if (!names.containsKey(uid)) {
-                    val userProfile = fridgeRepository.getUserProfileById(uid)
-                    names[uid] = userProfile?.username ?: context.getString(R.string.unknown_user)
+        /**
+         * Adds a new instance of the current product with expiration date
+         */
+        fun addNewInstanceWithDate(expirationDate: Long?) {
+            _pendingItemForDate.value = null
+            val currentState = _uiState.value
+            if (currentState is ItemDetailUiState.Success) {
+                val upc = currentState.items.first().upc
+                // Directly add the new instance with expiration date
+                addNewInstance(upc, expirationDate)
+            }
+        }
+
+        /**
+         * Adds a new instance of the current product
+         */
+        private fun addNewInstance(
+            upc: String,
+            expirationDate: Long?
+        ) {
+            viewModelScope.launch {
+                try {
+                    fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate)
+                } catch (e: Exception) {
+                    Log.e("ItemDetailVM", "Failed to add new instance: ${e.message}")
                 }
             }
-            _userNames.value = names
         }
-    }
 
-    /**
-     * Deletes a specific item instance by its ID.
-     * Since items are now individual instances, we delete this specific item.
-     */
-    fun deleteItem(itemIdToDelete: String) {
-        viewModelScope.launch {
-            try {
-                fridgeRepository.deleteItem(fridgeId, itemIdToDelete)
-            } catch (e: Exception) {
-                Log.e("ItemDetailVM", "Failed to delete item: ${e.message}")
+        /**
+         * Shows the date picker dialog for adding a new instance
+         */
+        fun showAddInstanceDialog() {
+            val currentState = _uiState.value
+            if (currentState is ItemDetailUiState.Success) {
+                _pendingItemForDate.value = currentState.items.first().upc
             }
         }
-    }
-    
-    /**
-     * Adds a new instance of the current product with expiration date
-     */
-    fun addNewInstanceWithDate(expirationDate: Long?) {
-        _pendingItemForDate.value = null
-        val currentState = _uiState.value
-        if (currentState is ItemDetailUiState.Success) {
-            val upc = currentState.items.first().upc
-            // Directly add the new instance with expiration date
-            addNewInstance(upc, expirationDate)
+
+        /**
+         * Cancels the date picker dialog
+         */
+        fun cancelDatePicker() {
+            _pendingItemForDate.value = null
+        }
+
+        /**
+         * Gets the product for displaying in the date picker dialog
+         */
+        suspend fun getProductForDisplay(upc: String): Product? {
+            return productRepository.getProductInfo(upc)
+        }
+
+        @Deprecated("Items are now individual instances, use deleteItem instead")
+        fun updateQuantity(newQuantity: Int) {
+            // No-op: Quantity is deprecated
+            Log.w("ItemDetailVM", "updateQuantity called but quantity is deprecated")
+        }
+
+        sealed interface ItemDetailUiState {
+            data object Loading : ItemDetailUiState
+
+            data class Success(val items: List<Item>, val product: Product) : ItemDetailUiState
+
+            data class Error(val message: String) : ItemDetailUiState
         }
     }
-    
-    /**
-     * Adds a new instance of the current product
-     */
-    private fun addNewInstance(upc: String, expirationDate: Long?) {
-        viewModelScope.launch {
-            try {
-                fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate)
-            } catch (e: Exception) {
-                Log.e("ItemDetailVM", "Failed to add new instance: ${e.message}")
-            }
-        }
-    }
-    
-    /**
-     * Shows the date picker dialog for adding a new instance
-     */
-    fun showAddInstanceDialog() {
-        val currentState = _uiState.value
-        if (currentState is ItemDetailUiState.Success) {
-            _pendingItemForDate.value = currentState.items.first().upc
-        }
-    }
-    
-    /**
-     * Cancels the date picker dialog
-     */
-    fun cancelDatePicker() {
-        _pendingItemForDate.value = null
-    }
-    
-    /**
-     * Gets the product for displaying in the date picker dialog
-     */
-    suspend fun getProductForDisplay(upc: String): Product? {
-        return productRepository.getProductInfo(upc)
-    }
-    
-    @Deprecated("Items are now individual instances, use deleteItem instead")
-    fun updateQuantity(newQuantity: Int) {
-        // No-op: Quantity is deprecated
-        Log.w("ItemDetailVM", "updateQuantity called but quantity is deprecated")
-    }
-
-    sealed interface ItemDetailUiState {
-        data object Loading : ItemDetailUiState
-
-        data class Success(val items: List<Item>, val product: Product) : ItemDetailUiState
-
-        data class Error(val message: String) : ItemDetailUiState
-    }
-
-}

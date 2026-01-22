@@ -1,37 +1,55 @@
 # Fridgy - AI Coding Instructions
 
 ## Project Overview
-Fridgy is a family-oriented fridge inventory management Android app built with **Jetpack Compose**, **Firebase**, and **Kotlin**. Users create shared "fridges", add items via barcode scanning, and maintain real-time shopping lists. The app emphasizes real-time collaboration using Firestore's snapshot listeners.
+Fridgy is a family-oriented fridge inventory management Android app built with **Jetpack Compose**, **Firebase**, **Kotlin**, and **Hilt** for dependency injection. Users create shared "fridges", add items via barcode scanning, and maintain real-time shopping lists. The app emphasizes real-time collaboration using Firestore's snapshot listeners.
 
 **Package:** `fyi.goodbye.fridgy`  
 **Min SDK:** 25 | **Target SDK:** 36 | **JVM Target:** 11
 
 ## Architecture
 
-### MVVM Pattern (Strictly Enforced)
-The app follows **Model-View-ViewModel** architecture. Never bypass this pattern:
+### MVVM Pattern with Hilt DI (Strictly Enforced)
+The app follows **Model-View-ViewModel** architecture with **Hilt** for dependency injection. Never bypass this pattern:
 
 - **Models** (`models/`): Plain data classes representing domain entities. Use Firestore annotations (`@DocumentId`) for Firebase integration.
-- **Views** (`ui/screens/`, `ui/elements/`): Composable functions that render UI and delegate all business logic to ViewModels.
-- **ViewModels** (`ui/viewmodels/`): Business logic layer. Manage UI state using `StateFlow`/`MutableStateFlow`. All expose sealed `UiState` interfaces with `Loading`, `Success`, and `Error` states.
-- **Repositories** (`repositories/`): Data layer abstraction. Handle Firestore and Storage operations. Use Kotlin Flows for real-time updates.
+- **Feature Modules** (`ui/<feature>/`):
+  - Screen composables and their ViewModels live together in the same package
+  - Example: `ui/magiclink/MagicLinkScreen.kt` + `ui/magiclink/MagicLinkViewModel.kt`
+  - ViewModels annotated with `@HiltViewModel` and use `@Inject constructor()`
+  - Feature-specific components in `ui/<feature>/components/`
+- **Shared Components** (`ui/shared/components/`): Reusable UI components used across multiple features (e.g., `SquaredButton`, `SquaredInput`)
+- **ViewModels**: Business logic layer. Manage UI state using `StateFlow`/`MutableStateFlow`. All expose sealed `UiState` interfaces with `Loading`, `Success`, and `Error` states. Dependencies injected via Hilt.
+- **Repositories** (`repositories/`): Data layer abstraction. Handle Firestore and Storage operations. Use Kotlin Flows for real-time updates. Provided via Hilt modules.
   - `FridgeRepository`: Manages fridges, items, and invitations with caching strategy
   - `ProductRepository`: Crowdsourced product database with local cache
 
-**Critical Rule**: Views never access repositories directly. ViewModels never reference Android framework components (Context, Activity, etc.)
+**Critical Rules**: 
+- Views never access repositories directly
+- ViewModels never reference Android framework components (Context, Activity, etc.) directly - inject Application context if needed
+- All ViewModels must use `@HiltViewModel` annotation
+- All repositories and dependencies must be provided through Hilt modules
 
 ### Navigation
 Single `MainActivity` with `NavHost`. Routes are string-based with arguments:
-- `login` / `signup` → `fridgeList` → `fridgeInventory/{fridgeId}` → `itemDetail/{fridgeId}/{itemId}`
+- `magicLink` → `fridgeList` → `fridgeInventory/{fridgeId}` → `itemDetail/{fridgeId}/{itemId}`
 - Barcode scanner: `barcodeScanner/{fridgeId}` → returns result via `savedStateHandle`
 - Settings: `fridgeSettings/{fridgeId}`
+- **Deep links**: `fridgy://auth` opens app from magic link email
 
 Pass data between screens using `navController.currentBackStackEntry?.savedStateHandle`.
 
 ## Firebase Integration
 
 ### Authentication & App Check
-- Firebase Auth for email/password authentication (no social providers)
+- **Passwordless authentication** via magic links sent through email (no passwords)
+- **Email service**: Resend (3,000 emails/month free tier)
+  - Domain: fridgyapp.com (verified)
+  - Sender: noreply@fridgyapp.com
+- **Cloud Functions**: `sendMagicLink` function handles email sending
+  - Uses Firebase Admin SDK to generate magic links
+  - Custom branded HTML email template
+  - Masks Firebase domain typo using redirect page
+- **Secrets**: RESEND_API_KEY stored in Firebase Secret Manager
 - App Check initialized in `MainActivity.onCreate()`:
   - **Debug builds**: `DebugAppCheckProviderFactory` (check logcat for debug token)
   - **Production**: `PlayIntegrityAppCheckProviderFactory`
@@ -77,8 +95,11 @@ Product images stored at `products/{upc}.jpg`. Upload uses `putFile()`, access v
 ## UI Patterns
 
 ### Compose Structure
-- **Screens** (`ui/screens/`): Top-level `@Composable` functions with `Scaffold` layout
-- **Elements** (`ui/elements/`): Reusable components like `SquaredButton`, `SquaredInput`, `FridgeCard`, `InventoryItemCard`
+- **Feature Screens** (`ui/<feature>/`):
+  - Screen composable: `ui/<feature>/<Feature>Screen.kt`
+  - ViewModel: `ui/<feature>/<Feature>ViewModel.kt`
+  - Feature components: `ui/<feature>/components/` (only used by this feature)
+- **Shared Components** (`ui/shared/components/`): Reusable components like `SquaredButton`, `SquaredInput`, `FridgeCard`, `InventoryItemCard`
 - **Theme** (`ui/theme/`): Custom color scheme with `FridgyPrimary`, `FridgyWhite`, `FridgyDarkBlue` (see `Color.kt`)
 
 ### Custom Components
@@ -408,10 +429,12 @@ FirebaseFirestore.getInstance().useEmulator("10.0.2.2", 8080)
 ## Common Patterns
 
 ### Creating a new screen
-1. Create `@Composable` function in `ui/screens/`
-2. Create `ViewModel` extending `ViewModel` with `UiState` sealed interface
-3. Add navigation route in `MainActivity.NavHost`
-4. Use `viewModel(factory = MyViewModel.provideFactory(args))` for parameterized VMs
+1. Create feature package: `ui/<feature>/`
+2. Create `@Composable` function: `ui/<feature>/<Feature>Screen.kt`
+3. Create `@HiltViewModel` class: `ui/<feature>/<Feature>ViewModel.kt` with `@Inject constructor()`
+4. Create feature components (if needed): `ui/<feature>/components/`
+5. Add navigation route in `MainActivity.NavHost`
+6. Use `hiltViewModel()` to get ViewModel instance in composable
 
 ### Adding Firestore operations
 1. Add method to appropriate repository (or create new one)
@@ -426,10 +449,19 @@ val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 ```
 
 ## Code Style
+- **String Resources**: ALL user-facing strings MUST be in `strings.xml` - never hardcode strings in Kotlin/Compose code
+  - Use `stringResource(R.string.key_name)` in Composables
+  - Use `context.getString(R.string.key_name)` in ViewModels/non-Compose code
+  - Exception: Navigation routes, API keys, technical constants
+- **Component Decomposition**: Break down screens into smaller components to keep file sizes manageable
+  - Extract reusable UI sections into separate `@Composable` functions
+  - Place feature-specific components in `ui/<feature>/components/`
+  - Move shared components to `ui/shared/components/`
+  - Aim for screen files under 500 lines when possible
 - Use explicit `StateFlow` types for public properties
 - Prefix private StateFlows with `_` (e.g., `_uiState`)
 - Document all data classes with KDoc, especially Firestore models
-- Use `Remember { }` for expensive computations or objects that shouldn't recreate on recomposition
+- Use `remember { }` for expensive computations or objects that shouldn't recreate on recomposition
 - Prefer Material3 components over Material2
 
 ## Testing Notes

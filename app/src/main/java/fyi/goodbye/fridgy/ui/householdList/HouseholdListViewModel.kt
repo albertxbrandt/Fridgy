@@ -32,138 +32,140 @@ import javax.inject.Inject
  * @param userRepository Repository for user operations.
  */
 @HiltViewModel
-class HouseholdListViewModel @Inject constructor(
-    @ApplicationContext private val context: Context,
-    private val auth: FirebaseAuth,
-    private val householdRepository: HouseholdRepository,
-    private val adminRepository: AdminRepository,
-    private val userRepository: UserRepository
-) : ViewModel() {
-    private val _householdsUiState = MutableStateFlow<HouseholdUiState>(HouseholdUiState.Loading)
+class HouseholdListViewModel
+    @Inject
+    constructor(
+        @ApplicationContext private val context: Context,
+        private val auth: FirebaseAuth,
+        private val householdRepository: HouseholdRepository,
+        private val adminRepository: AdminRepository,
+        private val userRepository: UserRepository
+    ) : ViewModel() {
+        private val _householdsUiState = MutableStateFlow<HouseholdUiState>(HouseholdUiState.Loading)
 
-    /** The current state of the households list (Loading, Success, or Error). */
-    val householdsUiState: StateFlow<HouseholdUiState> = _householdsUiState.asStateFlow()
+        /** The current state of the households list (Loading, Success, or Error). */
+        val householdsUiState: StateFlow<HouseholdUiState> = _householdsUiState.asStateFlow()
 
-    private val _isAdmin = MutableStateFlow(false)
+        private val _isAdmin = MutableStateFlow(false)
 
-    /** Indicates if the current user has admin privileges. */
-    val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
+        /** Indicates if the current user has admin privileges. */
+        val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
 
-    private val _isCreatingHousehold = MutableStateFlow(false)
+        private val _isCreatingHousehold = MutableStateFlow(false)
 
-    /** Indicates if a new household is currently being created. */
-    val isCreatingHousehold: StateFlow<Boolean> = _isCreatingHousehold.asStateFlow()
+        /** Indicates if a new household is currently being created. */
+        val isCreatingHousehold: StateFlow<Boolean> = _isCreatingHousehold.asStateFlow()
 
-    private val _createHouseholdError = MutableStateFlow<String?>(null)
+        private val _createHouseholdError = MutableStateFlow<String?>(null)
 
-    /** Any error message resulting from a failed household creation attempt. */
-    val createHouseholdError: StateFlow<String?> = _createHouseholdError.asStateFlow()
+        /** Any error message resulting from a failed household creation attempt. */
+        val createHouseholdError: StateFlow<String?> = _createHouseholdError.asStateFlow()
 
-    private val _needsMigration = MutableStateFlow(false)
+        private val _needsMigration = MutableStateFlow(false)
 
-    /** Indicates if the user has orphan fridges that need migration. */
-    val needsMigration: StateFlow<Boolean> = _needsMigration.asStateFlow()
+        /** Indicates if the user has orphan fridges that need migration. */
+        val needsMigration: StateFlow<Boolean> = _needsMigration.asStateFlow()
 
-    private val _isMigrating = MutableStateFlow(false)
+        private val _isMigrating = MutableStateFlow(false)
 
-    /** Indicates if migration is in progress. */
-    val isMigrating: StateFlow<Boolean> = _isMigrating.asStateFlow()
+        /** Indicates if migration is in progress. */
+        val isMigrating: StateFlow<Boolean> = _isMigrating.asStateFlow()
 
-    init {
-        val currentUserId = auth.currentUser?.uid
-        if (currentUserId == null) {
-            _householdsUiState.value =
-                HouseholdUiState.Error(
-                    context.getString(R.string.error_user_not_logged_in)
-                )
-        } else {
-            // Check admin status
-            viewModelScope.launch {
-                _isAdmin.value = adminRepository.isCurrentUserAdmin()
+        init {
+            val currentUserId = auth.currentUser?.uid
+            if (currentUserId == null) {
+                _householdsUiState.value =
+                    HouseholdUiState.Error(
+                        context.getString(R.string.error_user_not_logged_in)
+                    )
+            } else {
+                // Check admin status
+                viewModelScope.launch {
+                    _isAdmin.value = adminRepository.isCurrentUserAdmin()
+                }
+
+                // Check for orphan fridges that need migration
+                viewModelScope.launch {
+                    try {
+                        _needsMigration.value = householdRepository.hasOrphanFridges()
+                    } catch (e: Exception) {
+                        Log.e("HouseholdListVM", "Error checking for orphan fridges: ${e.message}")
+                    }
+                }
+
+                // Collect real-time stream of display households with live fridge counts
+                viewModelScope.launch {
+                    Log.d("HouseholdListVM", "Starting to collect display households flow")
+                    householdRepository.getDisplayHouseholdsForCurrentUser().collectLatest { displayHouseholds ->
+                        Log.d("HouseholdListVM", "Received ${displayHouseholds.size} display households from flow")
+                        _householdsUiState.value = HouseholdUiState.Success(displayHouseholds)
+                    }
+                }
+            }
+        }
+
+        /**
+         * Creates a new household with the given name.
+         *
+         * @param name The name of the new household to create.
+         */
+        fun createNewHousehold(name: String) {
+            if (name.isBlank()) {
+                _createHouseholdError.value = context.getString(R.string.error_please_fill_all_fields)
+                return
             }
 
-            // Check for orphan fridges that need migration
+            _createHouseholdError.value = null
+            _isCreatingHousehold.value = true
             viewModelScope.launch {
                 try {
-                    _needsMigration.value = householdRepository.hasOrphanFridges()
+                    householdRepository.createHousehold(name)
                 } catch (e: Exception) {
-                    Log.e("HouseholdListVM", "Error checking for orphan fridges: ${e.message}")
+                    _createHouseholdError.value = e.message
+                        ?: context.getString(R.string.error_failed_to_create_household)
+                } finally {
+                    _isCreatingHousehold.value = false
                 }
             }
+        }
 
-            // Collect real-time stream of display households with live fridge counts
+        /**
+         * Migrates orphan fridges (fridges without a householdId) to a new household.
+         */
+        fun migrateOrphanFridges() {
+            _isMigrating.value = true
             viewModelScope.launch {
-                Log.d("HouseholdListVM", "Starting to collect display households flow")
-                householdRepository.getDisplayHouseholdsForCurrentUser().collectLatest { displayHouseholds ->
-                    Log.d("HouseholdListVM", "Received ${displayHouseholds.size} display households from flow")
-                    _householdsUiState.value = HouseholdUiState.Success(displayHouseholds)
+                try {
+                    householdRepository.migrateOrphanFridges()
+                    _needsMigration.value = false
+                } catch (e: Exception) {
+                    Log.e("HouseholdListVM", "Error migrating orphan fridges: ${e.message}")
+                    _createHouseholdError.value = "Failed to migrate fridges: ${e.message}"
+                } finally {
+                    _isMigrating.value = false
                 }
             }
         }
-    }
 
-    /**
-     * Creates a new household with the given name.
-     *
-     * @param name The name of the new household to create.
-     */
-    fun createNewHousehold(name: String) {
-        if (name.isBlank()) {
-            _createHouseholdError.value = context.getString(R.string.error_please_fill_all_fields)
-            return
+        /** Clears the create household error. */
+        fun clearError() {
+            _createHouseholdError.value = null
         }
 
-        _createHouseholdError.value = null
-        _isCreatingHousehold.value = true
-        viewModelScope.launch {
-            try {
-                householdRepository.createHousehold(name)
-            } catch (e: Exception) {
-                _createHouseholdError.value = e.message
-                    ?: context.getString(R.string.error_failed_to_create_household)
-            } finally {
-                _isCreatingHousehold.value = false
-            }
+        /**
+         * Signs out the current user.
+         * Call the navigation callback after this to navigate to the login screen.
+         */
+        fun logout() {
+            userRepository.signOut()
+        }
+
+        /** Sealed interface representing the UI states for the household list. */
+        sealed interface HouseholdUiState {
+            data object Loading : HouseholdUiState
+
+            data class Success(val households: List<DisplayHousehold>) : HouseholdUiState
+
+            data class Error(val message: String) : HouseholdUiState
         }
     }
-
-    /**
-     * Migrates orphan fridges (fridges without a householdId) to a new household.
-     */
-    fun migrateOrphanFridges() {
-        _isMigrating.value = true
-        viewModelScope.launch {
-            try {
-                householdRepository.migrateOrphanFridges()
-                _needsMigration.value = false
-            } catch (e: Exception) {
-                Log.e("HouseholdListVM", "Error migrating orphan fridges: ${e.message}")
-                _createHouseholdError.value = "Failed to migrate fridges: ${e.message}"
-            } finally {
-                _isMigrating.value = false
-            }
-        }
-    }
-
-    /** Clears the create household error. */
-    fun clearError() {
-        _createHouseholdError.value = null
-    }
-
-    /**
-     * Signs out the current user.
-     * Call the navigation callback after this to navigate to the login screen.
-     */
-    fun logout() {
-        userRepository.signOut()
-    }
-
-    /** Sealed interface representing the UI states for the household list. */
-    sealed interface HouseholdUiState {
-        data object Loading : HouseholdUiState
-
-        data class Success(val households: List<DisplayHousehold>) : HouseholdUiState
-
-        data class Error(val message: String) : HouseholdUiState
-    }
-}
