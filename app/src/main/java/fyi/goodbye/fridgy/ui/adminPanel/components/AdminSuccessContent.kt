@@ -12,7 +12,7 @@ import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.ui.adminPanel.components.sections.*
-import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
+import fyi.goodbye.fridgy.ui.shared.UiState
 
 /**
  * Main content layout for the admin panel when data is successfully loaded.
@@ -44,7 +44,7 @@ fun AdminSuccessContent(
     totalFridges: Int,
     users: List<AdminUserDisplay>,
     products: List<Product>,
-    categoryState: CategoryViewModel.CategoryUiState,
+    categoryState: UiState<List<Category>>,
     onEditUser: (AdminUserDisplay) -> Unit,
     onDeleteUser: (AdminUserDisplay) -> Unit,
     onEditProduct: (Product) -> Unit,
@@ -131,8 +131,8 @@ fun AdminSuccessContentPreview() {
                 )
             ),
         categoryState =
-            CategoryViewModel.CategoryUiState.Success(
-                categories =
+            UiState.Success(
+                data =
                     listOf(
                         Category(id = "1", name = "Dairy", order = 1),
                         Category(id = "2", name = "Vegetables", order = 2),

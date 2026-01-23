@@ -51,6 +51,7 @@ import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.SizeUnit
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
+import fyi.goodbye.fridgy.ui.shared.UiState
 import java.io.File
 
 /**
@@ -80,7 +81,7 @@ fun NewProductDialog(
 
     val categories =
         when (val state = categoryState) {
-            is CategoryViewModel.CategoryUiState.Success -> state.categories.map { it.name }
+            is UiState.Success -> state.data.map { it.name }
             else -> listOf(fallbackCategory) // Fallback if categories haven't loaded yet
         }
 

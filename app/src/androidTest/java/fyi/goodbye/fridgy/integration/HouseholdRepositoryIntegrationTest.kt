@@ -49,6 +49,9 @@ class HouseholdRepositoryIntegrationTest {
             if (auth.currentUser == null) {
                 val result = auth.signInWithEmailAndPassword(testEmail, testPassword).await()
                 testUserId = result.user?.uid ?: throw IllegalStateException("Failed to sign in test user")
+            } else {
+                // Already signed in, just update testUserId
+                testUserId = auth.currentUser?.uid ?: throw IllegalStateException("Auth current user is null")
             }
         }
     }

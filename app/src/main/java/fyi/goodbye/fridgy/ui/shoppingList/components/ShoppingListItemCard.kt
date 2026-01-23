@@ -14,7 +14,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.ui.viewmodels.ShoppingListViewModel
+import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListViewModel
 
 /**
  * Modern card displaying a single item in the shopping list.

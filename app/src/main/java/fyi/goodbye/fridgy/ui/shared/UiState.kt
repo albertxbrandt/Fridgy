@@ -29,6 +29,12 @@ package fyi.goodbye.fridgy.ui.shared
  */
 sealed interface UiState<out T> {
     /**
+     * Represents an idle state where no operation has been initiated yet.
+     * Useful for operations that haven't started, like button clicks or form submissions.
+     */
+    data object Idle : UiState<Nothing>
+
+    /**
      * Represents a loading state where data is being fetched or processed.
      */
     data object Loading : UiState<Nothing>
@@ -60,6 +66,12 @@ fun <T> UiState<T>.dataOrNull(): T? =
     }
 
 /**
+ * Extension function to check if the state is idle.
+ */
+val <T> UiState<T>.isIdle: Boolean
+    get() = this is UiState.Idle
+
+/**
  * Extension function to check if the state is loading.
  */
 val <T> UiState<T>.isLoading: Boolean
@@ -86,6 +98,7 @@ val <T> UiState<T>.isSuccess: Boolean
  */
 inline fun <T, R> UiState<T>.map(transform: (T) -> R): UiState<R> =
     when (this) {
+        is UiState.Idle -> UiState.Idle
         is UiState.Loading -> UiState.Loading
         is UiState.Success -> UiState.Success(transform(data))
         is UiState.Error -> UiState.Error(message)
