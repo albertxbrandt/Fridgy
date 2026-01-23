@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for Testing
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow all operations for testing with emulators
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}
