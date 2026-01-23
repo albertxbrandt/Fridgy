@@ -51,7 +51,7 @@ class CategoryViewModelTest {
 
             viewModel.uiState.test {
                 val state = awaitItem()
-                assertTrue(state is CategoryViewModel.CategoryUiState.Loading)
+                assertTrue(state is UiState.Loading)
             }
         }
 
@@ -70,10 +70,10 @@ class CategoryViewModelTest {
 
             viewModel.uiState.test {
                 val state = awaitItem()
-                assertTrue(state is CategoryViewModel.CategoryUiState.Success)
-                assertEquals(2, (state as CategoryViewModel.CategoryUiState.Success).categories.size)
-                assertEquals("Dairy", state.categories[0].name)
-                assertEquals("Meat", state.categories[1].name)
+                assertTrue(state is UiState.Success)
+                assertEquals(2, (state as UiState.Success).data.size)
+                assertEquals("Dairy", state.data[0].name)
+                assertEquals("Meat", state.data[1].name)
             }
         }
 
@@ -87,7 +87,7 @@ class CategoryViewModelTest {
 
             viewModel.uiState.test {
                 val state = awaitItem()
-                assertTrue(state is CategoryViewModel.CategoryUiState.Error)
+                assertTrue(state is UiState.Error)
             }
         }
 
