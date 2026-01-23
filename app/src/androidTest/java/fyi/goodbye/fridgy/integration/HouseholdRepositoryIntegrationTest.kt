@@ -313,9 +313,9 @@ class HouseholdRepositoryIntegrationTest {
         assertFalse("User should not be in members after leaving", 
             updatedHousehold?.members?.contains(leaverId) == true)
 
-        // Cleanup and re-authenticate main user
-        auth.signOut()
+        // Cleanup: delete user document BEFORE signing out, then re-authenticate main user
         firestore.collection("users").document(leaverId).delete().await()
+        auth.signOut()
         auth.signInWithEmailAndPassword(testEmail, testPassword).await()
     }
 
