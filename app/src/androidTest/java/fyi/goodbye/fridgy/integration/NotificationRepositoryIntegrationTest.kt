@@ -31,6 +31,8 @@ class NotificationRepositoryIntegrationTest {
     private lateinit var firestore: FirebaseFirestore
     private lateinit var messaging: FirebaseMessaging
     private lateinit var testUserId: String
+    private lateinit var testEmail: String
+    private val testPassword = "password123"
     private val testNotifications = mutableListOf<String>()
 
     @Before
@@ -43,10 +45,18 @@ class NotificationRepositoryIntegrationTest {
         messaging = FirebaseMessaging.getInstance()
         repository = NotificationRepository(firestore, auth, messaging)
 
-        // Create test user
-        val email = "notificationtest${System.currentTimeMillis()}@test.com"
-        val result = auth.createUserWithEmailAndPassword(email, "password123").await()
-        testUserId = result.user?.uid ?: throw IllegalStateException("Failed to create test user")
+        // Create test user or re-authenticate if already created
+        if (!this@NotificationRepositoryIntegrationTest::testEmail.isInitialized) {
+            testEmail = "notificationtest${System.currentTimeMillis()}@test.com"
+            val result = auth.createUserWithEmailAndPassword(testEmail, testPassword).await()
+            testUserId = result.user?.uid ?: throw IllegalStateException("Failed to create test user")
+        } else {
+            // Re-authenticate if previous test signed out
+            if (auth.currentUser == null) {
+                val result = auth.signInWithEmailAndPassword(testEmail, testPassword).await()
+                testUserId = result.user?.uid ?: throw IllegalStateException("Failed to sign in test user")
+            }
+        }
     }
 
     @After
@@ -60,8 +70,7 @@ class NotificationRepositoryIntegrationTest {
             }
         }
 
-        // Sign out and clean up test user
-        auth.signOut()
+        // Clean up test user (keep auth signed in for next test)
         try {
             firestore.collection("users").document(testUserId).delete().await()
         } catch (e: Exception) {
