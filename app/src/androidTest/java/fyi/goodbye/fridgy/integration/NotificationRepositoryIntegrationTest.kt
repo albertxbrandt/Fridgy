@@ -1,0 +1,252 @@
+package fyi.goodbye.fridgy.integration
+
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import fyi.goodbye.fridgy.FirebaseTestUtils
+import fyi.goodbye.fridgy.models.Notification
+import fyi.goodbye.fridgy.models.NotificationType
+import fyi.goodbye.fridgy.repositories.NotificationRepository
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import kotlinx.coroutines.tasks.await
+import kotlinx.coroutines.delay
+import java.util.Date
+
+/**
+ * Integration tests for NotificationRepository using Firebase Local Emulator Suite.
+ * Tests notification CRUD operations and FCM token management.
+ */
+@RunWith(AndroidJUnit4::class)
+class NotificationRepositoryIntegrationTest {
+
+    private lateinit var repository: NotificationRepository
+    private lateinit var auth: FirebaseAuth
+    private lateinit var firestore: FirebaseFirestore
+    private lateinit var messaging: FirebaseMessaging
+    private lateinit var testUserId: String
+    private val testNotifications = mutableListOf<String>()
+
+    @Before
+    fun setup() = runTest {
+        // Configure Firebase emulators
+        FirebaseTestUtils.useEmulators()
+        
+        auth = FirebaseAuth.getInstance()
+        firestore = FirebaseFirestore.getInstance()
+        messaging = FirebaseMessaging.getInstance()
+        repository = NotificationRepository(firestore, auth, messaging)
+
+        // Create test user
+        val email = "notificationtest${System.currentTimeMillis()}@test.com"
+        val result = auth.createUserWithEmailAndPassword(email, "password123").await()
+        testUserId = result.user?.uid ?: throw IllegalStateException("Failed to create test user")
+    }
+
+    @After
+    fun teardown() = runTest {
+        // Clean up test notifications
+        testNotifications.forEach { notificationId ->
+            try {
+                firestore.collection("notifications").document(notificationId).delete().await()
+            } catch (e: Exception) {
+                // Ignore cleanup errors
+            }
+        }
+
+        // Sign out and clean up test user
+        auth.signOut()
+        try {
+            firestore.collection("users").document(testUserId).delete().await()
+        } catch (e: Exception) {
+            // Ignore cleanup errors
+        }
+    }
+
+    @Test
+    fun getNotificationsFlow_returnsUserNotifications() = runTest {
+        // Create test notification
+        val notificationId = firestore.collection("notifications").document().id
+        testNotifications.add(notificationId)
+        
+        val notification = Notification(
+            id = notificationId,
+            userId = testUserId,
+            title = "Test Notification",
+            body = "Test body",
+            type = NotificationType.ITEM_ADDED,
+            isRead = false,
+            createdAt = Date()
+        )
+        
+        firestore.collection("notifications").document(notificationId).set(notification).await()
+
+        // Wait for Firestore propagation
+        delay(500)
+
+        // Get notifications
+        val notifications = repository.getNotificationsFlow().first()
+        
+        assertTrue("Should have at least 1 notification", notifications.isNotEmpty())
+        assertTrue("Should contain test notification", 
+            notifications.any { it.id == notificationId })
+    }
+
+    @Test
+    fun getUnreadCountFlow_returnsCorrectCount() = runTest {
+        // Create 2 unread notifications
+        val notif1Id = firestore.collection("notifications").document().id
+        testNotifications.add(notif1Id)
+        val notif1 = Notification(
+            id = notif1Id,
+            userId = testUserId,
+            title = "Unread 1",
+            body = "Body 1",
+            type = NotificationType.ITEM_ADDED,
+            isRead = false,
+            createdAt = Date()
+        )
+        firestore.collection("notifications").document(notif1Id).set(notif1).await()
+
+        val notif2Id = firestore.collection("notifications").document().id
+        testNotifications.add(notif2Id)
+        val notif2 = Notification(
+            id = notif2Id,
+            userId = testUserId,
+            title = "Unread 2",
+            body = "Body 2",
+            type = NotificationType.MEMBER_JOINED,
+            isRead = false,
+            createdAt = Date()
+        )
+        firestore.collection("notifications").document(notif2Id).set(notif2).await()
+
+        // Wait for Firestore propagation
+        delay(500)
+
+        // Get unread count
+        val count = repository.getUnreadCountFlow().first()
+        
+        assertTrue("Should have at least 2 unread notifications", count >= 2)
+    }
+
+    @Test
+    fun markAsRead_successfullyMarksNotification() = runTest {
+        // Create unread notification
+        val notificationId = firestore.collection("notifications").document().id
+        testNotifications.add(notificationId)
+        
+        val notification = Notification(
+            id = notificationId,
+            userId = testUserId,
+            title = "To Mark Read",
+            body = "Body",
+            type = NotificationType.ITEM_ADDED,
+            isRead = false,
+            createdAt = Date()
+        )
+        firestore.collection("notifications").document(notificationId).set(notification).await()
+
+        // Mark as read
+        val result = repository.markAsRead(notificationId)
+        assertTrue("Should succeed", result.isSuccess)
+
+        // Wait for Firestore propagation
+        delay(300)
+
+        // Verify it's marked as read
+        val doc = firestore.collection("notifications").document(notificationId).get().await()
+        assertTrue("Should be marked as read", doc.getBoolean("isRead") == true)
+    }
+
+    @Test
+    fun markAllAsRead_successfullyMarksAllNotifications() = runTest {
+        // Create 2 unread notifications
+        val notif1Id = firestore.collection("notifications").document().id
+        testNotifications.add(notif1Id)
+        val notif1 = Notification(
+            id = notif1Id,
+            userId = testUserId,
+            title = "Unread 1",
+            body = "Body 1",
+            type = NotificationType.ITEM_ADDED,
+            isRead = false,
+            createdAt = Date()
+        )
+        firestore.collection("notifications").document(notif1Id).set(notif1).await()
+
+        val notif2Id = firestore.collection("notifications").document().id
+        testNotifications.add(notif2Id)
+        val notif2 = Notification(
+            id = notif2Id,
+            userId = testUserId,
+            title = "Unread 2",
+            body = "Body 2",
+            type = NotificationType.MEMBER_JOINED,
+            isRead = false,
+            createdAt = Date()
+        )
+        firestore.collection("notifications").document(notif2Id).set(notif2).await()
+
+        // Mark all as read
+        val result = repository.markAllAsRead()
+        assertTrue("Should succeed", result.isSuccess)
+
+        // Wait for Firestore propagation
+        delay(500)
+
+        // Verify both are marked as read
+        val doc1 = firestore.collection("notifications").document(notif1Id).get().await()
+        assertTrue("Notification 1 should be marked as read", doc1.getBoolean("isRead") == true)
+        
+        val doc2 = firestore.collection("notifications").document(notif2Id).get().await()
+        assertTrue("Notification 2 should be marked as read", doc2.getBoolean("isRead") == true)
+    }
+
+    @Test
+    fun deleteNotification_successfullyDeletesNotification() = runTest {
+        // Create notification
+        val notificationId = firestore.collection("notifications").document().id
+        testNotifications.add(notificationId)
+        
+        val notification = Notification(
+            id = notificationId,
+            userId = testUserId,
+            title = "To Delete",
+            body = "Body",
+            type = NotificationType.ITEM_ADDED,
+            isRead = false,
+            createdAt = Date()
+        )
+        firestore.collection("notifications").document(notificationId).set(notification).await()
+
+        // Delete notification
+        val result = repository.deleteNotification(notificationId)
+        assertTrue("Should succeed", result.isSuccess)
+
+        // Verify it's deleted
+        val doc = firestore.collection("notifications").document(notificationId).get().await()
+        assertFalse("Notification should not exist", doc.exists())
+    }
+
+    @Test
+    fun refreshFcmToken_successfullySavesToken() = runTest {
+        // Refresh FCM token
+        val result = repository.refreshFcmToken()
+        
+        assertTrue("Should succeed", result.isSuccess)
+        assertNotNull("Token should not be null", result.getOrNull())
+
+        // Verify token was saved in Firestore
+        val doc = firestore.collection("fcmTokens").document(testUserId).get().await()
+        assertTrue("FCM token document should exist", doc.exists())
+        assertEquals(testUserId, doc.getString("userId"))
+        assertNotNull("Token should be saved", doc.getString("token"))
+    }
+}

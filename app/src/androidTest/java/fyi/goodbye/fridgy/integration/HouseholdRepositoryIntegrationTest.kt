@@ -25,6 +25,8 @@ class HouseholdRepositoryIntegrationTest {
     private lateinit var auth: FirebaseAuth
     private lateinit var firestore: FirebaseFirestore
     private lateinit var testUserId: String
+    private lateinit var testEmail: String
+    private val testPassword = "password123"
     private val testHouseholds = mutableListOf<String>()
     private val testInviteCodes = mutableListOf<String>()
 
@@ -37,10 +39,18 @@ class HouseholdRepositoryIntegrationTest {
         firestore = FirebaseFirestore.getInstance()
         repository = HouseholdRepository(firestore, auth)
 
-        // Create test user
-        val email = "householdtest${System.currentTimeMillis()}@test.com"
-        val result = auth.createUserWithEmailAndPassword(email, "password123").await()
-        testUserId = result.user?.uid ?: throw IllegalStateException("Failed to create test user")
+        // Create test user or re-authenticate if already created
+        if (!this@HouseholdRepositoryIntegrationTest::testEmail.isInitialized) {
+            testEmail = "householdtest${System.currentTimeMillis()}@test.com"
+            val result = auth.createUserWithEmailAndPassword(testEmail, testPassword).await()
+            testUserId = result.user?.uid ?: throw IllegalStateException("Failed to create test user")
+        } else {
+            // Re-authenticate if previous test signed out
+            if (auth.currentUser == null) {
+                val result = auth.signInWithEmailAndPassword(testEmail, testPassword).await()
+                testUserId = result.user?.uid ?: throw IllegalStateException("Failed to sign in test user")
+            }
+        }
     }
 
     @After
@@ -63,8 +73,7 @@ class HouseholdRepositoryIntegrationTest {
             }
         }
 
-        // Sign out and clean up test user
-        auth.signOut()
+        // Clean up test user (keep auth signed in for next test)
         testUserId.let { uid ->
             try {
                 firestore.collection("users").document(uid).delete().await()
@@ -219,9 +228,10 @@ class HouseholdRepositoryIntegrationTest {
         assertTrue("New user should be in members", 
             updatedHousehold?.members?.contains(newUserId) == true)
 
-        // Cleanup second user
+        // Cleanup second user and re-authenticate main user
         auth.signOut()
         firestore.collection("users").document(newUserId).delete().await()
+        auth.signInWithEmailAndPassword(testEmail, testPassword).await()
     }
 
     @Test
@@ -256,9 +266,10 @@ class HouseholdRepositoryIntegrationTest {
         // Revoke code
         repository.revokeInviteCode(inviteCode.code)
 
-        // Verify code is deleted
+        // Verify code is marked as inactive (not deleted)
         doc = firestore.collection("inviteCodes").document(inviteCode.code).get().await()
-        assertFalse("Code should not exist after revocation", doc.exists())
+        assertTrue("Code document should still exist", doc.exists())
+        assertFalse("Code should be inactive after revocation", doc.getBoolean("active") == true)
     }
 
     @Test
@@ -302,9 +313,10 @@ class HouseholdRepositoryIntegrationTest {
         assertFalse("User should not be in members after leaving", 
             updatedHousehold?.members?.contains(leaverId) == true)
 
-        // Cleanup
+        // Cleanup and re-authenticate main user
         auth.signOut()
         firestore.collection("users").document(leaverId).delete().await()
+        auth.signInWithEmailAndPassword(testEmail, testPassword).await()
     }
 
     @Test
