@@ -271,10 +271,6 @@ class FridgeRepository(
         val shoppingListRef = firestore.collection("fridges").document(fridgeId).collection("shoppingList")
         val itemsRef = firestore.collection("fridges").document(fridgeId).collection("items")
 
-        // Get the householdId for the fridge (needed for item creation)
-        val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
-        val householdId = fridgeDoc.getString("householdId") ?: ""
-
         try {
             // Get all shopping list items
             val snapshot = shoppingListRef.get().await()
@@ -300,8 +296,7 @@ class FridgeRepository(
                                 addedBy = currentUserId,
                                 addedAt = System.currentTimeMillis(),
                                 lastUpdatedBy = currentUserId,
-                                lastUpdatedAt = System.currentTimeMillis(),
-                                householdId = householdId
+                                lastUpdatedAt = System.currentTimeMillis()
                             )
                         batch.set(newItemRef, newItem)
                     }
@@ -702,12 +697,6 @@ class FridgeRepository(
         Log.d("FridgeRepo", "Adding item instance for UPC: $upc with expiration: $expirationDate")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
 
-        // Get the fridge to access householdId (required for security rules)
-        val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
-        val householdId =
-            fridgeDoc.getString("householdId")
-                ?: throw IllegalStateException("Fridge has no householdId")
-
         val newItem =
             Item(
                 upc = upc,
@@ -715,29 +704,8 @@ class FridgeRepository(
                 addedBy = currentUser.uid,
                 addedAt = System.currentTimeMillis(),
                 lastUpdatedBy = currentUser.uid,
-                lastUpdatedAt = System.currentTimeMillis(),
-                householdId = householdId
+                lastUpdatedAt = System.currentTimeMillis()
             )
-
-        Log.d("FridgeRepo", "=== ITEM CREATION DEBUG ===")
-        Log.d("FridgeRepo", "Current User UID: ${currentUser.uid}")
-        Log.d("FridgeRepo", "Fridge ID: $fridgeId")
-        Log.d("FridgeRepo", "Household ID: $householdId")
-        Log.d("FridgeRepo", "Item UPC: $upc")
-        Log.d("FridgeRepo", "Item householdId: ${newItem.householdId}")
-        Log.d("FridgeRepo", "Item addedBy: ${newItem.addedBy}")
-        Log.d("FridgeRepo", "Item lastUpdatedBy: ${newItem.lastUpdatedBy}")
-        Log.d("FridgeRepo", "Item expirationDate: ${newItem.expirationDate}")
-
-        // Check if user is actually a member of this household
-        try {
-            val householdDoc = firestore.collection("households").document(householdId).get().await()
-            val members = householdDoc.get("members") as? List<*>
-            Log.d("FridgeRepo", "Household members: $members")
-            Log.d("FridgeRepo", "Is current user a member? ${members?.contains(currentUser.uid)}")
-        } catch (e: Exception) {
-            Log.e("FridgeRepo", "Failed to check household membership", e)
-        }
 
         try {
             val docRef =

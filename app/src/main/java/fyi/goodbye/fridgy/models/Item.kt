@@ -11,6 +11,9 @@ import kotlinx.parcelize.Parcelize
  * allowing each instance to have its own expiration date. This enables tracking
  * multiple units of the same product with different expiration dates.
  *
+ * Items are stored in a subcollection under fridges: /fridges/{fridgeId}/items/{itemId}
+ * Firebase security rules fetch the householdId from the parent fridge document.
+ *
  * @property id Unique identifier for this item instance (Firestore auto-generated)
  * @property upc Product barcode/UPC for linking to product information
  * @property expirationDate Expiration date in milliseconds since epoch (null = no expiration)
@@ -18,7 +21,6 @@ import kotlinx.parcelize.Parcelize
  * @property addedAt The timestamp (ms) when the item was first created
  * @property lastUpdatedBy The User ID of the person who last modified this item
  * @property lastUpdatedAt The timestamp (ms) when the item was last modified
- * @property householdId The ID of the household this item belongs to (for security rules)
  */
 @Parcelize
 data class Item(
@@ -29,8 +31,7 @@ data class Item(
     val addedBy: String = "",
     val addedAt: Long = System.currentTimeMillis(),
     val lastUpdatedBy: String = "",
-    val lastUpdatedAt: Long = System.currentTimeMillis(),
-    val householdId: String = ""
+    val lastUpdatedAt: Long = System.currentTimeMillis()
 ) : Parcelable {
     companion object {
         private const val EXPIRING_SOON_THRESHOLD_DAYS = 3
