@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -286,18 +287,28 @@ class ShoppingListViewModel
             }
         }
 
+        init {
+            // OPTIMIZATION: Debounce search query to reduce Firebase queries
+            viewModelScope.launch {
+                _searchQuery
+                    .debounce(300) // Wait 300ms after user stops typing
+                    .collect { query ->
+                        if (query.isBlank()) {
+                            _searchResults.value = emptyList()
+                        } else {
+                            searchProducts(query)
+                        }
+                    }
+            }
+        }
+
         /**
-         * Updates the product search query and triggers search.
+         * Updates the product search query and triggers debounced search.
          *
          * @param query The search query string. Empty clears results.
          */
         fun updateSearchQuery(query: String) {
             _searchQuery.value = query
-            if (query.isBlank()) {
-                _searchResults.value = emptyList()
-            } else {
-                searchProducts(query)
-            }
         }
 
         private fun searchProducts(query: String) {
