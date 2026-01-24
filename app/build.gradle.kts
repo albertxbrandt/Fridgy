@@ -35,6 +35,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Allow cleartext HTTP traffic to Firebase emulators for integration tests
+            manifestPlaceholders["usesCleartextTraffic"] = "true"
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(

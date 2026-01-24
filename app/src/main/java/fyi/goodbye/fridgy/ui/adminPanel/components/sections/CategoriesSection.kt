@@ -23,7 +23,7 @@ import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.ui.adminPanel.components.items.CategoryListItem
-import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
+import fyi.goodbye.fridgy.ui.shared.UiState
 
 /**
  * Section for managing product categories in the admin panel.
@@ -39,7 +39,7 @@ import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
  */
 @Composable
 fun CategoriesSection(
-    categoryState: CategoryViewModel.CategoryUiState,
+    categoryState: UiState<List<Category>>,
     onAddCategory: () -> Unit,
     onEditCategory: (Category) -> Unit,
     onDeleteCategory: (Category) -> Unit
@@ -67,8 +67,8 @@ fun CategoriesSection(
         }
 
         when (categoryState) {
-            is CategoryViewModel.CategoryUiState.Success -> {
-                categoryState.categories.forEach { category ->
+            is UiState.Success -> {
+                categoryState.data.forEach { category ->
                     CategoryListItem(
                         category = category,
                         onEdit = { onEditCategory(category) },
@@ -76,7 +76,8 @@ fun CategoriesSection(
                     )
                 }
             }
-            is CategoryViewModel.CategoryUiState.Loading -> {
+            UiState.Idle,
+            is UiState.Loading -> {
                 Box(
                     modifier = Modifier.fillMaxWidth().padding(16.dp),
                     contentAlignment = Alignment.Center
@@ -84,7 +85,7 @@ fun CategoriesSection(
                     CircularProgressIndicator()
                 }
             }
-            is CategoryViewModel.CategoryUiState.Error -> {
+            is UiState.Error -> {
                 Text(
                     stringResource(R.string.error_loading_categories, categoryState.message),
                     color = MaterialTheme.colorScheme.error,
@@ -100,8 +101,8 @@ fun CategoriesSection(
 fun CategoriesSectionPreview() {
     CategoriesSection(
         categoryState =
-            CategoryViewModel.CategoryUiState.Success(
-                categories =
+            UiState.Success(
+                data =
                     listOf(
                         Category(id = "1", name = "Dairy", order = 1),
                         Category(id = "2", name = "Vegetables", order = 2),

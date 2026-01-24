@@ -304,6 +304,11 @@ class MainActivity : ComponentActivity() {
                                         launchSingleTop = true
                                     }
                                 },
+                                onNavigateToProfile = {
+                                    navController.navigate("userProfile") {
+                                        launchSingleTop = true
+                                    }
+                                },
                                 onLogout = {
                                     navController.navigate("login") {
                                         popUpTo(navController.graph.id) { inclusive = true }
@@ -512,6 +517,20 @@ class MainActivity : ComponentActivity() {
                                     )
                                 },
                                 onBackClick = { navController.popBackStack() }
+                            )
+                        }
+
+                        // User profile screen
+                        composable("userProfile") {
+                            fyi.goodbye.fridgy.ui.userProfile.UserProfileScreen(
+                                onBackClick = { navController.popBackStack() },
+                                onAccountDeleted = {
+                                    // Clear all preferences and navigate to login
+                                    userPreferences.clearLastSelectedHouseholdId()
+                                    navController.navigate("login") {
+                                        popUpTo(0) { inclusive = true }
+                                    }
+                                }
                             )
                         }
                     }

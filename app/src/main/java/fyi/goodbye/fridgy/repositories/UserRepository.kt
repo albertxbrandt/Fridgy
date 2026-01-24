@@ -176,4 +176,97 @@ class UserRepository(
             null
         }
     }
+
+    /**
+     * Updates the username for the current user.
+     * Updates both the public userProfile document and all references in fridges.
+     *
+     * @param newUsername The new username to set.
+     * @throws Exception If the update fails.
+     */
+    suspend fun updateUsername(newUsername: String) {
+        val userId =
+            getCurrentUserId()
+                ?: throw IllegalStateException("No authenticated user")
+
+        // Update public profile
+        firestore.collection(COLLECTION_USER_PROFILES)
+            .document(userId)
+            .update("username", newUsername)
+            .await()
+
+        // Update username in all fridges where user is a member
+        val fridgesQuery =
+            firestore.collection("fridges")
+                .whereNotEqualTo("members.$userId", null)
+                .get()
+                .await()
+
+        val batch = firestore.batch()
+        for (doc in fridgesQuery.documents) {
+            batch.update(doc.reference, "members.$userId", newUsername)
+        }
+        batch.commit().await()
+
+        Log.d(TAG, "Updated username to: $newUsername")
+    }
+
+    /**
+     * Deletes the current user's account and all associated data.
+     * This includes:
+     * - User auth account
+     * - User documents (users, userProfiles)
+     * - Removing user from all fridges
+     * - Deleting user's FCM tokens
+     *
+     * @throws Exception If deletion fails.
+     */
+    suspend fun deleteAccount() {
+        val userId =
+            getCurrentUserId()
+                ?: throw IllegalStateException("No authenticated user")
+
+        try {
+            // 1. Remove user from all fridges
+            val fridgesQuery =
+                firestore.collection("fridges")
+                    .whereNotEqualTo("members.$userId", null)
+                    .get()
+                    .await()
+
+            val batch = firestore.batch()
+            for (doc in fridgesQuery.documents) {
+                // Remove from members map
+                batch.update(doc.reference, "members.$userId", com.google.firebase.firestore.FieldValue.delete())
+                // Remove from pendingInvites if present
+                batch.update(doc.reference, "pendingInvites.$userId", com.google.firebase.firestore.FieldValue.delete())
+            }
+            batch.commit().await()
+
+            // 2. Delete FCM tokens
+            val tokensQuery =
+                firestore.collection("fcmTokens")
+                    .whereEqualTo("userId", userId)
+                    .get()
+                    .await()
+
+            val tokenBatch = firestore.batch()
+            for (doc in tokensQuery.documents) {
+                tokenBatch.delete(doc.reference)
+            }
+            tokenBatch.commit().await()
+
+            // 3. Delete user documents
+            firestore.collection(COLLECTION_USERS).document(userId).delete().await()
+            firestore.collection(COLLECTION_USER_PROFILES).document(userId).delete().await()
+
+            // 4. Delete Firebase Auth account (must be last)
+            auth.currentUser?.delete()?.await()
+
+            Log.d(TAG, "Successfully deleted user account: $userId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error deleting account", e)
+            throw e
+        }
+    }
 }
