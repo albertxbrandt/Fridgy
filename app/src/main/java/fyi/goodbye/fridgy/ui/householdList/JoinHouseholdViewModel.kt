@@ -37,6 +37,14 @@ class JoinHouseholdViewModel
             _inviteCode.value = code.uppercase().filter { it.isLetterOrDigit() }.take(6)
         }
 
+        fun setInitialInviteCode(code: String) {
+            updateInviteCode(code)
+            // Auto-validate if code is 6 characters
+            if (_inviteCode.value.length == 6) {
+                validateCode()
+            }
+        }
+
         fun validateCode() {
             val code = _inviteCode.value
             if (code.length != 6) {

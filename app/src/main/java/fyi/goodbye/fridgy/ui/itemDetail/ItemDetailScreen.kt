@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +47,7 @@ fun ItemDetailScreen(
     val uiState by viewModel.uiState.collectAsState()
     val userNames by viewModel.userNames.collectAsState()
     val pendingItemForDate by viewModel.pendingItemForDate.collectAsState()
+    val pendingItemForEdit by viewModel.pendingItemForEdit.collectAsState()
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()) }
 
     // Navigate back when all items are deleted
@@ -73,6 +75,23 @@ fun ItemDetailScreen(
                 productName = currentState.product.name,
                 onDateSelected = { date ->
                     viewModel.addNewInstanceWithDate(date)
+                },
+                onDismiss = {
+                    viewModel.cancelDatePicker()
+                }
+            )
+        }
+    }
+
+    // Show date picker dialog for editing existing item
+    pendingItemForEdit?.let { item ->
+        val currentState = uiState
+        if (currentState is ItemDetailViewModel.ItemDetailUiState.Success) {
+            ExpirationDateDialog(
+                productName = currentState.product.name,
+                initialDate = item.expirationDate,
+                onDateSelected = { date ->
+                    viewModel.updateItemExpiration(date)
                 },
                 onDismiss = {
                     viewModel.cancelDatePicker()
@@ -259,6 +278,9 @@ fun ItemDetailScreen(
                                         dateFormatter = dateFormatter,
                                         onDelete = {
                                             viewModel.deleteItem(item.id)
+                                        },
+                                        onEditExpiration = {
+                                            viewModel.showEditExpirationDialog(item)
                                         }
                                     )
                                 }
@@ -277,7 +299,8 @@ fun ItemInstanceCard(
     product: fyi.goodbye.fridgy.models.Product,
     userNames: Map<String, String>,
     dateFormatter: SimpleDateFormat,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEditExpiration: () -> Unit
 ) {
     Column {
         // Expiration Date
@@ -287,11 +310,27 @@ fun ItemInstanceCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = "Expiration Date",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Expiration Date",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    IconButton(
+                        onClick = onEditExpiration,
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit expiration",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
 
                 if (item.expirationDate != null) {
                     val expirationDateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }

@@ -12,6 +12,7 @@ import java.util.*
  * Dialog for selecting an optional expiration date for an item.
  *
  * @param productName The name of the product being added
+ * @param initialDate Optional initial date in milliseconds (null for current date)
  * @param onDateSelected Called when user confirms with a date (null for no expiration)
  * @param onDismiss Called when user cancels
  */
@@ -19,21 +20,38 @@ import java.util.*
 @Composable
 fun ExpirationDateDialog(
     productName: String,
+    initialDate: Long? = null,
     onDateSelected: (Long?) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // DatePicker works in UTC - get current date in UTC for proper display
-    val currentDateUtc =
-        Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
+    // DatePicker works in UTC - get initial date in UTC for proper display
+    val initialDateUtc =
+        if (initialDate != null) {
+            // Convert from local time to UTC date
+            val localCalendar = Calendar.getInstance().apply {
+                timeInMillis = initialDate
+            }
+            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                set(Calendar.YEAR, localCalendar.get(Calendar.YEAR))
+                set(Calendar.MONTH, localCalendar.get(Calendar.MONTH))
+                set(Calendar.DAY_OF_MONTH, localCalendar.get(Calendar.DAY_OF_MONTH))
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
+        } else {
+            Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }.timeInMillis
         }
 
     val datePickerState =
         rememberDatePickerState(
-            initialSelectedDateMillis = currentDateUtc.timeInMillis
+            initialSelectedDateMillis = initialDateUtc
         )
 
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }

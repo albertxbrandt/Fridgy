@@ -66,6 +66,9 @@ class ItemDetailViewModel
         private val _pendingItemForDate = MutableStateFlow<String?>(null)
         val pendingItemForDate: StateFlow<String?> = _pendingItemForDate.asStateFlow()
 
+        private val _pendingItemForEdit = MutableStateFlow<Item?>(null)
+        val pendingItemForEdit: StateFlow<Item?> = _pendingItemForEdit.asStateFlow()
+
         // Store the UPC from the first load to track items after deletion
         private var trackedUpc: String? = null
 
@@ -201,6 +204,7 @@ class ItemDetailViewModel
          */
         fun cancelDatePicker() {
             _pendingItemForDate.value = null
+            _pendingItemForEdit.value = null
         }
 
         /**
@@ -208,6 +212,35 @@ class ItemDetailViewModel
          */
         suspend fun getProductForDisplay(upc: String): Product? {
             return productRepository.getProductInfo(upc)
+        }
+
+        /**
+         * Shows the date picker dialog for editing an existing item's expiration
+         */
+        fun showEditExpirationDialog(item: Item) {
+            _pendingItemForEdit.value = item
+        }
+
+        /**
+         * Updates the expiration date of an existing item instance
+         */
+        fun updateItemExpiration(expirationDate: Long?) {
+            val itemToUpdate = _pendingItemForEdit.value
+            _pendingItemForEdit.value = null
+            
+            if (itemToUpdate != null) {
+                viewModelScope.launch {
+                    try {
+                        fridgeRepository.updateItemExpirationDate(
+                            fridgeId = fridgeId,
+                            itemId = itemToUpdate.id,
+                            expirationDate = expirationDate
+                        )
+                    } catch (e: Exception) {
+                        Log.e("ItemDetailVM", "Failed to update expiration: ${e.message}")
+                    }
+                }
+            }
         }
 
         @Deprecated("Items are now individual instances, use deleteItem instead")

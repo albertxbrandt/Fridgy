@@ -22,12 +22,20 @@ import fyi.goodbye.fridgy.ui.shared.UiState
  */
 @Composable
 fun JoinHouseholdDialog(
+    initialInviteCode: String? = null,
     onDismiss: () -> Unit,
     onJoinSuccess: (String) -> Unit,
     viewModel: JoinHouseholdViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val inviteCode by viewModel.inviteCode.collectAsState()
+
+    // Set initial invite code if provided from deep link
+    LaunchedEffect(initialInviteCode) {
+        if (initialInviteCode != null && inviteCode.isEmpty()) {
+            viewModel.setInitialInviteCode(initialInviteCode)
+        }
+    }
 
     // Handle success navigation
     LaunchedEffect(uiState) {

@@ -323,6 +323,27 @@ class ItemDetailViewModelTest {
         }
 
     @Test
+    fun `cancelDatePicker clears pendingItemForEdit`() =
+        runTest {
+            viewModel =
+                ItemDetailViewModel(
+                    mockContext,
+                    savedStateHandle,
+                    mockFridgeRepository,
+                    mockProductRepository
+                )
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.showEditExpirationDialog(testItem)
+            viewModel.cancelDatePicker()
+
+            viewModel.pendingItemForEdit.test {
+                val item = awaitItem()
+                assertNull(item)
+            }
+        }
+
+    @Test
     fun `addNewInstanceWithDate clears pendingItemForDate and adds item`() =
         runTest {
             val expirationDate = System.currentTimeMillis() + 86400000L
@@ -405,6 +426,98 @@ class ItemDetailViewModelTest {
 
             // Verify warning logged
             io.mockk.verify { Log.w("ItemDetailVM", "updateQuantity called but quantity is deprecated") }
+        }
+
+    @Test
+    fun `showEditExpirationDialog sets pendingItemForEdit to item`() =
+        runTest {
+            viewModel =
+                ItemDetailViewModel(
+                    mockContext,
+                    savedStateHandle,
+                    mockFridgeRepository,
+                    mockProductRepository
+                )
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.showEditExpirationDialog(testItem)
+
+            viewModel.pendingItemForEdit.test {
+                val item = awaitItem()
+                assertEquals(testItem, item)
+            }
+        }
+
+    @Test
+    fun `updateItemExpiration clears pendingItemForEdit and updates expiration`() =
+        runTest {
+            val newExpirationDate = System.currentTimeMillis() + 86400000L
+            coEvery {
+                mockFridgeRepository.updateItemExpirationDate(
+                    testFridgeId,
+                    testItemId,
+                    newExpirationDate
+                )
+            } returns Unit
+
+            viewModel =
+                ItemDetailViewModel(
+                    mockContext,
+                    savedStateHandle,
+                    mockFridgeRepository,
+                    mockProductRepository
+                )
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.showEditExpirationDialog(testItem)
+            viewModel.updateItemExpiration(newExpirationDate)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.pendingItemForEdit.test {
+                val item = awaitItem()
+                assertNull(item)
+            }
+
+            coVerify {
+                mockFridgeRepository.updateItemExpirationDate(
+                    testFridgeId,
+                    testItemId,
+                    newExpirationDate
+                )
+            }
+        }
+
+    @Test
+    fun `updateItemExpiration with null removes expiration`() =
+        runTest {
+            coEvery {
+                mockFridgeRepository.updateItemExpirationDate(
+                    testFridgeId,
+                    testItemId,
+                    null
+                )
+            } returns Unit
+
+            viewModel =
+                ItemDetailViewModel(
+                    mockContext,
+                    savedStateHandle,
+                    mockFridgeRepository,
+                    mockProductRepository
+                )
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            viewModel.showEditExpirationDialog(testItem)
+            viewModel.updateItemExpiration(null)
+            testDispatcher.scheduler.advanceUntilIdle()
+
+            coVerify {
+                mockFridgeRepository.updateItemExpirationDate(
+                    testFridgeId,
+                    testItemId,
+                    null
+                )
+            }
         }
 
     @Test

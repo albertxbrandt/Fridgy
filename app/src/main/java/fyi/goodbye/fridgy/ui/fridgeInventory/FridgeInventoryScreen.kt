@@ -1,5 +1,6 @@
 package fyi.goodbye.fridgy.ui.fridgeInventory
 
+import android.content.Context
 import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -9,6 +10,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ViewAgenda
+import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -22,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
 import fyi.goodbye.fridgy.ui.elements.InventoryItemCard
+import fyi.goodbye.fridgy.ui.elements.InventoryItemCardMinimal
 import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
 import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
@@ -57,6 +61,11 @@ fun FridgeInventoryScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isOwner by viewModel.isCurrentUserOwner.collectAsState()
     val groupedItems by viewModel.groupedItemsState.collectAsState()
+    
+    // Load and persist minimal view preference
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("fridgy_prefs", Context.MODE_PRIVATE) }
+    var isMinimalView by remember { mutableStateOf(prefs.getBoolean("inventory_minimal_view", false)) }
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
@@ -147,6 +156,16 @@ fun FridgeInventoryScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { 
+                        isMinimalView = !isMinimalView
+                        prefs.edit().putBoolean("inventory_minimal_view", isMinimalView).apply()
+                    }) {
+                        Icon(
+                            imageVector = if (isMinimalView) Icons.Default.ViewModule else Icons.Default.ViewAgenda,
+                            contentDescription = "Toggle view mode",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                     if (isOwner) {
                         IconButton(onClick = { onSettingsClick(fridgeId) }) {
                             Icon(
@@ -219,7 +238,7 @@ fun FridgeInventoryScreen(
                                 val startTime = System.currentTimeMillis()
 
                                 LazyVerticalGrid(
-                                    columns = GridCells.Adaptive(minSize = 140.dp),
+                                    columns = if (isMinimalView) GridCells.Fixed(1) else GridCells.Adaptive(minSize = 140.dp),
                                     modifier =
                                         Modifier
                                             .fillMaxSize()
@@ -240,11 +259,19 @@ fun FridgeInventoryScreen(
                                                 onItemClick(fridgeId, groupedItem.items.first().item.id)
                                             }
                                         }
-                                        InventoryItemCard(
-                                            inventoryItem = groupedItem.items.first(),
-                                            itemCount = groupedItem.items.size,
-                                            onClick = onClick
-                                        )
+                                        if (isMinimalView) {
+                                            InventoryItemCardMinimal(
+                                                inventoryItem = groupedItem.items.first(),
+                                                itemCount = groupedItem.items.size,
+                                                onClick = onClick
+                                            )
+                                        } else {
+                                            InventoryItemCard(
+                                                inventoryItem = groupedItem.items.first(),
+                                                itemCount = groupedItem.items.size,
+                                                onClick = onClick
+                                            )
+                                        }
                                     }
                                 }
 

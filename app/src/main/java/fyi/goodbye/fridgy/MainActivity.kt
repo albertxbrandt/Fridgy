@@ -90,6 +90,9 @@ class MainActivity : ComponentActivity() {
     @Inject
     lateinit var magicLinkHandler: fyi.goodbye.fridgy.ui.auth.MagicLinkHandler
 
+    /** Tracks when a new intent with invite code arrives */
+    private val inviteIntentTrigger = mutableStateOf(0L)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -98,6 +101,9 @@ class MainActivity : ComponentActivity() {
 
         // Handle magic link if the app was launched from one
         handleMagicLinkIntent(intent)
+
+        // Handle invite code deep link if present
+        handleInviteDeepLink(intent)
 
         // Configure Firestore for optimal offline performance
         // Note: Persistence is enabled by default in recent Firestore SDK versions
@@ -148,6 +154,29 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+
+                    // Handle pending invite code from deep link
+                    val inviteTrigger = inviteIntentTrigger.value
+                    LaunchedEffect(inviteTrigger) {
+                        val prefs = getSharedPreferences("fridgy_prefs", MODE_PRIVATE)
+                        val pendingCode = prefs.getString("pending_invite_code", null)
+                        if (pendingCode != null) {
+                            Log.d("Fridgy_DeepLink", "Found pending invite code in MainActivity, navigating to householdList")
+                            // Give auth state time to settle
+                            kotlinx.coroutines.delay(300)
+                            // Navigate to household list where the dialog will open
+                            if (auth.currentUser != null) {
+                                navController.navigate("householdList") {
+                                    popUpTo(navController.graph.id) { inclusive = false }
+                                    launchSingleTop = true
+                                }
+                            } else {
+                                Log.w("Fridgy_DeepLink", "User not logged in, cannot process invite code")
+                                // Clear the code since user can't join without being logged in
+                                prefs.edit().remove("pending_invite_code").apply()
+                            }
+                        }
+                    }
 
                     // Handle deep linking from notifications
                     LaunchedEffect(Unit) {
@@ -218,8 +247,15 @@ class MainActivity : ComponentActivity() {
                     // Get user preferences for last selected household
                     val userPreferences = remember { UserPreferences.getInstance(this@MainActivity) }
 
+                    // Check for pending invite code from deep link
+                    val hasPendingInvite = remember {
+                        getSharedPreferences("fridgy_prefs", MODE_PRIVATE)
+                            .getString("pending_invite_code", null) != null
+                    }
+
                     // Determine start destination:
                     // - If not logged in: login
+                    // - If has pending invite: householdList (to show join dialog)
                     // - If logged in with last household: fridgeList/{householdId}
                     // - If logged in with no last household: householdList
                     val lastHouseholdId = remember { userPreferences.getLastSelectedHouseholdId() }
@@ -227,6 +263,7 @@ class MainActivity : ComponentActivity() {
                         remember {
                             when {
                                 auth.currentUser == null -> "login"
+                                hasPendingInvite -> "householdList"
                                 lastHouseholdId != null -> "fridgeList/$lastHouseholdId"
                                 else -> "householdList"
                             }
@@ -604,6 +641,7 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         Log.d("Fridgy_MagicLink", "onNewIntent received")
         handleMagicLinkIntent(intent)
+        handleInviteDeepLink(intent)
     }
 
     /**
@@ -644,6 +682,31 @@ class MainActivity : ComponentActivity() {
             if (auth.isSignInWithEmailLink(data.toString())) {
                 Log.d("Fridgy_MagicLink", "Direct HTTPS magic link detected, passing to handler")
                 magicLinkHandler.handleIntent(intent)
+            }
+        }
+    }
+
+    /**
+     * Handle household invite deep links from web URLs.
+     * Extracts invite code from URL query parameter and stores it for navigation.
+     * Supports both custom scheme (fridgy://invite?code=ABC) and https (https://fridgyapp.com/invite?code=ABC)
+     */
+    private fun handleInviteDeepLink(intent: Intent?) {
+        intent?.data?.let { uri ->
+            if (uri.scheme == "fridgy" && uri.host == "invite") {
+                val inviteCode = uri.getQueryParameter("code")
+                if (inviteCode != null) {
+                    Log.d("Fridgy_DeepLink", "Handling invite code: $inviteCode")
+                    // Store the invite code in shared preferences to auto-fill in join dialog
+                    getSharedPreferences("fridgy_prefs", MODE_PRIVATE)
+                        .edit()
+                        .putString("pending_invite_code", inviteCode)
+                        .apply()
+                    // Trigger the LaunchedEffect to handle navigation
+                    inviteIntentTrigger.value = System.currentTimeMillis()
+                } else {
+                    Log.w("Fridgy_DeepLink", "Invite link missing code parameter: $uri")
+                }
             }
         }
     }

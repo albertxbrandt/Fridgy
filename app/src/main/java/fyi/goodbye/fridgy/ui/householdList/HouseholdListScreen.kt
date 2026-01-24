@@ -1,5 +1,6 @@
 package fyi.goodbye.fridgy.ui.householdList
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -113,6 +115,22 @@ private fun HouseholdListContent(
     var isSidebarOpen by remember { mutableStateOf(false) }
     var showMigrationDialog by remember { mutableStateOf(false) }
     var showJoinHouseholdDialog by remember { mutableStateOf(false) }
+    var pendingInviteCode by remember { mutableStateOf<String?>(null) }
+
+    // Check for pending invite code from deep link
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("fridgy_prefs", Context.MODE_PRIVATE)
+        val inviteCode = prefs.getString("pending_invite_code", null)
+        android.util.Log.d("Fridgy_DeepLink", "HouseholdListScreen checking for pending code: $inviteCode")
+        if (inviteCode != null) {
+            android.util.Log.d("Fridgy_DeepLink", "Found pending code, opening dialog")
+            pendingInviteCode = inviteCode
+            showJoinHouseholdDialog = true
+            // Clear the pending code
+            prefs.edit().remove("pending_invite_code").apply()
+        }
+    }
 
     // Show migration dialog when needed
     LaunchedEffect(needsMigration) {
@@ -448,9 +466,14 @@ private fun HouseholdListContent(
     // Join Household Dialog
     if (showJoinHouseholdDialog) {
         JoinHouseholdDialog(
-            onDismiss = { showJoinHouseholdDialog = false },
+            initialInviteCode = pendingInviteCode,
+            onDismiss = { 
+                showJoinHouseholdDialog = false
+                pendingInviteCode = null
+            },
             onJoinSuccess = { householdId ->
                 showJoinHouseholdDialog = false
+                pendingInviteCode = null
                 onJoinHouseholdSuccess(householdId)
             }
         )
