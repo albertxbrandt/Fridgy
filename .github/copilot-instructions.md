@@ -1,13 +1,25 @@
-# Fridgy - AI Coding Instructions
 
+<<<<<<< Updated upstream
 ## Project Overview
 Fridgy is a family-oriented fridge inventory management Android app built with **Jetpack Compose**, **Firebase**, **Kotlin**, and **Hilt** for dependency injection. Users create shared "fridges", add items via barcode scanning, and maintain real-time shopping lists. The app emphasizes real-time collaboration using Firestore's snapshot listeners.
+=======
+# Fridgy – AI Coding Agent Instructions
+>>>>>>> Stashed changes
 
-**Package:** `fyi.goodbye.fridgy`  
-**Min SDK:** 25 | **Target SDK:** 36 | **JVM Target:** 11
+## Project Summary
+Fridgy is a collaborative fridge inventory Android app using **Jetpack Compose**, **Kotlin**, and **Firebase** (Firestore, Auth, Storage, App Check). It enforces strict MVVM, real-time sync, and a modern Compose UI. See [README.md](../../README.md) for user-level overview.
 
-## Architecture
+## Architecture & Patterns
+- **MVVM enforced**: 
+    - **Models**: `models/` (Firestore-annotated data classes)
+    - **Repositories**: `repositories/` (Firestore/Storage access, Kotlin Flows, in-memory cache)
+    - **ViewModels**: `ui/viewmodels/` and feature folders (business logic, `StateFlow`/`UiState` sealed interfaces)
+    - **Views**: `ui/` (Composable UI, never access repositories directly)
+- **Navigation**: Single-activity Compose NavHost in `MainActivity`. All navigation is string-based, with arguments passed via route and `savedStateHandle`.
+- **Realtime**: Firestore snapshot listeners via `callbackFlow` for live updates (fridges, items, invites, notifications).
+- **Push Notifications**: FCM token managed in `NotificationRepository`, permission requested at runtime (Android 13+), token saved to Firestore.
 
+<<<<<<< Updated upstream
 ### MVVM Pattern with Hilt DI (Strictly Enforced)
 The app follows **Model-View-ViewModel** architecture with **Hilt** for dependency injection. Never bypass this pattern:
 
@@ -35,11 +47,66 @@ Single `MainActivity` with `NavHost`. Routes are string-based with arguments:
 - Barcode scanner: `barcodeScanner/{fridgeId}` → returns result via `savedStateHandle`
 - Settings: `fridgeSettings/{fridgeId}`
 - **Deep links**: `fridgy://auth` opens app from magic link email
+=======
+## Firebase Data Model
+- **users/**: `{uid}` → `createdAt`, `email`, `username`
+- **products/**: `{upc}` → `brand`, `category`, `imageUrl`, `lastUpdated`, `name`
+- **fridges/**: `{fridgeId}` → `createdAt`, `createdBy`, `name`, `members`, `pendingInvites`, subcollection `items/{upc}`
+- **Shopping list**: `fridges/{fridgeId}/shoppingList/`
+- **Images**: Stored at `products/{upc}.jpg` in Storage, loaded via signed URL
 
-Pass data between screens using `navController.currentBackStackEntry?.savedStateHandle`.
+## UI & Compose Conventions
+- **Screens**: Top-level composables in `ui/feature/Screen.kt` (e.g., `FridgeInventoryScreen`)
+- **Reusable elements**: `ui/elements/`, `ui/shared/components/` (e.g., `SquaredButton`, `SquaredInput`)
+- **Theme**: Custom palette in `ui/theme/Color.kt` (see `FridgyPrimary`, `FridgyWhite`, `FridgyDarkBlue`)
+- **State**: All ViewModels expose sealed `UiState` with `Loading`, `Success`, `Error`. Use `collectAsState()` in UI.
+- **Performance**: Use `derivedStateOf` for computed values, `distinctUntilChanged()` on flows, always use `key` in LazyColumn/Grid, and cache expensive objects with `remember`.
+- **Barcode Scanning**: CameraX + ML Kit, always call `imageProxy.close()` in `addOnCompleteListener`.
 
-## Firebase Integration
+## Developer Workflow
+- **Build**: `./gradlew assembleDebug`  |  **Run**: `./gradlew installDebug`
+- **Unit tests**: `./gradlew test` (see `app/src/test/`)
+- **UI tests**: `./gradlew connectedAndroidTest` (see `app/src/androidTest/`)
+- **Test coverage**: `./gradlew testDebugUnitTestCoverage`
+- **Dependency management**: Use version catalog (`gradle/libs.versions.toml`)
+- **CI**: See `.github/workflows/android-ci.yml` for lint, test, and build steps
 
+## Key Conventions & Gotchas
+- **Never bypass MVVM**: UI must only talk to ViewModels, never repositories or Firebase directly
+- **No Android context in ViewModels**: Pass only primitives/IDs
+- **All Firestore listeners must be closed**: Use `awaitClose` in flows
+- **Navigation**: Pass data via route args and `savedStateHandle`, not via global state
+- **Barcode scanner**: Always close `ImageProxy` in analyzer's `addOnCompleteListener` to avoid camera lockup
+- **Image loading**: Use Coil's `AsyncImage` with Storage URLs
+- **Testing**: Mock Firebase in unit tests, use Emulator Suite for integration
+>>>>>>> Stashed changes
+
+## Example Patterns
+- **ViewModel state**:
+    ```kotlin
+    sealed interface UiState { object Loading : UiState; data class Success(val data: T) : UiState; data class Error(val msg: String) : UiState }
+    private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
+    val uiState: StateFlow<UiState> = _uiState
+    ```
+- **Composable navigation**:
+    ```kotlin
+    navController.navigate("itemDetail/$fridgeId/$itemId")
+    // Pass results back with savedStateHandle
+    navController.currentBackStackEntry?.savedStateHandle?.set("scannedUpc", upc)
+    ```
+- **Firestore query for user fridges**:
+    ```kotlin
+    firestore.collection("fridges").whereNotEqualTo("members.$currentUserId", null)
+    ```
+
+## Where to Look
+- **MainActivity**: Navigation, Firebase/AppCheck setup, notification permission
+- **repositories/**: All Firestore/Storage logic, caching
+- **ui/shared/components/**: Custom Compose elements (e.g., `SquaredButton`)
+- **ui/theme/Color.kt**: Color palette
+- **app/src/test/**, **app/src/androidTest/**: Example tests and patterns
+
+<<<<<<< Updated upstream
 ### Authentication & App Check
 - **Passwordless authentication** via magic links sent through email (no passwords)
 - **Email service**: Resend (3,000 emails/month free tier)
@@ -119,6 +186,10 @@ val uiState: StateFlow<MyUiState> = _uiState.asStateFlow()
 ```
 
 Use `collectAsState()` in composables to observe state changes.
+=======
+---
+If any section is unclear or missing, please provide feedback to improve these instructions.
+>>>>>>> Stashed changes
 
 ### Performance Optimizations
 - **Use `derivedStateOf`** for computed values to avoid unnecessary recompositions (see `FridgeInventoryScreen`)
