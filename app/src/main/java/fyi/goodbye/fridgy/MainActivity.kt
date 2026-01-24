@@ -304,11 +304,6 @@ class MainActivity : ComponentActivity() {
                                         launchSingleTop = true
                                     }
                                 },
-                                onNavigateToProfile = {
-                                    navController.navigate("userProfile") {
-                                        launchSingleTop = true
-                                    }
-                                },
                                 onLogout = {
                                     navController.navigate("login") {
                                         popUpTo(navController.graph.id) { inclusive = true }

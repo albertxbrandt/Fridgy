@@ -81,7 +81,7 @@ fun NewProductDialog(
 
     val categories =
         when (val state = categoryState) {
-            is UiState.Success -> state.data.map { it.name }
+            is CategoryViewModel.CategoryUiState.Success -> state.categories.map { it.name }
             else -> listOf(fallbackCategory) // Fallback if categories haven't loaded yet
         }
 

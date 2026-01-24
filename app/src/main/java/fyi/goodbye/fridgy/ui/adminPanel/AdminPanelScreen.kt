@@ -19,6 +19,7 @@ import fyi.goodbye.fridgy.ui.adminPanel.components.AdminSuccessContent
 import fyi.goodbye.fridgy.ui.adminPanel.components.UnauthorizedAccessContent
 import fyi.goodbye.fridgy.ui.adminPanel.components.dialogs.*
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
+import fyi.goodbye.fridgy.ui.shared.UiState
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
@@ -234,13 +235,20 @@ fun AdminPanelScreenContent(
                         "totalUsers: ${state.totalUsers}, totalProducts: ${state.totalProducts}, totalFridges: ${state.totalFridges}"
                     )
 
+                    // Convert CategoryUiState to UiState<List<Category>>
+                    val categoryUiState = when (categoryState) {
+                        is CategoryViewModel.CategoryUiState.Loading -> UiState.Loading
+                        is CategoryViewModel.CategoryUiState.Success -> UiState.Success(categoryState.categories)
+                        is CategoryViewModel.CategoryUiState.Error -> UiState.Error(categoryState.message)
+                    }
+
                     AdminSuccessContent(
                         totalUsers = state.totalUsers,
                         totalProducts = state.totalProducts,
                         totalFridges = state.totalFridges,
                         users = state.users,
                         products = state.products,
-                        categoryState = categoryState,
+                        categoryState = categoryUiState,
                         onEditUser = onEditUser,
                         onDeleteUser = onDeleteUser,
                         onEditProduct = onEditProduct,

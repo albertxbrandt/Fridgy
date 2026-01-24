@@ -32,9 +32,8 @@ fun JoinHouseholdDialog(
     // Handle success navigation
     LaunchedEffect(uiState) {
         val currentState = uiState
-        if (currentState is UiState.Success && currentState.data is JoinHouseholdViewModel.JoinState.Success) {
-            val householdId = (currentState.data as JoinHouseholdViewModel.JoinState.Success).householdId
-            onJoinSuccess(householdId)
+        if (currentState is JoinHouseholdViewModel.JoinHouseholdUiState.Success) {
+            onJoinSuccess(currentState.householdId)
         }
     }
 
@@ -52,7 +51,7 @@ fun JoinHouseholdDialog(
 @Composable
 private fun JoinHouseholdDialogContent(
     inviteCode: String,
-    uiState: UiState<JoinHouseholdViewModel.JoinState>,
+    uiState: JoinHouseholdViewModel.JoinHouseholdUiState,
     onInviteCodeChange: (String) -> Unit,
     onValidateCode: () -> Unit,
     onJoinHousehold: () -> Unit,
@@ -61,13 +60,8 @@ private fun JoinHouseholdDialogContent(
 ) {
     AlertDialog(
         onDismissRequest = {
-            if (!(
-                    uiState is UiState.Success &&
-                        (
-                            uiState.data is JoinHouseholdViewModel.JoinState.Validating ||
-                                uiState.data is JoinHouseholdViewModel.JoinState.Joining
-                        )
-                )
+            if (uiState !is JoinHouseholdViewModel.JoinHouseholdUiState.Validating &&
+                uiState !is JoinHouseholdViewModel.JoinHouseholdUiState.Joining
             ) {
                 onDismiss()
             }
@@ -98,7 +92,7 @@ private fun JoinHouseholdDialogContent(
                     value = inviteCode,
                     onValueChange = {
                         onInviteCodeChange(it)
-                        if (uiState is UiState.Error) {
+                        if (uiState is JoinHouseholdViewModel.JoinHouseholdUiState.Error) {
                             onResetState()
                         }
                     },
@@ -138,19 +132,14 @@ private fun JoinHouseholdDialogContent(
                                     androidx.compose.ui.unit.TextUnitType.Sp
                                 )
                         ),
-                    isError = uiState is UiState.Error,
+                    isError = uiState is JoinHouseholdViewModel.JoinHouseholdUiState.Error,
                     enabled =
-                        !(
-                            uiState is UiState.Success &&
-                                (
-                                    uiState.data is JoinHouseholdViewModel.JoinState.Validating ||
-                                        uiState.data is JoinHouseholdViewModel.JoinState.Joining
-                                )
-                        )
+                        uiState !is JoinHouseholdViewModel.JoinHouseholdUiState.Validating &&
+                            uiState !is JoinHouseholdViewModel.JoinHouseholdUiState.Joining
                 )
 
                 // Error message
-                if (uiState is UiState.Error) {
+                if (uiState is JoinHouseholdViewModel.JoinHouseholdUiState.Error) {
                     Text(
                         text = uiState.message,
                         style = MaterialTheme.typography.bodySmall,
@@ -159,8 +148,8 @@ private fun JoinHouseholdDialogContent(
                 }
 
                 // Show household info when code is valid
-                if (uiState is UiState.Success && uiState.data is JoinHouseholdViewModel.JoinState.CodeValid) {
-                    val householdName = (uiState.data as JoinHouseholdViewModel.JoinState.CodeValid).householdName
+                if (uiState is JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid) {
+                    val householdName = uiState.householdName
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors =
@@ -192,8 +181,8 @@ private fun JoinHouseholdDialogContent(
                 }
 
                 // Show info when user is already a member
-                if (uiState is UiState.Success && uiState.data is JoinHouseholdViewModel.JoinState.AlreadyMember) {
-                    val householdName = (uiState.data as JoinHouseholdViewModel.JoinState.AlreadyMember).householdName
+                if (uiState is JoinHouseholdViewModel.JoinHouseholdUiState.AlreadyMember) {
+                    val householdName = uiState.householdName
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         colors =
@@ -227,9 +216,8 @@ private fun JoinHouseholdDialogContent(
         },
         confirmButton = {
             when (uiState) {
-                UiState.Idle,
-                is UiState.Loading,
-                is UiState.Error -> {
+                JoinHouseholdViewModel.JoinHouseholdUiState.Idle,
+                is JoinHouseholdViewModel.JoinHouseholdUiState.Error -> {
                     Button(
                         onClick = onValidateCode,
                         enabled = inviteCode.length == 6
@@ -237,83 +225,66 @@ private fun JoinHouseholdDialogContent(
                         Text(stringResource(R.string.confirm))
                     }
                 }
-                is UiState.Success -> {
-                    when (val state = uiState.data) {
-                        JoinHouseholdViewModel.JoinState.Idle -> {
-                            Button(
-                                onClick = onValidateCode,
-                                enabled = inviteCode.length == 6
-                            ) {
-                                Text(stringResource(R.string.confirm))
-                            }
-                        }
-                        is JoinHouseholdViewModel.JoinState.Validating -> {
-                            Button(
-                                onClick = { },
-                                enabled = false
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.validating))
-                            }
-                        }
-                        is JoinHouseholdViewModel.JoinState.CodeValid -> {
-                            Button(
-                                onClick = onJoinHousehold
-                            ) {
-                                Text(stringResource(R.string.join))
-                            }
-                        }
-                        is JoinHouseholdViewModel.JoinState.AlreadyMember -> {
-                            Button(
-                                onClick = { },
-                                enabled = false,
-                                colors =
-                                    ButtonDefaults.buttonColors(
-                                        disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-                                        disabledContentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                                    )
-                            ) {
-                                Text(stringResource(R.string.already_a_member))
-                            }
-                        }
-                        is JoinHouseholdViewModel.JoinState.Joining -> {
-                            Button(
-                                onClick = { },
-                                enabled = false
-                            ) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(18.dp),
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(stringResource(R.string.joining))
-                            }
-                        }
-                        is JoinHouseholdViewModel.JoinState.Success -> {
-                            // Will navigate via LaunchedEffect
-                            Button(
-                                onClick = { },
-                                enabled = false
-                            ) {
-                                Text(stringResource(R.string.join))
-                            }
-                        }
+                is JoinHouseholdViewModel.JoinHouseholdUiState.Validating -> {
+                    Button(
+                        onClick = { },
+                        enabled = false
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.validating))
+                    }
+                }
+                is JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid -> {
+                    Button(
+                        onClick = onJoinHousehold
+                    ) {
+                        Text(stringResource(R.string.join))
+                    }
+                }
+                is JoinHouseholdViewModel.JoinHouseholdUiState.AlreadyMember -> {
+                    Button(
+                        onClick = { },
+                        enabled = false,
+                        colors =
+                            ButtonDefaults.buttonColors(
+                                disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                                disabledContentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                            )
+                    ) {
+                        Text(stringResource(R.string.already_a_member))
+                    }
+                }
+                is JoinHouseholdViewModel.JoinHouseholdUiState.Joining -> {
+                    Button(
+                        onClick = { },
+                        enabled = false
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.joining))
+                    }
+                }
+                is JoinHouseholdViewModel.JoinHouseholdUiState.Success -> {
+                    // Will navigate via LaunchedEffect
+                    Button(
+                        onClick = { },
+                        enabled = false
+                    ) {
+                        Text(stringResource(R.string.join))
                     }
                 }
             }
         },
         dismissButton = {
-            if (!(
-                    uiState is UiState.Success &&
-                        (
-                            uiState.data is JoinHouseholdViewModel.JoinState.Validating ||
-                                uiState.data is JoinHouseholdViewModel.JoinState.Joining
-                        )
-                )
+            if (uiState !is JoinHouseholdViewModel.JoinHouseholdUiState.Validating &&
+                uiState !is JoinHouseholdViewModel.JoinHouseholdUiState.Joining
             ) {
                 TextButton(onClick = onDismiss) {
                     Text(stringResource(R.string.cancel))
@@ -330,7 +301,7 @@ private fun JoinHouseholdDialogPreview() {
     fyi.goodbye.fridgy.ui.theme.FridgyTheme {
         JoinHouseholdDialogContent(
             inviteCode = "",
-            uiState = UiState.Success(JoinHouseholdViewModel.JoinState.Idle),
+            uiState = JoinHouseholdViewModel.JoinHouseholdUiState.Idle,
             onInviteCodeChange = {},
             onValidateCode = {},
             onJoinHousehold = {},
@@ -346,7 +317,7 @@ private fun JoinHouseholdDialogPreviewWithCode() {
     fyi.goodbye.fridgy.ui.theme.FridgyTheme {
         JoinHouseholdDialogContent(
             inviteCode = "ABC123",
-            uiState = UiState.Success(JoinHouseholdViewModel.JoinState.CodeValid("Smith Family")),
+            uiState = JoinHouseholdViewModel.JoinHouseholdUiState.CodeValid("Smith Family"),
             onInviteCodeChange = {},
             onValidateCode = {},
             onJoinHousehold = {},
@@ -362,7 +333,7 @@ private fun JoinHouseholdDialogPreviewAlreadyMember() {
     fyi.goodbye.fridgy.ui.theme.FridgyTheme {
         JoinHouseholdDialogContent(
             inviteCode = "ABC123",
-            uiState = UiState.Success(JoinHouseholdViewModel.JoinState.AlreadyMember("Smith Family")),
+            uiState = JoinHouseholdViewModel.JoinHouseholdUiState.AlreadyMember("Smith Family"),
             onInviteCodeChange = {},
             onValidateCode = {},
             onJoinHousehold = {},
