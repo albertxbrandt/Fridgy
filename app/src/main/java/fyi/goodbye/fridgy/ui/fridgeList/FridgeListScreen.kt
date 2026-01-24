@@ -10,6 +10,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.ViewAgenda
+import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,6 +23,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.elements.FridgeCard
+import fyi.goodbye.fridgy.ui.elements.FridgeCardMinimal
 import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
@@ -53,6 +56,7 @@ fun FridgeListScreen(
     var newFridgeName by remember { mutableStateOf("") }
     var newFridgeType by remember { mutableStateOf("fridge") }
     var newFridgeLocation by remember { mutableStateOf("") }
+    var isMinimalView by remember { mutableStateOf(false) }
 
     // Helper function to reset dialog state
     fun resetDialogState() {
@@ -89,6 +93,13 @@ fun FridgeListScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { isMinimalView = !isMinimalView }) {
+                        Icon(
+                            imageVector = if (isMinimalView) Icons.Default.ViewModule else Icons.Default.ViewAgenda,
+                            contentDescription = "Toggle view mode",
+                            tint = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
                     IconButton(onClick = onNavigateToHouseholdSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -179,7 +190,11 @@ fun FridgeListScreen(
                                 remember(fridge.id) {
                                     { _: DisplayFridge -> onNavigateToFridgeInventory(fridge) }
                                 }
-                            FridgeCard(fridge = fridge, onClick = onCardClick)
+                            if (isMinimalView) {
+                                FridgeCardMinimal(fridge = fridge, onClick = onCardClick)
+                            } else {
+                                FridgeCard(fridge = fridge, onClick = onCardClick)
+                            }
                         }
                     }
                 }
