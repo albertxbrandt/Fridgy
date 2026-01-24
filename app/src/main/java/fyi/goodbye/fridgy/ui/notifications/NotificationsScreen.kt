@@ -41,6 +41,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -184,16 +185,18 @@ fun NotificationsScreen(
                             ) { notification ->
                                 // OPTIMIZATION: Stable callback references
                                 val onDelete = remember(notification.id) {
-                                    { viewModel.deleteNotification(notification.id) }
+                                    { notif: Notification ->
+                                        viewModel.deleteNotification(notif.id)
+                                    }
                                 }
                                 val onClick = remember(notification.id, notification.type, notification.isRead) {
-                                    {
+                                    { notif: Notification ->
                                         // Don't navigate for fridge invites - use Accept/Decline buttons instead
-                                        if (notification.type.name != "FRIDGE_INVITE") {
-                                            if (!notification.isRead) {
-                                                viewModel.markAsRead(notification.id)
+                                        if (notif.type.name != "FRIDGE_INVITE") {
+                                            if (!notif.isRead) {
+                                                viewModel.markAsRead(notif.id)
                                             }
-                                            onNotificationClick(notification)
+                                            onNotificationClick(notif)
                                         }
                                     }
                                 }
@@ -202,6 +205,7 @@ fun NotificationsScreen(
                                         notif.relatedFridgeId?.let { fridgeId ->
                                             viewModel.acceptFridgeInvite(fridgeId, notif.id)
                                         }
+                                        Unit
                                     }
                                 }
                                 val onDeclineInvite = remember(notification.id) {
@@ -209,6 +213,7 @@ fun NotificationsScreen(
                                         notif.relatedFridgeId?.let { fridgeId ->
                                             viewModel.declineFridgeInvite(fridgeId, notif.id)
                                         }
+                                        Unit
                                     }
                                 }
                                 SwipeToDeleteNotificationItem(
