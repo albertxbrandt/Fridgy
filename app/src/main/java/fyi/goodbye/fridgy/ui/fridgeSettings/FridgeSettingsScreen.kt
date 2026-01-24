@@ -39,6 +39,7 @@ fun FridgeSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isDeleting by viewModel.isDeleting.collectAsState()
+    val isHouseholdOwner by viewModel.isHouseholdOwner.collectAsState()
 
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var confirmText by remember { mutableStateOf("") }
@@ -80,7 +81,6 @@ fun FridgeSettingsScreen(
             }
             is FridgeSettingsViewModel.FridgeSettingsUiState.Success -> {
                 val fridge = state.fridge
-                val isCreator = fridge.createdByUid == viewModel.currentUserId
 
                 LazyColumn(
                     modifier =
@@ -95,10 +95,6 @@ fun FridgeSettingsScreen(
                             Column {
                                 SettingsItem(label = stringResource(R.string.name), value = fridge.name)
                                 SettingsItem(
-                                    label = stringResource(R.string.created_by),
-                                    value = fridge.creatorDisplayName
-                                )
-                                SettingsItem(
                                     label = stringResource(R.string.type),
                                     value = state.fridgeData.type.replaceFirstChar { it.uppercase() }
                                 )
@@ -112,8 +108,8 @@ fun FridgeSettingsScreen(
                         }
                     }
 
-                    // Only the creator can delete the fridge
-                    if (isCreator) {
+                    // Only household owners can delete fridges
+                    if (isHouseholdOwner) {
                         item {
                             Button(
                                 onClick = { showDeleteConfirmDialog = true },

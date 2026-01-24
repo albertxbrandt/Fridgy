@@ -14,6 +14,7 @@ import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
+import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -50,6 +51,7 @@ class FridgeInventoryViewModel
         @ApplicationContext private val context: Context,
         savedStateHandle: SavedStateHandle,
         private val fridgeRepository: FridgeRepository,
+        private val householdRepository: HouseholdRepository,
         private val productRepository: ProductRepository,
         private val firebaseAuth: FirebaseAuth
     ) : ViewModel() {
@@ -65,8 +67,6 @@ class FridgeInventoryViewModel
                             id = fridgeId,
                             name = initialFridgeName,
                             householdId = "",
-                            createdByUid = "",
-                            creatorDisplayName = "",
                             createdAt = 0L
                         )
                     )
@@ -81,14 +81,28 @@ class FridgeInventoryViewModel
             get() = (_displayFridgeState.value as? FridgeDetailUiState.Success)?.fridge?.householdId
 
         /**
-         * Indicates whether the current user is the owner (creator) of this fridge.
-         * Derived from the fridge state to update automatically when fridge data loads.
+         * Indicates whether the current user is the owner of the household this fridge belongs to.
+         * Household owners have permission to edit and delete fridges.
+         * Derived from both fridge and household state to update automatically.
          */
         val isCurrentUserOwner: StateFlow<Boolean> =
             _displayFridgeState
                 .map { state ->
                     when (state) {
-                        is FridgeDetailUiState.Success -> state.fridge.createdByUid == currentUserId
+                        is FridgeDetailUiState.Success -> {
+                            val householdId = state.fridge.householdId
+                            if (householdId.isEmpty() || currentUserId == null) {
+                                false
+                            } else {
+                                try {
+                                    val household = householdRepository.getHouseholdById(householdId)
+                                    household?.createdBy == currentUserId
+                                } catch (e: Exception) {
+                                    Log.e("FridgeInventoryVM", "Error checking household ownership: ${e.message}")
+                                    false
+                                }
+                            }
+                        }
                         else -> false
                     }
                 }

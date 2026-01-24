@@ -117,24 +117,13 @@ fun FridgeCard(
                                     )
                         )
 
-                        // Creator info
-                        Column(
+                        // Created date
+                        Text(
+                            text = dateFormatter.format(Date(fridge.createdAt)),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.weight(1f)
-                        ) {
-                            Text(
-                                text = fridge.creatorDisplayName,
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                            Text(
-                                text = dateFormatter.format(Date(fridge.createdAt)),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
-                            )
-                        }
+                        )
                     }
                 }
             }

@@ -439,6 +439,7 @@ class FridgeRepository(
     /**
      * Converts a Firestore document to a Fridge, handling both old and new formats.
      * This provides backward compatibility during data migration.
+     * Note: createdBy field is ignored as fridges are now household-owned.
      */
     private fun DocumentSnapshot.toFridgeCompat(): Fridge? {
         try {
@@ -447,7 +448,6 @@ class FridgeRepository(
             val type = this.getString("type") ?: "fridge"
             val location = this.getString("location") ?: ""
             val householdId = this.getString("householdId") ?: ""
-            val createdBy = this.getString("createdBy") ?: ""
             val createdAt = this.getLong("createdAt") ?: System.currentTimeMillis()
 
             return Fridge(
@@ -456,7 +456,6 @@ class FridgeRepository(
                 type = type,
                 location = location,
                 householdId = householdId,
-                createdBy = createdBy,
                 createdAt = createdAt
             )
         } catch (e: Exception) {
@@ -559,22 +558,11 @@ class FridgeRepository(
                 }
             } ?: return null
 
-        // Fetch creator display name if needed
-        val creatorName =
-            if (fetchUserDetails && fridge.createdBy.isNotEmpty()) {
-                val usersMap = getUsersByIds(listOf(fridge.createdBy))
-                usersMap[fridge.createdBy]?.username ?: "Unknown"
-            } else {
-                ""
-            }
-
         return DisplayFridge(
             id = fridge.id,
             name = fridge.name,
             type = fridge.type,
             householdId = fridge.householdId,
-            createdByUid = fridge.createdBy,
-            creatorDisplayName = creatorName,
             createdAt = fridge.createdAt
         )
     }
@@ -607,7 +595,6 @@ class FridgeRepository(
                 type = fridgeType,
                 location = fridgeLocation,
                 householdId = householdId,
-                createdBy = currentUser.uid,
                 createdAt = System.currentTimeMillis()
             )
 
@@ -855,11 +842,23 @@ class FridgeRepository(
      */
     suspend fun deleteFridge(fridgeId: String) {
         val fridgeRef = firestore.collection("fridges").document(fridgeId)
-        val items = fridgeRef.collection("items").get().await()
+        
+        Log.d("FridgeRepository", "Attempting to read items for fridge: $fridgeId")
+        val items = try {
+            fridgeRef.collection("items").get().await()
+        } catch (e: Exception) {
+            Log.e("FridgeRepository", "Failed to read items subcollection: ${e.message}")
+            throw e
+        }
+        
+        Log.d("FridgeRepository", "Successfully read ${items.size()} items, creating batch delete")
         val batch = firestore.batch()
         items.documents.forEach { batch.delete(it.reference) }
         batch.delete(fridgeRef)
+        
+        Log.d("FridgeRepository", "Committing batch delete (${items.size()} items + 1 fridge)")
         batch.commit().await()
+        Log.d("FridgeRepository", "Batch delete successful")
     }
 
     /**

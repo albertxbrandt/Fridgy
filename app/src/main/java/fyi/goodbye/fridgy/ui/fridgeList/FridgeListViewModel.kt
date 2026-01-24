@@ -83,23 +83,13 @@ class FridgeListViewModel
                 // Collect real-time stream of fridges in this household
                 viewModelScope.launch {
                     fridgeRepository.getFridgesForHousehold(householdId).collectLatest { fridges ->
-                        // Fetch creator user data
-                        val creatorIds = fridges.map { it.createdBy }.distinct()
-                        val usersMap = fridgeRepository.getUsersByIds(creatorIds)
-
                         val displayFridges =
                             fridges.map { fridge ->
-                                val creatorName =
-                                    usersMap[fridge.createdBy]?.username
-                                        ?: context.getString(R.string.unknown)
-
                                 DisplayFridge(
                                     id = fridge.id,
                                     name = fridge.name,
                                     type = fridge.type,
                                     householdId = fridge.householdId,
-                                    createdByUid = fridge.createdBy,
-                                    creatorDisplayName = creatorName,
                                     createdAt = fridge.createdAt
                                 )
                             }

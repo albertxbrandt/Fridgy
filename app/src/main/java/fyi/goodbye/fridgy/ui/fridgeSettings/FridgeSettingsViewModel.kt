@@ -12,6 +12,7 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.repositories.FridgeRepository
+import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +35,7 @@ class FridgeSettingsViewModel
         @ApplicationContext private val context: Context,
         savedStateHandle: SavedStateHandle,
         private val fridgeRepository: FridgeRepository,
+        private val householdRepository: HouseholdRepository,
         private val firebaseAuth: FirebaseAuth
     ) : ViewModel() {
         private val fridgeId: String = savedStateHandle.get<String>("fridgeId") ?: ""
@@ -55,11 +57,16 @@ class FridgeSettingsViewModel
         /** The User ID of the currently authenticated user. */
         val currentUserId = firebaseAuth.currentUser?.uid
 
-        init {
-            loadFridgeDetails()
-        }
+    private val _isHouseholdOwner = MutableStateFlow(false)
+    
+    /** Indicates if the current user is the owner of the household this fridge belongs to. */
+    val isHouseholdOwner: StateFlow<Boolean> = _isHouseholdOwner.asStateFlow()
 
-        private fun loadFridgeDetails() {
+    init {
+        loadFridgeDetails()
+    }
+
+    private fun loadFridgeDetails() {
             viewModelScope.launch {
                 _uiState.value = FridgeSettingsUiState.Loading
                 try {
@@ -68,12 +75,24 @@ class FridgeSettingsViewModel
 
                     if (displayFridge != null && rawFridge != null) {
                         _uiState.value = FridgeSettingsUiState.Success(displayFridge, rawFridge)
+                    
+                        // Check if current user is household owner
+                        val householdId = displayFridge.householdId
+                        if (householdId.isNotEmpty() && currentUserId != null) {
+                            try {
+                                val household = householdRepository.getHouseholdById(householdId)
+                                _isHouseholdOwner.value = household?.createdBy == currentUserId
+                            } catch (e: Exception) {
+                                Log.e("FridgeSettingsVM", "Error checking household ownership: ${e.message}")
+                                _isHouseholdOwner.value = false
+                            }
+                        }
                     } else {
-                        _uiState.value = FridgeSettingsUiState.Error(context.getString(R.string.error_fridge_not_found))
+                        _uiState.value = FridgeSettingsUiState.Error("Fridge not found")
                     }
                 } catch (e: Exception) {
-                    _uiState.value = FridgeSettingsUiState.Error(e.message ?: context.getString(R.string.error_failed_to_load_fridge))
-                    Log.e("FridgeSettingsVM", "Error fetching fridge details for $fridgeId: ${e.message}", e)
+                    _uiState.value = FridgeSettingsUiState.Error(e.message ?: "Unknown error")
+                    Log.e("FridgeSettingsVM", "Error loading fridge details: ${e.message}")
                 }
             }
         }
@@ -88,6 +107,13 @@ class FridgeSettingsViewModel
             _actionError.value = null
             viewModelScope.launch {
                 try {
+                    // Log debugging info
+                    val fridge = fridgeRepository.getRawFridgeById(fridgeId)
+                    Log.d("FridgeSettingsVM", "Attempting to delete fridge: $fridgeId")
+                    Log.d("FridgeSettingsVM", "Fridge householdId: ${fridge?.householdId}")
+                    Log.d("FridgeSettingsVM", "Current user ID: $currentUserId")
+                    Log.d("FridgeSettingsVM", "Is household owner: ${_isHouseholdOwner.value}")
+                    
                     fridgeRepository.deleteFridge(fridgeId)
                     onSuccess()
                 } catch (e: Exception) {
