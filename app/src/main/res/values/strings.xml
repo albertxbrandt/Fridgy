@@ -315,7 +315,7 @@
     <string name="invite_code_never_expires">Never expires</string>
     <string name="invite_code_used_by">Used by: %1$s</string>
     <string name="invite_code_copied">Invite code copied to clipboard</string>
-    <string name="share_invite_message">Join my household "%1$s" on Fridgy! Use invite code: %2$s\n\nOr tap here: fridgy://invite?code=%2$s</string>
+    <string name="share_invite_message">Join my household "%1$s" on Fridgy! Use invite code: %2$s\n\nOr tap here: https://fridgyapp.com/invite?code=%2$s</string>
     <string name="revoke">Revoke</string>
     <string name="revoke_invite_code">Revoke Invite Code</string>
     <string name="error_invalid_invite_code">Invalid or expired invite code</string>
