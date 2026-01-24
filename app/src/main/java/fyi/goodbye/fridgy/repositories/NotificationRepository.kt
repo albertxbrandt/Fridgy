@@ -10,6 +10,7 @@ import fyi.goodbye.fridgy.models.Notification
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -131,6 +132,7 @@ class NotificationRepository(
 
             awaitClose { listenerRegistration.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Get unread notification count for the current user.
@@ -160,6 +162,7 @@ class NotificationRepository(
 
             awaitClose { listenerRegistration.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate count emissions
 
     /**
      * Mark a notification as read.
