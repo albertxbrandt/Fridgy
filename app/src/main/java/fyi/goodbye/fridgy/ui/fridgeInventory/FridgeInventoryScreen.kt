@@ -233,13 +233,18 @@ fun FridgeInventoryScreen(
                                         items = groupedItems,
                                         key = { it.upc }
                                     ) { groupedItem ->
+                                        // OPTIMIZATION: Stable callback reference
+                                        val onItemClick = remember(groupedItem.upc) {
+                                            { _: InventoryItem ->
+                                                // Navigate to first item in group
+                                                onItemClick(fridgeId, groupedItem.items.first().item.id)
+                                            }
+                                        }
                                         InventoryItemCard(
                                             inventoryItem = groupedItem.items.first(),
-                                            itemCount = groupedItem.items.size
-                                        ) { _ ->
-                                            // Navigate to first item in group
-                                            onItemClick(fridgeId, groupedItem.items.first().item.id)
-                                        }
+                                            itemCount = groupedItem.items.size,
+                                            onClick = onItemClick
+                                        )
                                     }
                                 }
 

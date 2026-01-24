@@ -182,28 +182,41 @@ fun NotificationsScreen(
                                 items = state.notifications,
                                 key = { it.id }
                             ) { notification ->
-                                SwipeToDeleteNotificationItem(
-                                    notification = notification,
-                                    onDelete = { viewModel.deleteNotification(it.id) },
-                                    onClick = {
+                                // OPTIMIZATION: Stable callback references
+                                val onDelete = remember(notification.id) {
+                                    { viewModel.deleteNotification(notification.id) }
+                                }
+                                val onClick = remember(notification.id, notification.type, notification.isRead) {
+                                    {
                                         // Don't navigate for fridge invites - use Accept/Decline buttons instead
-                                        if (it.type.name != "FRIDGE_INVITE") {
-                                            if (!it.isRead) {
-                                                viewModel.markAsRead(it.id)
+                                        if (notification.type.name != "FRIDGE_INVITE") {
+                                            if (!notification.isRead) {
+                                                viewModel.markAsRead(notification.id)
                                             }
-                                            onNotificationClick(it)
+                                            onNotificationClick(notification)
                                         }
-                                    },
-                                    onAcceptInvite = { notif ->
+                                    }
+                                }
+                                val onAcceptInvite = remember(notification.id) {
+                                    { notif: Notification ->
                                         notif.relatedFridgeId?.let { fridgeId ->
                                             viewModel.acceptFridgeInvite(fridgeId, notif.id)
                                         }
-                                    },
-                                    onDeclineInvite = { notif ->
+                                    }
+                                }
+                                val onDeclineInvite = remember(notification.id) {
+                                    { notif: Notification ->
                                         notif.relatedFridgeId?.let { fridgeId ->
                                             viewModel.declineFridgeInvite(fridgeId, notif.id)
                                         }
                                     }
+                                }
+                                SwipeToDeleteNotificationItem(
+                                    notification = notification,
+                                    onDelete = onDelete,
+                                    onClick = onClick,
+                                    onAcceptInvite = onAcceptInvite,
+                                    onDeclineInvite = onDeclineInvite
                                 )
                             }
                         }
