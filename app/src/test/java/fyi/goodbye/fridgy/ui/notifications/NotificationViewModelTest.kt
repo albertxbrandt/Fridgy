@@ -11,6 +11,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.flowOf
@@ -66,6 +67,13 @@ class NotificationViewModelTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         mockRepository = mockk(relaxed = true)
+        
+        // Mock Android Log to prevent crashes
+        mockkStatic(android.util.Log::class)
+        every { android.util.Log.d(any(), any()) } returns 0
+        every { android.util.Log.e(any(), any()) } returns 0
+        every { android.util.Log.e(any(), any(), any()) } returns 0
+        every { android.util.Log.w(any(), any<String>()) } returns 0
     }
 
     @After
@@ -75,7 +83,6 @@ class NotificationViewModelTest {
     }
 
     @Test
-    
     fun `initial state is Loading`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(emptyList())
@@ -83,15 +90,11 @@ class NotificationViewModelTest {
 
             viewModel = NotificationViewModel(mockRepository)
 
-            viewModel.uiState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Loading)
-                cancelAndIgnoreRemainingEvents()
-            }
+            // Initial value should be Loading
+            assertEquals(UiState.Loading, viewModel.uiState.value)
         }
 
     @Test
-    
     fun `uiState emits Success with notifications`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -101,16 +104,21 @@ class NotificationViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.uiState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Success)
-                assertEquals(2, (state as UiState.Success).data.size)
-                assertEquals("notif1", state.data[0].id)
-                assertEquals("New item added", state.data[0].title)
+                // stateIn emits Loading first, then Success
+                val loadingState = awaitItem()
+                assertTrue(loadingState is UiState.Loading)
+                
+                val successState = awaitItem()
+                assertTrue(successState is UiState.Success)
+                assertEquals(2, (successState as UiState.Success).data.size)
+                assertEquals("notif1", successState.data[0].id)
+                assertEquals("New item added", successState.data[0].title)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
     @Test
-    
     fun `uiState emits Error when repository flow fails`() =
         runTest {
             val errorMessage = "Network error"
@@ -124,14 +132,19 @@ class NotificationViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.uiState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Error)
-                assertEquals(errorMessage, (state as UiState.Error).message)
+                // stateIn emits Loading first, then Error
+                val loadingState = awaitItem()
+                assertTrue(loadingState is UiState.Loading)
+                
+                val errorState = awaitItem()
+                assertTrue(errorState is UiState.Error)
+                assertEquals(errorMessage, (errorState as UiState.Error).message)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
     @Test
-    
     fun `unreadCount flows from repository`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -141,13 +154,18 @@ class NotificationViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.unreadCount.test {
+                // Initial value is 0, then flows to 3
+                val initial = awaitItem()
+                assertEquals(0, initial)
+                
                 val count = awaitItem()
                 assertEquals(3, count)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
     @Test
-    
     fun `unreadCount emits 0 when repository flow fails`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(emptyList())
@@ -160,13 +178,16 @@ class NotificationViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.unreadCount.test {
+                // When error occurs, catch{} emits 0, which matches initialValue = 0
+                // So we only get the initial value (0) since the emitted value is also 0
                 val count = awaitItem()
                 assertEquals(0, count)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
     @Test
-    
     fun `markAsRead succeeds and updates operationState`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -176,20 +197,30 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.markAsRead("notif1")
-            testDispatcher.scheduler.advanceUntilIdle()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Success)
-                assertEquals("Marked as read", (state as UiState.Success).data)
+                // Initial state is Idle
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                viewModel.markAsRead("notif1")
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                // Loading state
+                val loading = awaitItem()
+                assertTrue(loading is UiState.Loading)
+                
+                // Success state
+                val success = awaitItem()
+                assertTrue(success is UiState.Success)
+                assertEquals("Marked as read", (success as UiState.Success).data)
+                
+                cancelAndIgnoreRemainingEvents()
             }
 
             coVerify { mockRepository.markAsRead("notif1") }
         }
 
     @Test
-    
     fun `markAsRead fails and updates operationState to Error`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -200,13 +231,24 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.markAsRead("notif1")
-            testDispatcher.scheduler.advanceUntilIdle()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Error)
-                assertEquals("Failed to mark as read", (state as UiState.Error).message)
+                // Initial state is Idle
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                viewModel.markAsRead("notif1")
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                // Loading state
+                val loading = awaitItem()
+                assertTrue(loading is UiState.Loading)
+                
+                // Error state
+                val error = awaitItem()
+                assertTrue(error is UiState.Error)
+                assertEquals("Failed to mark as read", (error as UiState.Error).message)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
@@ -235,7 +277,6 @@ class NotificationViewModelTest {
         }
 
     @Test
-    
     fun `markAllAsRead succeeds and updates operationState`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -245,20 +286,27 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.markAllAsRead()
-            testDispatcher.scheduler.advanceUntilIdle()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Success)
-                assertEquals("All marked as read", (state as UiState.Success).data)
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                viewModel.markAllAsRead()
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val loading = awaitItem()
+                assertTrue(loading is UiState.Loading)
+                
+                val success = awaitItem()
+                assertTrue(success is UiState.Success)
+                assertEquals("All marked as read", (success as UiState.Success).data)
+                
+                cancelAndIgnoreRemainingEvents()
             }
 
             coVerify { mockRepository.markAllAsRead() }
         }
 
     @Test
-    
     fun `markAllAsRead fails and updates operationState to Error`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -269,18 +317,25 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.markAllAsRead()
-            testDispatcher.scheduler.advanceUntilIdle()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Error)
-                assertEquals("Failed to mark all as read", (state as UiState.Error).message)
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                viewModel.markAllAsRead()
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val loading = awaitItem()
+                assertTrue(loading is UiState.Loading)
+                
+                val error = awaitItem()
+                assertTrue(error is UiState.Error)
+                assertEquals("Failed to mark all as read", (error as UiState.Error).message)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
     @Test
-    
     fun `deleteNotification succeeds and updates operationState`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -290,20 +345,27 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.deleteNotification("notif1")
-            testDispatcher.scheduler.advanceUntilIdle()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Success)
-                assertEquals("Notification deleted", (state as UiState.Success).data)
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                viewModel.deleteNotification("notif1")
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val loading = awaitItem()
+                assertTrue(loading is UiState.Loading)
+                
+                val success = awaitItem()
+                assertTrue(success is UiState.Success)
+                assertEquals("Notification deleted", (success as UiState.Success).data)
+                
+                cancelAndIgnoreRemainingEvents()
             }
 
             coVerify { mockRepository.deleteNotification("notif1") }
         }
 
     @Test
-    
     fun `deleteNotification fails and updates operationState to Error`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -314,18 +376,25 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            viewModel.deleteNotification("notif1")
-            testDispatcher.scheduler.advanceUntilIdle()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Error)
-                assertEquals("Failed to delete notification", (state as UiState.Error).message)
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                viewModel.deleteNotification("notif1")
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val loading = awaitItem()
+                assertTrue(loading is UiState.Loading)
+                
+                val error = awaitItem()
+                assertTrue(error is UiState.Error)
+                assertEquals("Failed to delete notification", (error as UiState.Error).message)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
     @Test
-    
     fun `resetOperationState resets state to Idle`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -336,21 +405,31 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            // Set state to Error first
-            viewModel.deleteNotification("notif1")
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            // Reset it
-            viewModel.resetOperationState()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Idle)
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                // Set state to Error first
+                viewModel.deleteNotification("notif1")
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                val loading = awaitItem()
+                assertTrue(loading is UiState.Loading)
+                
+                val error = awaitItem()
+                assertTrue(error is UiState.Error)
+
+                // Reset it
+                viewModel.resetOperationState()
+
+                val resetToIdle = awaitItem()
+                assertTrue(resetToIdle is UiState.Idle)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 
     @Test
-    
     fun `acceptFridgeInvite shows deprecation error`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -360,16 +439,22 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            @Suppress("DEPRECATION")
-            viewModel.acceptFridgeInvite("fridge1", "notif1")
-            testDispatcher.scheduler.advanceUntilIdle()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Error)
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                @Suppress("DEPRECATION")
+                viewModel.acceptFridgeInvite("fridge1", "notif1")
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                // This method directly sets Error without Loading state
+                val error = awaitItem()
+                assertTrue(error is UiState.Error)
                 assertTrue(
-                    (state as UiState.Error).message.contains("no longer supported")
+                    (error as UiState.Error).message.contains("no longer supported")
                 )
+                
+                cancelAndIgnoreRemainingEvents()
             }
 
             // Should still delete the notification
@@ -377,7 +462,6 @@ class NotificationViewModelTest {
         }
 
     @Test
-    
     fun `declineFridgeInvite deletes notification and shows success`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
@@ -387,21 +471,26 @@ class NotificationViewModelTest {
             viewModel = NotificationViewModel(mockRepository)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            @Suppress("DEPRECATION")
-            viewModel.declineFridgeInvite("fridge1", "notif1")
-            testDispatcher.scheduler.advanceUntilIdle()
-
             viewModel.operationState.test {
-                val state = awaitItem()
-                assertTrue(state is UiState.Success)
-                assertEquals("Invite removed", (state as UiState.Success).data)
+                val idle = awaitItem()
+                assertTrue(idle is UiState.Idle)
+                
+                @Suppress("DEPRECATION")
+                viewModel.declineFridgeInvite("fridge1", "notif1")
+                testDispatcher.scheduler.advanceUntilIdle()
+
+                // This method directly sets Success without Loading state
+                val success = awaitItem()
+                assertTrue(success is UiState.Success)
+                assertEquals("Invite removed", (success as UiState.Success).data)
+                
+                cancelAndIgnoreRemainingEvents()
             }
 
             coVerify { mockRepository.deleteNotification("notif1") }
         }
 
     @Test
-    
     fun `empty notifications list emits Success state`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(emptyList())
@@ -411,9 +500,14 @@ class NotificationViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             viewModel.uiState.test {
+                val loading = awaitItem()
+                assertTrue(loading is UiState.Loading)
+                
                 val state = awaitItem()
                 assertTrue(state is UiState.Success)
                 assertEquals(0, (state as UiState.Success).data.size)
+                
+                cancelAndIgnoreRemainingEvents()
             }
         }
 }
