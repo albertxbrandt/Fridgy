@@ -99,6 +99,7 @@ class HouseholdRepository(
                 listener.remove()
             }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Gets a single household by ID.
@@ -286,6 +287,7 @@ class HouseholdRepository(
                 fridgeCountListeners.values.forEach { it.remove() }
             }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Creates a new household with the current user as owner and sole member.
@@ -535,6 +537,7 @@ class HouseholdRepository(
                     }
             awaitClose { listener.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Revokes (deactivates) an invite code.
@@ -664,6 +667,7 @@ class HouseholdRepository(
                 }
             awaitClose { listener.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Adds an item to the household's shopping list.
@@ -962,6 +966,7 @@ class HouseholdRepository(
 
             awaitClose { listener.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     // ==================== Migration Helper ====================
 

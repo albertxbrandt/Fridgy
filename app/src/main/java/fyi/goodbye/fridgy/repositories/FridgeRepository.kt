@@ -20,6 +20,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
@@ -77,6 +78,7 @@ class FridgeRepository(
                 }
             awaitClose { listener.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Sets the current user as actively viewing the shopping list.
@@ -175,6 +177,7 @@ class FridgeRepository(
 
             awaitClose { listener.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Adds a UPC to the fridge's shopping list subcollection, with quantity and store.
@@ -366,6 +369,7 @@ class FridgeRepository(
                 }
             awaitClose { listener.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Adds a UPC to the fridge's shopping list array.
@@ -498,6 +502,7 @@ class FridgeRepository(
                     }
             awaitClose { fridgesListenerRegistration.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Fetches a raw Fridge object by ID without user profile resolution.
@@ -686,6 +691,7 @@ class FridgeRepository(
                     }
             awaitClose { listener.remove() }
         }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Adds a new item instance to a fridge.

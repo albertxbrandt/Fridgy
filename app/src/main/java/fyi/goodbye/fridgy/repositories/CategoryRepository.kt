@@ -4,6 +4,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.models.Category
 import fyi.goodbye.fridgy.utils.asFlow
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -25,6 +26,7 @@ class CategoryRepository(
         categoriesCollection
             .orderBy("order")
             .asFlow<Category>()
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
      * Creates a new category.
