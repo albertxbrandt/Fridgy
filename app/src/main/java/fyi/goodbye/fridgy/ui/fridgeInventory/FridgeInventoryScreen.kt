@@ -56,6 +56,7 @@ fun FridgeInventoryScreen(
     val pendingUpc by viewModel.pendingScannedUpc.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isOwner by viewModel.isCurrentUserOwner.collectAsState()
+    val groupedItems by viewModel.groupedItemsState.collectAsState()
 
     val navBackStackEntry by navController.currentBackStackEntryAsState()
 
@@ -226,18 +227,18 @@ fun FridgeInventoryScreen(
                                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                                     verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    // Group items by UPC for bundled display
-                                    val groupedItems = items.groupBy { it.product.upc }
-
-                                    groupedItems.forEach { (upc, itemGroup) ->
-                                        item(key = upc) {
-                                            InventoryItemCard(
-                                                inventoryItem = itemGroup.first(),
-                                                itemCount = itemGroup.size
-                                            ) { _ ->
-                                                // Navigate to first item in group
-                                                onItemClick(fridgeId, itemGroup.first().item.id)
-                                            }
+                                    // OPTIMIZATION: Items are pre-grouped in ViewModel
+                                    // This prevents regrouping on every recomposition
+                                    items(
+                                        items = groupedItems,
+                                        key = { it.upc }
+                                    ) { groupedItem ->
+                                        InventoryItemCard(
+                                            inventoryItem = groupedItem.items.first(),
+                                            itemCount = groupedItem.items.size
+                                        ) { _ ->
+                                            // Navigate to first item in group
+                                            onItemClick(fridgeId, groupedItem.items.first().item.id)
                                         }
                                     }
                                 }

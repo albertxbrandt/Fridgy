@@ -149,6 +149,31 @@ class FridgeInventoryViewModel
                 initialValue = ItemsUiState.Loading
             )
 
+        // OPTIMIZATION: Group items by UPC in ViewModel instead of Composable
+        // Prevents regrouping on every recomposition
+        data class GroupedItem(
+            val upc: String,
+            val items: List<InventoryItem>
+        )
+
+        val groupedItemsState: StateFlow<List<GroupedItem>> =
+            filteredItemsUiState
+                .map { state ->
+                    when (state) {
+                        is ItemsUiState.Success -> {
+                            state.items
+                                .groupBy { it.product.upc }
+                                .map { (upc, items) -> GroupedItem(upc, items) }
+                        }
+                        else -> emptyList()
+                    }
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = emptyList()
+                )
+
         init {
             // Preload items from cache for instant display
             viewModelScope.launch {
