@@ -34,12 +34,13 @@ import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
 fun FridgeSettingsScreen(
     fridgeId: String,
     onBackClick: () -> Unit,
-    onDeleteSuccess: () -> Unit,
+    onDeleteSuccess: (householdId: String) -> Unit,
     viewModel: FridgeSettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isDeleting by viewModel.isDeleting.collectAsState()
     val isHouseholdOwner by viewModel.isHouseholdOwner.collectAsState()
+    val householdId by viewModel.householdId.collectAsState()
 
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
     var confirmText by remember { mutableStateOf("") }
@@ -175,7 +176,7 @@ fun FridgeSettingsScreen(
                     onClick = {
                         viewModel.deleteFridge {
                             showDeleteConfirmDialog = false
-                            onDeleteSuccess()
+                            householdId?.let { onDeleteSuccess(it) }
                         }
                     },
                     enabled = confirmText == "CONFIRM",

@@ -518,13 +518,10 @@ class MainActivity : ComponentActivity() {
                             FridgeSettingsScreen(
                                 fridgeId = fridgeId,
                                 onBackClick = { navController.popBackStack() },
-                                onDeleteSuccess = {
-                                    // Navigate back to fridge list and clear everything above it to prevent
-                                    // permission errors from lingering Firestore listeners
-                                    navController.navigate("fridgeList") {
-                                        popUpTo(
-                                            0
-                                        ) { inclusive = false } // Clear entire back stack except initial destination
+                                onDeleteSuccess = { householdId ->
+                                    // Navigate back to fridge list for this household
+                                    navController.navigate("fridgeList/$householdId") {
+                                        popUpTo("fridgeList/$householdId") { inclusive = true }
                                         launchSingleTop = true
                                     }
                                 }

@@ -62,6 +62,11 @@ class FridgeSettingsViewModel
     /** Indicates if the current user is the owner of the household this fridge belongs to. */
     val isHouseholdOwner: StateFlow<Boolean> = _isHouseholdOwner.asStateFlow()
 
+    private val _householdId = MutableStateFlow<String?>(null)
+    
+    /** The householdId of the fridge being managed, available after loading. */
+    val householdId: StateFlow<String?> = _householdId.asStateFlow()
+
     init {
         loadFridgeDetails()
     }
@@ -76,8 +81,9 @@ class FridgeSettingsViewModel
                     if (displayFridge != null && rawFridge != null) {
                         _uiState.value = FridgeSettingsUiState.Success(displayFridge, rawFridge)
                     
-                        // Check if current user is household owner
+                        // Store householdId for navigation after deletion
                         val householdId = displayFridge.householdId
+                        _householdId.value = householdId
                         if (householdId.isNotEmpty() && currentUserId != null) {
                             try {
                                 val household = householdRepository.getHouseholdById(householdId)
