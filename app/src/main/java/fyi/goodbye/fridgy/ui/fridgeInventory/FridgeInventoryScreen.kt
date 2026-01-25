@@ -60,6 +60,7 @@ fun FridgeInventoryScreen(
     val pendingUpc by viewModel.pendingScannedUpc.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val isOwner by viewModel.isCurrentUserOwner.collectAsState()
+    val canManageFridge by viewModel.canManageFridge.collectAsState()
     val groupedItems by viewModel.groupedItemsState.collectAsState()
     
     // Load and persist minimal view preference
@@ -166,7 +167,7 @@ fun FridgeInventoryScreen(
                             tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
-                    if (isOwner) {
+                    if (canManageFridge) {
                         IconButton(onClick = { onSettingsClick(fridgeId) }) {
                             Icon(
                                 imageVector = Icons.Default.Settings,

@@ -46,14 +46,16 @@ object RepositoryModule {
      *
      * @param firestore The Firestore instance for database operations.
      * @param auth The Auth instance for user identification.
+     * @param householdRepository The HouseholdRepository for permission checks.
      * @return A singleton [FridgeRepository] instance.
      */
     @Provides
     @Singleton
     fun provideFridgeRepository(
         firestore: FirebaseFirestore,
-        auth: FirebaseAuth
-    ): FridgeRepository = FridgeRepository(firestore, auth)
+        auth: FirebaseAuth,
+        householdRepository: HouseholdRepository
+    ): FridgeRepository = FridgeRepository(firestore, auth, householdRepository)
 
     /**
      * Provides the household repository for household management.

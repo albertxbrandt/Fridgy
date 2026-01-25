@@ -53,6 +53,11 @@ class FridgeListViewModel
         /** Indicates if the current user has admin privileges. */
         val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
 
+        private val _userRole = MutableStateFlow<fyi.goodbye.fridgy.models.HouseholdRole?>(null)
+
+        /** The current user's role in this household. */
+        val userRole: StateFlow<fyi.goodbye.fridgy.models.HouseholdRole?> = _userRole.asStateFlow()
+
         private val _isCreatingFridge = MutableStateFlow(false)
 
         /** Indicates if a new fridge is currently being created. */
@@ -78,6 +83,13 @@ class FridgeListViewModel
                 // Check admin status
                 viewModelScope.launch {
                     _isAdmin.value = adminRepository.isCurrentUserAdmin()
+                }
+
+                // Listen for real-time role updates in this household
+                viewModelScope.launch {
+                    fridgeRepository.householdRepository.getHouseholdFlow(householdId).collectLatest { household ->
+                        _userRole.value = household?.getRoleForUser(currentUserId)
+                    }
                 }
 
                 // Collect real-time stream of fridges in this household

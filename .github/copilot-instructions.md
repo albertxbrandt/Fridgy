@@ -50,9 +50,10 @@ Single `MainActivity` with `NavHost`. Routes are string-based with arguments:
 =======
 ## Firebase Data Model
 - **users/**: `{uid}` → `createdAt`, `email`, `username`
+- **households/**: `{householdId}` → `createdAt`, `createdBy`, `name`, `inviteCode`, `memberRoles` (map of `{uid: role}` where role is OWNER/MANAGER/MEMBER)
 - **products/**: `{upc}` → `brand`, `category`, `imageUrl`, `lastUpdated`, `name`
-- **fridges/**: `{fridgeId}` → `createdAt`, `createdBy`, `name`, `members`, `pendingInvites`, subcollection `items/{upc}`
-- **Shopping list**: `fridges/{fridgeId}/shoppingList/`
+- **fridges/**: `{fridgeId}` → `createdAt`, `createdBy`, `name`, `householdId`, `type`, subcollection `items/{upc}`
+- **Shopping list**: `households/{householdId}/shoppingList/`
 - **Images**: Stored at `products/{upc}.jpg` in Storage, loaded via signed URL
 
 ## UI & Compose Conventions

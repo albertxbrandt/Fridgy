@@ -6,10 +6,14 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.Household
+import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.models.canDeleteHousehold
+import fyi.goodbye.fridgy.models.canManageInviteCodes
+import fyi.goodbye.fridgy.models.canModifyUser
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
@@ -124,6 +128,29 @@ class HouseholdRepository(
     }
 
     /**
+     * Gets a Flow of a single household by ID with real-time updates.
+     */
+    fun getHouseholdFlow(householdId: String): Flow<Household?> =
+        callbackFlow {
+            val listener =
+                firestore.collection("households")
+                    .document(householdId)
+                    .addSnapshotListener { snapshot, e ->
+                        if (e != null) {
+                            Log.e(TAG, "Error listening to household: ${e.message}")
+                            trySend(null).isSuccess
+                            return@addSnapshotListener
+                        }
+                        val household = snapshot?.toObject(Household::class.java)?.copy(id = snapshot.id)
+                        trySend(household).isSuccess
+                    }
+            awaitClose {
+                listener.remove()
+            }
+        }
+            .distinctUntilChanged()
+
+    /**
      * Gets a household with resolved user profiles for display.
      */
     suspend fun getDisplayHouseholdById(householdId: String): DisplayHousehold? {
@@ -152,6 +179,7 @@ class HouseholdRepository(
             createdByUid = household.createdBy,
             ownerDisplayName = ownerName,
             memberUsers = memberUsers,
+            memberRoles = household.memberRoles,
             fridgeCount = fridgeCount,
             createdAt = household.createdAt
         )
@@ -208,6 +236,7 @@ class HouseholdRepository(
                                     createdByUid = household.createdBy,
                                     ownerDisplayName = ownerName,
                                     memberUsers = memberUsers,
+                                    memberRoles = household.memberRoles,
                                     fridgeCount = fridgeCount,
                                     createdAt = household.createdAt
                                 )
@@ -305,6 +334,7 @@ class HouseholdRepository(
                 name = name,
                 createdBy = currentUser.uid,
                 members = listOf(currentUser.uid),
+                memberRoles = mapOf(currentUser.uid to HouseholdRole.OWNER.name),
                 createdAt = System.currentTimeMillis()
             )
 
@@ -329,6 +359,17 @@ class HouseholdRepository(
      * Only the owner can delete a household.
      */
     suspend fun deleteHousehold(householdId: String) {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        val household =
+            getHouseholdById(householdId)
+                ?: throw IllegalStateException("Household not found")
+
+        // Check permission
+        val userRole = household.getRoleForUser(currentUser.uid)
+        if (!userRole.canDeleteHousehold()) {
+            throw IllegalStateException("Only the owner can delete the household")
+        }
+
         val batch = firestore.batch()
 
         // Delete all fridges in this household
@@ -374,6 +415,43 @@ class HouseholdRepository(
     // ==================== Member Management ====================
 
     /**
+     * Updates the role of a member in the household.
+     * Only the owner can change roles.
+     *
+     * @param householdId The household ID.
+     * @param userId The user whose role to update.
+     * @param newRole The new role to assign.
+     */
+    suspend fun updateMemberRole(
+        householdId: String,
+        userId: String,
+        newRole: HouseholdRole
+    ) {
+        val household =
+            getHouseholdById(householdId)
+                ?: throw IllegalStateException("Household not found")
+
+        val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in")
+
+        // Only owner can change roles
+        if (household.createdBy != currentUserId) {
+            throw IllegalStateException("Only the owner can change user roles")
+        }
+
+        // Cannot change the owner's role
+        if (userId == household.createdBy) {
+            throw IllegalStateException("Cannot change the owner's role")
+        }
+
+        val updatedRoles = household.memberRoles.toMutableMap()
+        updatedRoles[userId] = newRole.name
+
+        firestore.collection("households").document(householdId)
+            .update("memberRoles", updatedRoles)
+            .await()
+    }
+
+    /**
      * Removes a member from a household. Only the owner can remove members.
      * The owner cannot be removed.
      */
@@ -389,9 +467,27 @@ class HouseholdRepository(
             throw IllegalStateException("Cannot remove the owner from the household")
         }
 
-        firestore.collection("households").document(householdId)
-            .update("members", FieldValue.arrayRemove(userId))
-            .await()
+        val currentUserId = auth.currentUser?.uid ?: throw IllegalStateException("User not logged in")
+        val currentUserRole = household.getRoleForUser(currentUserId)
+        val targetUserRole = household.getRoleForUser(userId)
+
+        // Check if current user has permission to remove the target user
+        if (!currentUserRole.canModifyUser(targetUserRole)) {
+            throw IllegalStateException("You don't have permission to remove this user")
+        }
+
+        val batch = firestore.batch()
+        val householdRef = firestore.collection("households").document(householdId)
+
+        // Remove from members list
+        batch.update(householdRef, "members", FieldValue.arrayRemove(userId))
+
+        // Remove from roles map
+        val updatedRoles = household.memberRoles.toMutableMap()
+        updatedRoles.remove(userId)
+        batch.update(householdRef, "memberRoles", updatedRoles)
+
+        batch.commit().await()
     }
 
     /**
@@ -460,6 +556,12 @@ class HouseholdRepository(
         val household =
             getHouseholdById(householdId)
                 ?: throw IllegalStateException("Household not found")
+
+        // Check permission
+        val userRole = household.getRoleForUser(currentUser.uid)
+        if (!userRole.canManageInviteCodes()) {
+            throw IllegalStateException("You don't have permission to create invite codes")
+        }
 
         // Generate unique code with collision check
         var code: String
@@ -542,7 +644,21 @@ class HouseholdRepository(
     /**
      * Revokes (deactivates) an invite code.
      */
-    suspend fun revokeInviteCode(code: String) {
+    suspend fun revokeInviteCode(
+        householdId: String,
+        code: String
+    ) {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        val household =
+            getHouseholdById(householdId)
+                ?: throw IllegalStateException("Household not found")
+
+        // Check permission
+        val userRole = household.getRoleForUser(currentUser.uid)
+        if (!userRole.canManageInviteCodes()) {
+            throw IllegalStateException("You don't have permission to revoke invite codes")
+        }
+
         firestore.collection("inviteCodes").document(code)
             .update("active", false)
             .await()
@@ -578,12 +694,20 @@ class HouseholdRepository(
             throw IllegalStateException("This invite code has expired")
         }
 
-        // Add user to household using batch write (no read required)
-        // arrayUnion is idempotent - it won't add duplicates if user is already a member
+        // Add user to household with MEMBER role using batch write
         val batch = firestore.batch()
 
         val householdRef = firestore.collection("households").document(inviteCode.householdId)
+        
+        // Add to members array
         batch.update(householdRef, "members", FieldValue.arrayUnion(currentUser.uid))
+        
+        // Add role to memberRoles map
+        batch.update(
+            householdRef,
+            "memberRoles.${currentUser.uid}",
+            HouseholdRole.MEMBER.name
+        )
 
         val codeRef = firestore.collection("inviteCodes").document(upperCode)
         batch.update(

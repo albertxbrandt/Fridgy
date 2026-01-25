@@ -2,6 +2,7 @@ package fyi.goodbye.fridgy.ui.householdSettings
 
 import android.content.Intent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -127,6 +128,9 @@ fun HouseholdSettingsScreen(
             is HouseholdSettingsViewModel.HouseholdSettingsUiState.Success -> {
                 val household = state.household
                 val isOwner = household.createdByUid == viewModel.currentUserId
+                val currentUserRole = viewModel.currentUserId?.let { household.getRoleForUser(it) }
+                val isManager = currentUserRole == fyi.goodbye.fridgy.models.HouseholdRole.OWNER || 
+                               currentUserRole == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
 
                 Column(
                     modifier =
@@ -154,31 +158,35 @@ fun HouseholdSettingsScreen(
                         }
                     }
 
-                    // Members (scrollable if many)
+                    // Members (scrollable if many) - exclude owner
                     SettingsSection(title = stringResource(R.string.members)) {
                         Column(
                             modifier =
-                                Modifier.heightIn(max = 120.dp)
+                                Modifier.heightIn(max = 300.dp)
                                     .verticalScroll(rememberScrollState())
                         ) {
-                            household.memberUsers.forEach { member ->
-                                SwipeToDismissMember(
-                                    name =
-                                        if (member.uid == household.createdByUid) {
-                                            stringResource(R.string.owner_suffix, member.username)
-                                        } else {
-                                            member.username
+                            household.memberUsers
+                                .filter { it.uid != household.createdByUid } // Don't show owner in this list
+                                .forEach { member ->
+                                    val memberRole = household.getRoleForUser(member.uid)
+                                    // Can only remove members with MEMBER role (not managers or owner)
+                                    val canRemoveThisMember = isManager && memberRole == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER
+                                    MemberCard(
+                                        name = member.username,
+                                        role = memberRole,
+                                        isOwner = isOwner,
+                                        canRemove = canRemoveThisMember,
+                                        onRoleChange = { newRole -> 
+                                            viewModel.updateMemberRole(member.uid, newRole)
                                         },
-                                    isOwner = isOwner,
-                                    canRemove = member.uid != household.createdByUid,
-                                    onRemove = { viewModel.removeMember(member.uid) }
-                                )
-                            }
+                                        onRemove = { viewModel.removeMember(member.uid) }
+                                    )
+                                }
                         }
                     }
 
-                    // Invite Codes (Owner only) - fills remaining space
-                    if (isOwner) {
+                    // Invite Codes (Owner and Manager) - fills remaining space
+                    if (isManager) {
                         SettingsSection(
                             modifier = Modifier.weight(1f),
                             title = stringResource(R.string.invite_codes),
@@ -697,60 +705,165 @@ fun InviteCodeItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SwipeToDismissMember(
+fun MemberCard(
     name: String,
+    role: fyi.goodbye.fridgy.models.HouseholdRole,
     isOwner: Boolean,
     canRemove: Boolean,
+    onRoleChange: (fyi.goodbye.fridgy.models.HouseholdRole) -> Unit,
     onRemove: () -> Unit
 ) {
-    if (!isOwner || !canRemove) {
-        SettingsItem(label = stringResource(R.string.member), value = name)
-        return
-    }
+    // Show swipe-to-delete if current user has permission to remove this member
+    if (canRemove) {
+        val dismissState =
+            rememberSwipeToDismissBoxState(
+                confirmValueChange = {
+                    if (it == SwipeToDismissBoxValue.EndToStart) {
+                        onRemove()
+                        true
+                    } else {
+                        false
+                    }
+                }
+            )
 
-    val dismissState =
-        rememberSwipeToDismissBoxState(
-            confirmValueChange = {
-                if (it == SwipeToDismissBoxValue.EndToStart) {
-                    onRemove()
-                    true
-                } else {
-                    false
+        SwipeToDismissBox(
+            state = dismissState,
+            enableDismissFromStartToEnd = false,
+            backgroundContent = {
+                val color =
+                    when (dismissState.dismissDirection) {
+                        SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
+                        else -> Color.Transparent
+                    }
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .background(color, RoundedCornerShape(8.dp))
+                            .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.cd_remove),
+                        tint = MaterialTheme.colorScheme.onError
+                    )
+                }
+            },
+            content = {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = MaterialTheme.colorScheme.surface
+                ) {
+                    MemberCardContent(
+                        name = name,
+                        role = role,
+                        isOwner = isOwner,
+                        onRoleChange = onRoleChange
+                    )
                 }
             }
         )
+    } else {
+        MemberCardContent(
+            name = name,
+            role = role,
+            isOwner = isOwner,
+            onRoleChange = onRoleChange
+        )
+    }
+}
 
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = false,
-        backgroundContent = {
-            val color =
-                when (dismissState.dismissDirection) {
-                    SwipeToDismissBoxValue.EndToStart -> MaterialTheme.colorScheme.error
-                    else -> Color.Transparent
-                }
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .background(color, RoundedCornerShape(8.dp))
-                        .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterEnd
+@Composable
+fun MemberCardContent(
+    name: String,
+    role: fyi.goodbye.fridgy.models.HouseholdRole,
+    isOwner: Boolean,
+    onRoleChange: (fyi.goodbye.fridgy.models.HouseholdRole) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Role selector (only if current user is owner)
+        if (isOwner) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
             ) {
-                Icon(
-                    Icons.Default.Delete,
-                    contentDescription = stringResource(R.string.cd_remove),
-                    tint = MaterialTheme.colorScheme.onError
+                // Manager option
+                Text(
+                    text = "Manager",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) FontWeight.Bold else FontWeight.Normal,
+                    color = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) 
+                        MaterialTheme.colorScheme.onPrimary
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .background(
+                            color = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                            else
+                                Color.Transparent,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clickable { onRoleChange(fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+                
+                Text(
+                    text = "/",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                
+                // Member option
+                Text(
+                    text = "Member",
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) FontWeight.Bold else FontWeight.Normal,
+                    color = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) 
+                        MaterialTheme.colorScheme.onPrimary
+                    else 
+                        MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .background(
+                            color = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                            else
+                                Color.Transparent,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        .clickable { onRoleChange(fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
-        },
-        content = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surface
-            ) {
-                SettingsItem(label = stringResource(R.string.member), value = name)
-            }
+        } else {
+            // Non-owner viewing: just show role badge
+            Text(
+                text = when (role) {
+                    fyi.goodbye.fridgy.models.HouseholdRole.OWNER -> "Owner"
+                    fyi.goodbye.fridgy.models.HouseholdRole.MANAGER -> "Manager"
+                    fyi.goodbye.fridgy.models.HouseholdRole.MEMBER -> "Member"
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
         }
-    )
+        
+        // Member name on the right
+        Text(
+            text = name,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            textAlign = TextAlign.End
+        )
+    }
 }

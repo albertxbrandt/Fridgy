@@ -11,6 +11,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
@@ -99,6 +100,39 @@ class FridgeInventoryViewModel
                                     household?.createdBy == currentUserId
                                 } catch (e: Exception) {
                                     Log.e("FridgeInventoryVM", "Error checking household ownership: ${e.message}")
+                                    false
+                                }
+                            }
+                        }
+                        else -> false
+                    }
+                }
+                .stateIn(
+                    scope = viewModelScope,
+                    started = SharingStarted.WhileSubscribed(5000),
+                    initialValue = false
+                )
+
+        /**
+         * Indicates whether the current user can manage this fridge (OWNER or MANAGER).
+         * This controls access to fridge settings and administrative functions.
+         * Derived from both fridge and household state to update automatically.
+         */
+        val canManageFridge: StateFlow<Boolean> =
+            _displayFridgeState
+                .map { state ->
+                    when (state) {
+                        is FridgeDetailUiState.Success -> {
+                            val householdId = state.fridge.householdId
+                            if (householdId.isEmpty() || currentUserId == null) {
+                                false
+                            } else {
+                                try {
+                                    val household = fridgeRepository.householdRepository.getHouseholdById(householdId)
+                                    val userRole = household?.getRoleForUser(currentUserId)
+                                    userRole == HouseholdRole.OWNER || userRole == HouseholdRole.MANAGER
+                                } catch (e: Exception) {
+                                    Log.e("FridgeInventoryVM", "Error checking fridge management permission: ${e.message}")
                                     false
                                 }
                             }

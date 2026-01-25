@@ -14,6 +14,7 @@ import kotlinx.parcelize.Parcelize
  * @property createdByUid The User ID of the person who created/owns this household.
  * @property ownerDisplayName The username of the household owner.
  * @property memberUsers A list of UserProfile objects for all members (including owner).
+ * @property memberRoles A map of User IDs to their role in the household.
  * @property fridgeCount The number of fridges in this household.
  * @property createdAt The timestamp (ms) when the household was created.
  */
@@ -24,6 +25,21 @@ data class DisplayHousehold(
     val createdByUid: String = "",
     val ownerDisplayName: String = "Unknown",
     val memberUsers: List<UserProfile> = listOf(),
+    val memberRoles: Map<String, String> = mapOf(),
     val fridgeCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis()
-) : Parcelable
+) : Parcelable {
+    /**
+     * Gets the role of a specific user in this household.
+     */
+    fun getRoleForUser(userId: String): HouseholdRole {
+        return HouseholdRole.fromString(memberRoles[userId])
+    }
+
+    /**
+     * Checks if a user is the owner of this household.
+     */
+    fun isOwner(userId: String): Boolean {
+        return userId == createdByUid
+    }
+}

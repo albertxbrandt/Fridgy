@@ -11,9 +11,11 @@ import com.google.firebase.firestore.Source
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.DisplayItem
 import fyi.goodbye.fridgy.models.Fridge
+import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.models.canManageFridges
 import fyi.goodbye.fridgy.utils.LruCache
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -46,12 +48,14 @@ import kotlinx.coroutines.tasks.await
  *
  * @param firestore The Firestore instance for database operations.
  * @param auth The Auth instance for user identification.
+ * @param householdRepository The HouseholdRepository for permission checks.
  * @see HouseholdRepository For household-level shopping list operations (preferred)
  * @see ProductRepository For product information lookup
  */
 class FridgeRepository(
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    val householdRepository: HouseholdRepository
 ) {
     /**
      * Returns a Flow of shopping list items for a fridge subcollection.
@@ -827,8 +831,25 @@ class FridgeRepository(
      * followed by the fridge document itself.
      *
      * @param fridgeId The ID of the fridge to delete.
+     * @throws IllegalStateException if user doesn't have permission.
      */
     suspend fun deleteFridge(fridgeId: String) {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+        
+        // Get fridge to check household
+        val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
+        val fridge = fridgeDoc.toObject(Fridge::class.java)
+            ?: throw IllegalStateException("Fridge not found")
+        
+        // Check permission
+        val household = householdRepository.getHouseholdById(fridge.householdId)
+            ?: throw IllegalStateException("Household not found")
+        
+        val userRole = household.getRoleForUser(currentUser.uid)
+        if (!userRole.canManageFridges()) {
+            throw IllegalStateException("You don't have permission to delete fridges")
+        }
+        
         val fridgeRef = firestore.collection("fridges").document(fridgeId)
         
         Log.d("FridgeRepository", "Attempting to read items for fridge: $fridgeId")

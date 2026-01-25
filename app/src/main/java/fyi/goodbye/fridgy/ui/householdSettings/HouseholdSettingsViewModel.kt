@@ -55,6 +55,9 @@ class HouseholdSettingsViewModel
         // Flag to prevent Flow errors when user is leaving/deleted
         private var isLeavingOrDeleted = false
 
+        // Job reference for cancelling the household listener
+        private var householdJob: Job? = null
+
         // Job reference for cancelling the invite codes listener
         private var inviteCodesJob: Job? = null
 
@@ -69,24 +72,37 @@ class HouseholdSettingsViewModel
         }
 
         private fun loadHouseholdDetails() {
-            viewModelScope.launch {
+            householdJob = viewModelScope.launch {
                 _uiState.value = HouseholdSettingsUiState.Loading
                 try {
-                    val displayHousehold = householdRepository.getDisplayHouseholdById(householdId)
-                    if (displayHousehold != null) {
-                        _uiState.value = HouseholdSettingsUiState.Success(displayHousehold)
-                    } else {
-                        _uiState.value =
-                            HouseholdSettingsUiState.Error(
-                                context.getString(R.string.error_fridge_not_found)
-                            )
+                    // Use snapshot listener for real-time updates
+                    householdRepository.getHouseholdFlow(householdId).collectLatest { household ->
+                        if (!isLeavingOrDeleted && household != null) {
+                            // Convert to DisplayHousehold
+                            val displayHousehold = householdRepository.getDisplayHouseholdById(householdId)
+                            if (displayHousehold != null) {
+                                _uiState.value = HouseholdSettingsUiState.Success(displayHousehold)
+                            } else {
+                                _uiState.value =
+                                    HouseholdSettingsUiState.Error(
+                                        context.getString(R.string.error_fridge_not_found)
+                                    )
+                            }
+                        } else if (!isLeavingOrDeleted) {
+                            _uiState.value =
+                                HouseholdSettingsUiState.Error(
+                                    context.getString(R.string.error_fridge_not_found)
+                                )
+                        }
                     }
                 } catch (e: Exception) {
-                    _uiState.value =
-                        HouseholdSettingsUiState.Error(
-                            e.message ?: context.getString(R.string.error_failed_to_load_fridge)
-                        )
-                    Log.e("HouseholdSettingsVM", "Error loading household: ${e.message}", e)
+                    if (!isLeavingOrDeleted) {
+                        _uiState.value =
+                            HouseholdSettingsUiState.Error(
+                                e.message ?: context.getString(R.string.error_failed_to_load_fridge)
+                            )
+                        Log.e("HouseholdSettingsVM", "Error loading household: ${e.message}", e)
+                    }
                 }
             }
         }
@@ -113,6 +129,8 @@ class HouseholdSettingsViewModel
          * Cancels all active Firestore listeners to prevent permission errors.
          */
         private fun cancelAllListeners() {
+            householdJob?.cancel()
+            householdJob = null
             inviteCodesJob?.cancel()
             inviteCodesJob = null
         }
@@ -152,7 +170,7 @@ class HouseholdSettingsViewModel
         fun revokeInviteCode(code: String) {
             viewModelScope.launch {
                 try {
-                    householdRepository.revokeInviteCode(code)
+                    householdRepository.revokeInviteCode(householdId, code)
                 } catch (e: Exception) {
                     Log.e("HouseholdSettingsVM", "Error revoking invite code: ${e.message}")
                     _actionError.value = "Failed to revoke invite code: ${e.message}"
@@ -161,7 +179,24 @@ class HouseholdSettingsViewModel
         }
 
         /**
-         * Removes a member from the household.
+     * Updates a member's role in the household.
+     * Uses optimistic update to avoid full page reload.
+     */
+    fun updateMemberRole(userId: String, newRole: fyi.goodbye.fridgy.models.HouseholdRole) {
+        viewModelScope.launch {
+            try {
+                // Update in background without reload - Firestore listener will update UI
+                householdRepository.updateMemberRole(householdId, userId, newRole)
+            } catch (e: Exception) {
+                Log.e("HouseholdSettingsVM", "Error updating member role: ${e.message}")
+                _actionError.value = "Failed to update member role: ${e.message}"
+                // Reload on error to revert optimistic update
+                loadHouseholdDetails()
+            }
+        }
+    }
+
+    /**
          */
         fun removeMember(userId: String) {
             viewModelScope.launch {

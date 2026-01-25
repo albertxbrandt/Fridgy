@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
+import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,10 +58,10 @@ class FridgeSettingsViewModel
         /** The User ID of the currently authenticated user. */
         val currentUserId = firebaseAuth.currentUser?.uid
 
-    private val _isHouseholdOwner = MutableStateFlow(false)
+    private val _canManageFridge = MutableStateFlow(false)
     
-    /** Indicates if the current user is the owner of the household this fridge belongs to. */
-    val isHouseholdOwner: StateFlow<Boolean> = _isHouseholdOwner.asStateFlow()
+    /** Indicates if the current user can manage this fridge (OWNER or MANAGER role). */
+    val canManageFridge: StateFlow<Boolean> = _canManageFridge.asStateFlow()
 
     private val _householdId = MutableStateFlow<String?>(null)
     
@@ -87,10 +88,12 @@ class FridgeSettingsViewModel
                         if (householdId.isNotEmpty() && currentUserId != null) {
                             try {
                                 val household = householdRepository.getHouseholdById(householdId)
-                                _isHouseholdOwner.value = household?.createdBy == currentUserId
+                                val userRole = household?.getRoleForUser(currentUserId)
+                                _canManageFridge.value = userRole == fyi.goodbye.fridgy.models.HouseholdRole.OWNER || 
+                                                         userRole == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
                             } catch (e: Exception) {
-                                Log.e("FridgeSettingsVM", "Error checking household ownership: ${e.message}")
-                                _isHouseholdOwner.value = false
+                                Log.e("FridgeSettingsVM", "Error checking fridge management permission: ${e.message}")
+                                _canManageFridge.value = false
                             }
                         }
                     } else {
@@ -118,7 +121,7 @@ class FridgeSettingsViewModel
                     Log.d("FridgeSettingsVM", "Attempting to delete fridge: $fridgeId")
                     Log.d("FridgeSettingsVM", "Fridge householdId: ${fridge?.householdId}")
                     Log.d("FridgeSettingsVM", "Current user ID: $currentUserId")
-                    Log.d("FridgeSettingsVM", "Is household owner: ${_isHouseholdOwner.value}")
+                    Log.d("FridgeSettingsVM", "Can manage fridge: ${_canManageFridge.value}")
                     
                     fridgeRepository.deleteFridge(fridgeId)
                     onSuccess()

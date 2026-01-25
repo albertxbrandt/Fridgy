@@ -39,7 +39,7 @@ fun FridgeSettingsScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val isDeleting by viewModel.isDeleting.collectAsState()
-    val isHouseholdOwner by viewModel.isHouseholdOwner.collectAsState()
+    val canManageFridge by viewModel.canManageFridge.collectAsState()
     val householdId by viewModel.householdId.collectAsState()
 
     var showDeleteConfirmDialog by remember { mutableStateOf(false) }
@@ -110,7 +110,7 @@ fun FridgeSettingsScreen(
                     }
 
                     // Only household owners can delete fridges
-                    if (isHouseholdOwner) {
+                    if (canManageFridge) {
                         item {
                             Button(
                                 onClick = { showDeleteConfirmDialog = true },

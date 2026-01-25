@@ -63,6 +63,13 @@ fun FridgeListScreen(
 
     val fridgeUiState by viewModel.fridgesUiState.collectAsState()
     val isAdmin by viewModel.isAdmin.collectAsState()
+    val userRole by viewModel.userRole.collectAsState()
+
+    // Check if user can manage fridges (owner or manager)
+    val canManageFridges = userRole?.let { 
+        it == fyi.goodbye.fridgy.models.HouseholdRole.OWNER || 
+        it == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER 
+    } ?: false
 
     Scaffold(
         topBar = {
@@ -117,12 +124,15 @@ fun FridgeListScreen(
                         contentDescription = stringResource(R.string.cd_open_shopping_list)
                     )
                 }
-                FloatingActionButton(
-                    onClick = { showAddFridgeDialog = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Default.Add, stringResource(R.string.cd_add_new_fridge))
+                // Only show add fridge button for managers and owners
+                if (canManageFridges) {
+                    FloatingActionButton(
+                        onClick = { showAddFridgeDialog = true },
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ) {
+                        Icon(Icons.Default.Add, stringResource(R.string.cd_add_new_fridge))
+                    }
                 }
             }
         },
