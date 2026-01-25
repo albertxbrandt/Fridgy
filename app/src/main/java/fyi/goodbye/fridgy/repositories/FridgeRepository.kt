@@ -676,6 +676,26 @@ class FridgeRepository(
             .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
+     * Gets the count of items in a fridge.
+     *
+     * @param fridgeId Target fridge ID
+     * @return The number of items in the fridge
+     */
+    suspend fun getItemCount(fridgeId: String): Int {
+        return try {
+            val snapshot = firestore.collection("fridges")
+                .document(fridgeId)
+                .collection("items")
+                .get()
+                .await()
+            snapshot.size()
+        } catch (e: Exception) {
+            Log.e("FridgeRepo", "Error getting item count for fridge $fridgeId: ${e.message}")
+            0
+        }
+    }
+
+    /**
      * Adds a new item instance to a fridge.
      * Adds a new item instance to a fridge.
      *

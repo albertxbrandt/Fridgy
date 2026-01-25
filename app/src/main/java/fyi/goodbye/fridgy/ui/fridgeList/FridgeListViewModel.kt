@@ -83,14 +83,17 @@ class FridgeListViewModel
                 // Collect real-time stream of fridges in this household
                 viewModelScope.launch {
                     fridgeRepository.getFridgesForHousehold(householdId).collectLatest { fridges ->
+                        // Fetch item counts for each fridge
                         val displayFridges =
                             fridges.map { fridge ->
+                                val itemCount = fridgeRepository.getItemCount(fridge.id)
                                 DisplayFridge(
                                     id = fridge.id,
                                     name = fridge.name,
                                     type = fridge.type,
                                     householdId = fridge.householdId,
-                                    createdAt = fridge.createdAt
+                                    createdAt = fridge.createdAt,
+                                    itemCount = itemCount
                                 )
                             }
                         _fridgesUiState.value = FridgeUiState.Success(displayFridges)

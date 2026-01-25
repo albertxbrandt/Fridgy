@@ -14,6 +14,7 @@ import kotlinx.parcelize.Parcelize
  * @property type The type of storage (fridge, freezer, pantry).
  * @property householdId The ID of the household this fridge belongs to.
  * @property createdAt The timestamp (ms) when the fridge was created.
+ * @property itemCount The number of items currently in this fridge.
  */
 @Parcelize
 data class DisplayFridge(
@@ -21,5 +22,6 @@ data class DisplayFridge(
     val name: String = "",
     val type: String = "fridge",
     val householdId: String = "",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val itemCount: Int = 0
 ) : Parcelable
