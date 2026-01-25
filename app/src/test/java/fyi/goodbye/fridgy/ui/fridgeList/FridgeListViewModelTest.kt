@@ -8,7 +8,6 @@ import app.cash.turbine.test
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.UserProfile
 import fyi.goodbye.fridgy.repositories.AdminRepository
@@ -93,9 +92,10 @@ class FridgeListViewModelTest {
         coEvery { mockFridgeRepository.getFridgesForHousehold(any()) } returns flowOf(emptyList())
         coEvery { mockFridgeRepository.getUsersByIds(any()) } returns emptyMap()
 
-        savedStateHandle = SavedStateHandle().apply {
-            set("householdId", testHouseholdId)
-        }
+        savedStateHandle =
+            SavedStateHandle().apply {
+                set("householdId", testHouseholdId)
+            }
     }
 
     @After
@@ -158,9 +158,10 @@ class FridgeListViewModelTest {
     @Test
     fun `init sets state to Error when householdId is empty`() =
         runTest {
-            savedStateHandle = SavedStateHandle().apply {
-                set("householdId", "")
-            }
+            savedStateHandle =
+                SavedStateHandle().apply {
+                    set("householdId", "")
+                }
 
             viewModel =
                 FridgeListViewModel(
@@ -309,9 +310,10 @@ class FridgeListViewModelTest {
     @Test
     fun `createNewFridge with empty householdId sets error`() =
         runTest {
-            savedStateHandle = SavedStateHandle().apply {
-                set("householdId", "")
-            }
+            savedStateHandle =
+                SavedStateHandle().apply {
+                    set("householdId", "")
+                }
 
             viewModel =
                 FridgeListViewModel(

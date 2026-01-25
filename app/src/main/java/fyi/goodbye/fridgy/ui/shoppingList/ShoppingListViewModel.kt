@@ -132,12 +132,12 @@ class ShoppingListViewModel
 
         /**
          * Stops broadcasting presence when user leaves the screen.
+         * Does NOT remove presence document - leaves lastSeen timestamp for notifications.
          */
         fun stopPresence() {
             presenceJob?.cancel()
-            viewModelScope.launch {
-                repository.removeShoppingListPresence(householdId)
-            }
+            // Don't call removeShoppingListPresence() - we want to keep the lastSeen timestamp
+            // This allows other users to see who was recently shopping (for notifications)
         }
 
         private fun observeActiveViewers() {

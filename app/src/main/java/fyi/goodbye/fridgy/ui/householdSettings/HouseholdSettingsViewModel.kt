@@ -72,39 +72,40 @@ class HouseholdSettingsViewModel
         }
 
         private fun loadHouseholdDetails() {
-            householdJob = viewModelScope.launch {
-                _uiState.value = HouseholdSettingsUiState.Loading
-                try {
-                    // Use snapshot listener for real-time updates
-                    householdRepository.getHouseholdFlow(householdId).collectLatest { household ->
-                        if (!isLeavingOrDeleted && household != null) {
-                            // Convert to DisplayHousehold
-                            val displayHousehold = householdRepository.getDisplayHouseholdById(householdId)
-                            if (displayHousehold != null) {
-                                _uiState.value = HouseholdSettingsUiState.Success(displayHousehold)
-                            } else {
+            householdJob =
+                viewModelScope.launch {
+                    _uiState.value = HouseholdSettingsUiState.Loading
+                    try {
+                        // Use snapshot listener for real-time updates
+                        householdRepository.getHouseholdFlow(householdId).collectLatest { household ->
+                            if (!isLeavingOrDeleted && household != null) {
+                                // Convert to DisplayHousehold
+                                val displayHousehold = householdRepository.getDisplayHouseholdById(householdId)
+                                if (displayHousehold != null) {
+                                    _uiState.value = HouseholdSettingsUiState.Success(displayHousehold)
+                                } else {
+                                    _uiState.value =
+                                        HouseholdSettingsUiState.Error(
+                                            context.getString(R.string.error_fridge_not_found)
+                                        )
+                                }
+                            } else if (!isLeavingOrDeleted) {
                                 _uiState.value =
                                     HouseholdSettingsUiState.Error(
                                         context.getString(R.string.error_fridge_not_found)
                                     )
                             }
-                        } else if (!isLeavingOrDeleted) {
+                        }
+                    } catch (e: Exception) {
+                        if (!isLeavingOrDeleted) {
                             _uiState.value =
                                 HouseholdSettingsUiState.Error(
-                                    context.getString(R.string.error_fridge_not_found)
+                                    e.message ?: context.getString(R.string.error_failed_to_load_fridge)
                                 )
+                            Log.e("HouseholdSettingsVM", "Error loading household: ${e.message}", e)
                         }
                     }
-                } catch (e: Exception) {
-                    if (!isLeavingOrDeleted) {
-                        _uiState.value =
-                            HouseholdSettingsUiState.Error(
-                                e.message ?: context.getString(R.string.error_failed_to_load_fridge)
-                            )
-                        Log.e("HouseholdSettingsVM", "Error loading household: ${e.message}", e)
-                    }
                 }
-            }
         }
 
         private fun loadInviteCodes() {
@@ -179,24 +180,27 @@ class HouseholdSettingsViewModel
         }
 
         /**
-     * Updates a member's role in the household.
-     * Uses optimistic update to avoid full page reload.
-     */
-    fun updateMemberRole(userId: String, newRole: fyi.goodbye.fridgy.models.HouseholdRole) {
-        viewModelScope.launch {
-            try {
-                // Update in background without reload - Firestore listener will update UI
-                householdRepository.updateMemberRole(householdId, userId, newRole)
-            } catch (e: Exception) {
-                Log.e("HouseholdSettingsVM", "Error updating member role: ${e.message}")
-                _actionError.value = "Failed to update member role: ${e.message}"
-                // Reload on error to revert optimistic update
-                loadHouseholdDetails()
+         * Updates a member's role in the household.
+         * Uses optimistic update to avoid full page reload.
+         */
+        fun updateMemberRole(
+            userId: String,
+            newRole: fyi.goodbye.fridgy.models.HouseholdRole
+        ) {
+            viewModelScope.launch {
+                try {
+                    // Update in background without reload - Firestore listener will update UI
+                    householdRepository.updateMemberRole(householdId, userId, newRole)
+                } catch (e: Exception) {
+                    Log.e("HouseholdSettingsVM", "Error updating member role: ${e.message}")
+                    _actionError.value = "Failed to update member role: ${e.message}"
+                    // Reload on error to revert optimistic update
+                    loadHouseholdDetails()
+                }
             }
         }
-    }
 
-    /**
+        /**
          */
         fun removeMember(userId: String) {
             viewModelScope.launch {

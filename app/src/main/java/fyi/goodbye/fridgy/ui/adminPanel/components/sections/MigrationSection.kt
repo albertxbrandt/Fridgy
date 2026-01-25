@@ -12,7 +12,7 @@ import androidx.compose.ui.unit.sp
 
 /**
  * Admin panel section for data migration operations.
- * 
+ *
  * @param onMigrateFridges Callback to trigger fridge ownership migration.
  * @param isMigrating Whether a migration is currently in progress.
  * @param migrationResult Optional result message to display after migration.
@@ -26,14 +26,16 @@ fun MigrationSection(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant
+            )
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
@@ -53,9 +55,10 @@ fun MigrationSection(
                 onClick = onMigrateFridges,
                 enabled = !isMigrating,
                 modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary
-                ),
+                colors =
+                    ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary
+                    ),
                 shape = RoundedCornerShape(8.dp)
             ) {
                 if (isMigrating) {
@@ -78,24 +81,27 @@ fun MigrationSection(
             migrationResult?.let { result ->
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (result.contains("Error")) {
-                            MaterialTheme.colorScheme.errorContainer
-                        } else {
-                            MaterialTheme.colorScheme.primaryContainer
-                        }
-                    ),
+                    colors =
+                        CardDefaults.cardColors(
+                            containerColor =
+                                if (result.contains("Error")) {
+                                    MaterialTheme.colorScheme.errorContainer
+                                } else {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                }
+                        ),
                     shape = RoundedCornerShape(4.dp)
                 ) {
                     Text(
                         text = result,
                         modifier = Modifier.padding(12.dp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (result.contains("Error")) {
-                            MaterialTheme.colorScheme.onErrorContainer
-                        } else {
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        }
+                        color =
+                            if (result.contains("Error")) {
+                                MaterialTheme.colorScheme.onErrorContainer
+                            } else {
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            }
                     )
                 }
             }

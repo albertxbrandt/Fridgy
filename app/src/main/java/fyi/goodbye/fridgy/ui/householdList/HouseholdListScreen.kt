@@ -467,7 +467,7 @@ private fun HouseholdListContent(
     if (showJoinHouseholdDialog) {
         JoinHouseholdDialog(
             initialInviteCode = pendingInviteCode,
-            onDismiss = { 
+            onDismiss = {
                 showJoinHouseholdDialog = false
                 pendingInviteCode = null
             },

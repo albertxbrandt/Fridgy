@@ -132,7 +132,10 @@ class FridgeInventoryViewModel
                                     val userRole = household?.getRoleForUser(currentUserId)
                                     userRole == HouseholdRole.OWNER || userRole == HouseholdRole.MANAGER
                                 } catch (e: Exception) {
-                                    Log.e("FridgeInventoryVM", "Error checking fridge management permission: ${e.message}")
+                                    Log.e(
+                                        "FridgeInventoryVM",
+                                        "Error checking fridge management permission: ${e.message}"
+                                    )
                                     false
                                 }
                             }

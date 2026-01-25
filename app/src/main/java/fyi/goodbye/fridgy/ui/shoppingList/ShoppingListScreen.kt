@@ -346,9 +346,10 @@ fun ShoppingListScreen(
                             item { Spacer(modifier = Modifier.height(4.dp)) }
                             items(searchResults, key = { it.upc }) { product ->
                                 // OPTIMIZATION: Stable callback reference
-                                val onAddClick = remember(product.upc) {
-                                    { productToAdd = product }
-                                }
+                                val onAddClick =
+                                    remember(product.upc) {
+                                        { productToAdd = product }
+                                    }
                                 ProductSearchResultCard(
                                     product = product,
                                     onAddClick = onAddClick
@@ -431,19 +432,21 @@ fun ShoppingListScreen(
                                         item { Spacer(modifier = Modifier.height(4.dp)) }
                                         items(state.items, key = { it.item.upc }) { itemWithProduct ->
                                             // OPTIMIZATION: Stable callback references
-                                            val onCheckClick = remember(itemWithProduct.item.upc) {
-                                                {
-                                                    // Check if this is a manual item (starts with "manual_")
-                                                    if (itemWithProduct.item.upc.startsWith("manual_")) {
-                                                        showUpcEntryDialog = itemWithProduct
-                                                    } else {
-                                                        showPickupDialog = itemWithProduct
+                                            val onCheckClick =
+                                                remember(itemWithProduct.item.upc) {
+                                                    {
+                                                        // Check if this is a manual item (starts with "manual_")
+                                                        if (itemWithProduct.item.upc.startsWith("manual_")) {
+                                                            showUpcEntryDialog = itemWithProduct
+                                                        } else {
+                                                            showPickupDialog = itemWithProduct
+                                                        }
                                                     }
                                                 }
-                                            }
-                                            val onDeleteClick = remember(itemWithProduct.item.upc) {
-                                                { viewModel.removeItem(itemWithProduct.item.upc) }
-                                            }
+                                            val onDeleteClick =
+                                                remember(itemWithProduct.item.upc) {
+                                                    { viewModel.removeItem(itemWithProduct.item.upc) }
+                                                }
                                             ShoppingListItemCard(
                                                 itemWithProduct = itemWithProduct,
                                                 onCheckClick = onCheckClick,

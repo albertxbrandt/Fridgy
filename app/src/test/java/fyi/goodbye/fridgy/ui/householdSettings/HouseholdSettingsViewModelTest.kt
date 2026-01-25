@@ -95,9 +95,10 @@ class HouseholdSettingsViewModelTest {
         coEvery { mockHouseholdRepository.getDisplayHouseholdById(any()) } returns testDisplayHousehold
         coEvery { mockHouseholdRepository.getInviteCodesFlow(any()) } returns flowOf(listOf(testInviteCode))
 
-        savedStateHandle = SavedStateHandle().apply {
-            set("householdId", testHouseholdId)
-        }
+        savedStateHandle =
+            SavedStateHandle().apply {
+                set("householdId", testHouseholdId)
+            }
     }
 
     @After

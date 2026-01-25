@@ -62,7 +62,7 @@ fun FridgeInventoryScreen(
     val isOwner by viewModel.isCurrentUserOwner.collectAsState()
     val canManageFridge by viewModel.canManageFridge.collectAsState()
     val groupedItems by viewModel.groupedItemsState.collectAsState()
-    
+
     // Load and persist minimal view preference
     val context = androidx.compose.ui.platform.LocalContext.current
     val prefs = remember { context.getSharedPreferences("fridgy_prefs", Context.MODE_PRIVATE) }
@@ -157,7 +157,7 @@ fun FridgeInventoryScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { 
+                    IconButton(onClick = {
                         isMinimalView = !isMinimalView
                         prefs.edit().putBoolean("inventory_minimal_view", isMinimalView).apply()
                     }) {
@@ -239,7 +239,14 @@ fun FridgeInventoryScreen(
                                 val startTime = System.currentTimeMillis()
 
                                 LazyVerticalGrid(
-                                    columns = if (isMinimalView) GridCells.Fixed(1) else GridCells.Adaptive(minSize = 140.dp),
+                                    columns =
+                                        if (isMinimalView) {
+                                            GridCells.Fixed(
+                                                1
+                                            )
+                                        } else {
+                                            GridCells.Adaptive(minSize = 140.dp)
+                                        },
                                     modifier =
                                         Modifier
                                             .fillMaxSize()
@@ -254,12 +261,13 @@ fun FridgeInventoryScreen(
                                         key = { it.upc }
                                     ) { groupedItem ->
                                         // OPTIMIZATION: Stable callback reference
-                                        val onClick = remember(groupedItem.upc) {
-                                            { _: String ->
-                                                // Navigate to first item in group
-                                                onItemClick(fridgeId, groupedItem.items.first().item.id)
+                                        val onClick =
+                                            remember(groupedItem.upc) {
+                                                { _: String ->
+                                                    // Navigate to first item in group
+                                                    onItemClick(fridgeId, groupedItem.items.first().item.id)
+                                                }
                                             }
-                                        }
                                         if (isMinimalView) {
                                             InventoryItemCardMinimal(
                                                 inventoryItem = groupedItem.items.first(),

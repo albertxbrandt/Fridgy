@@ -28,9 +28,10 @@ fun ExpirationDateDialog(
     val initialDateUtc =
         if (initialDate != null) {
             // Convert from local time to UTC date
-            val localCalendar = Calendar.getInstance().apply {
-                timeInMillis = initialDate
-            }
+            val localCalendar =
+                Calendar.getInstance().apply {
+                    timeInMillis = initialDate
+                }
             Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
                 set(Calendar.YEAR, localCalendar.get(Calendar.YEAR))
                 set(Calendar.MONTH, localCalendar.get(Calendar.MONTH))

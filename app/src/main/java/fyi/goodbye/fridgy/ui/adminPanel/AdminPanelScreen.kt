@@ -236,11 +236,12 @@ fun AdminPanelScreenContent(
                     )
 
                     // Convert CategoryUiState to UiState<List<Category>>
-                    val categoryUiState = when (categoryState) {
-                        is CategoryViewModel.CategoryUiState.Loading -> UiState.Loading
-                        is CategoryViewModel.CategoryUiState.Success -> UiState.Success(categoryState.categories)
-                        is CategoryViewModel.CategoryUiState.Error -> UiState.Error(categoryState.message)
-                    }
+                    val categoryUiState =
+                        when (categoryState) {
+                            is CategoryViewModel.CategoryUiState.Loading -> UiState.Loading
+                            is CategoryViewModel.CategoryUiState.Success -> UiState.Success(categoryState.categories)
+                            is CategoryViewModel.CategoryUiState.Error -> UiState.Error(categoryState.message)
+                        }
 
                     AdminSuccessContent(
                         totalUsers = state.totalUsers,

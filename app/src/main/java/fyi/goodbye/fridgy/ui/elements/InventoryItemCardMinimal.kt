@@ -68,7 +68,7 @@ fun InventoryItemCardMinimal(
                             overflow = TextOverflow.Ellipsis
                         )
                     }
-                    
+
                     if (product.size != null && product.unit != null) {
                         if (product.brand.isNotBlank()) {
                             Text(

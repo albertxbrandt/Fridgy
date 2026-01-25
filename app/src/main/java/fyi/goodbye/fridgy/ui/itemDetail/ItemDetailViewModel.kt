@@ -227,7 +227,7 @@ class ItemDetailViewModel
         fun updateItemExpiration(expirationDate: Long?) {
             val itemToUpdate = _pendingItemForEdit.value
             _pendingItemForEdit.value = null
-            
+
             if (itemToUpdate != null) {
                 viewModelScope.launch {
                     try {

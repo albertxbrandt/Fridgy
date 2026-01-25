@@ -64,137 +64,148 @@ class UserRepositoryIntegrationTest {
     }
 
     @Test
-    fun getCurrentUserId_returnsUserIdWhenAuthenticated() = runBlocking {
-        // Create and sign in test user
-        val createdUserId = FirebaseTestUtils.createTestUser("test1@example.com", "password123")
+    fun getCurrentUserId_returnsUserIdWhenAuthenticated() =
+        runBlocking {
+            // Create and sign in test user
+            val createdUserId = FirebaseTestUtils.createTestUser("test1@example.com", "password123")
 
-        val userId = repository.getCurrentUserId()
+            val userId = repository.getCurrentUserId()
 
-        assertNotNull(userId)
-        assertEquals(createdUserId, userId)
-    }
-
-    @Test
-    fun isUsernameTaken_returnsFalseForNewUsername() = runBlocking {
-        val isTaken = repository.isUsernameTaken("uniqueusername")
-
-        assertFalse(isTaken)
-    }
+            assertNotNull(userId)
+            assertEquals(createdUserId, userId)
+        }
 
     @Test
-    fun isUsernameTaken_returnsTrueForExistingUsername() = runBlocking {
-        // Create user with username
-        val userId = FirebaseTestUtils.createTestUser("user@example.com", "password123")
-        repository.createUserDocuments(userId, "user@example.com", "existinguser")
+    fun isUsernameTaken_returnsFalseForNewUsername() =
+        runBlocking {
+            val isTaken = repository.isUsernameTaken("uniqueusername")
 
-        val isTaken = repository.isUsernameTaken("existinguser")
-
-        assertTrue(isTaken)
-    }
+            assertFalse(isTaken)
+        }
 
     @Test
-    fun createUserDocuments_createsUserAndProfileDocuments() = runBlocking {
-        val userId = FirebaseTestUtils.createTestUser("new@example.com", "password123")
+    fun isUsernameTaken_returnsTrueForExistingUsername() =
+        runBlocking {
+            // Create user with username
+            val userId = FirebaseTestUtils.createTestUser("user@example.com", "password123")
+            repository.createUserDocuments(userId, "user@example.com", "existinguser")
 
-        repository.createUserDocuments(userId, "new@example.com", "newuser")
+            val isTaken = repository.isUsernameTaken("existinguser")
 
-        // Verify users document
-        val userDoc = firestore.collection("users").document(userId).get().await()
-        assertTrue(userDoc.exists())
-        assertEquals("new@example.com", userDoc.getString("email"))
-        assertNotNull(userDoc.getLong("createdAt"))
-
-        // Verify userProfiles document
-        val profileDoc = firestore.collection("userProfiles").document(userId).get().await()
-        assertTrue(profileDoc.exists())
-        assertEquals("newuser", profileDoc.getString("username"))
-    }
+            assertTrue(isTaken)
+        }
 
     @Test
-    fun signUp_createsAuthAccountAndDocuments() = runBlocking {
-        val userId = repository.signUp("signup@example.com", "password123", "signupuser")
+    fun createUserDocuments_createsUserAndProfileDocuments() =
+        runBlocking {
+            val userId = FirebaseTestUtils.createTestUser("new@example.com", "password123")
 
-        assertNotNull(userId)
+            repository.createUserDocuments(userId, "new@example.com", "newuser")
 
-        // Verify Firestore documents were created
-        val userDoc = firestore.collection("users").document(userId).get().await()
-        assertTrue(userDoc.exists())
+            // Verify users document
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            assertTrue(userDoc.exists())
+            assertEquals("new@example.com", userDoc.getString("email"))
+            assertNotNull(userDoc.getLong("createdAt"))
 
-        val profileDoc = firestore.collection("userProfiles").document(userId).get().await()
-        assertTrue(profileDoc.exists())
-        assertEquals("signupuser", profileDoc.getString("username"))
-    }
-
-    @Test
-    fun signIn_authenticatesExistingUser() = runBlocking {
-        // Create user first
-        repository.signUp("signin@example.com", "password123", "signinuser")
-        FirebaseTestUtils.signOut()
-
-        // Sign in
-        val result = repository.signIn("signin@example.com", "password123")
-
-        assertNotNull(result)
-        assertNotNull(result.user)
-        assertEquals("signin@example.com", result.user?.email)
-    }
+            // Verify userProfiles document
+            val profileDoc = firestore.collection("userProfiles").document(userId).get().await()
+            assertTrue(profileDoc.exists())
+            assertEquals("newuser", profileDoc.getString("username"))
+        }
 
     @Test
-    fun getUserProfile_returnsProfileForExistingUser() = runBlocking {
-        val userId = FirebaseTestUtils.createTestUser("profile@example.com", "password123")
-        repository.createUserDocuments(userId, "profile@example.com", "profileuser")
+    fun signUp_createsAuthAccountAndDocuments() =
+        runBlocking {
+            val userId = repository.signUp("signup@example.com", "password123", "signupuser")
 
-        val profile = repository.getUserProfile(userId)
+            assertNotNull(userId)
 
-        assertNotNull(profile)
-        assertEquals("profileuser", profile!!.username)
-        assertEquals(userId, profile.uid)
-    }
+            // Verify Firestore documents were created
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            assertTrue(userDoc.exists())
 
-    @Test
-    fun getUserProfile_returnsNullForNonexistentUser() = runBlocking {
-        val profile = repository.getUserProfile("nonexistent-uid")
-
-        assertNull(profile)
-    }
+            val profileDoc = firestore.collection("userProfiles").document(userId).get().await()
+            assertTrue(profileDoc.exists())
+            assertEquals("signupuser", profileDoc.getString("username"))
+        }
 
     @Test
-    fun updateUsername_updatesProfileDocument() = runBlocking {
-        val userId = FirebaseTestUtils.createTestUser("update@example.com", "password123")
-        repository.createUserDocuments(userId, "update@example.com", "oldusername")
+    fun signIn_authenticatesExistingUser() =
+        runBlocking {
+            // Create user first
+            repository.signUp("signin@example.com", "password123", "signinuser")
+            FirebaseTestUtils.signOut()
 
-        repository.updateUsername("newusername")
+            // Sign in
+            val result = repository.signIn("signin@example.com", "password123")
 
-        val profile = repository.getUserProfile(userId)
-        assertNotNull(profile)
-        assertEquals("newusername", profile!!.username)
-    }
-
-    @Test
-    fun deleteAccount_removesUserAndProfileDocuments() = runBlocking {
-        val userId = FirebaseTestUtils.createTestUser("delete@example.com", "password123")
-        repository.createUserDocuments(userId, "delete@example.com", "deleteuser")
-
-        repository.deleteAccount()
-
-        // Verify documents deleted
-        val userDoc = firestore.collection("users").document(userId).get().await()
-        assertFalse(userDoc.exists())
-
-        val profileDoc = firestore.collection("userProfiles").document(userId).get().await()
-        assertFalse(profileDoc.exists())
-
-        // Verify auth user deleted (should be signed out)
-        assertNull(auth.currentUser)
-    }
+            assertNotNull(result)
+            assertNotNull(result.user)
+            assertEquals("signin@example.com", result.user?.email)
+        }
 
     @Test
-    fun signOut_clearsCurrentUser() = runBlocking {
-        FirebaseTestUtils.createTestUser("signout@example.com", "password123")
-        assertNotNull(auth.currentUser)
+    fun getUserProfile_returnsProfileForExistingUser() =
+        runBlocking {
+            val userId = FirebaseTestUtils.createTestUser("profile@example.com", "password123")
+            repository.createUserDocuments(userId, "profile@example.com", "profileuser")
 
-        repository.signOut()
+            val profile = repository.getUserProfile(userId)
 
-        assertNull(auth.currentUser)
-    }
+            assertNotNull(profile)
+            assertEquals("profileuser", profile!!.username)
+            assertEquals(userId, profile.uid)
+        }
+
+    @Test
+    fun getUserProfile_returnsNullForNonexistentUser() =
+        runBlocking {
+            val profile = repository.getUserProfile("nonexistent-uid")
+
+            assertNull(profile)
+        }
+
+    @Test
+    fun updateUsername_updatesProfileDocument() =
+        runBlocking {
+            val userId = FirebaseTestUtils.createTestUser("update@example.com", "password123")
+            repository.createUserDocuments(userId, "update@example.com", "oldusername")
+
+            repository.updateUsername("newusername")
+
+            val profile = repository.getUserProfile(userId)
+            assertNotNull(profile)
+            assertEquals("newusername", profile!!.username)
+        }
+
+    @Test
+    fun deleteAccount_removesUserAndProfileDocuments() =
+        runBlocking {
+            val userId = FirebaseTestUtils.createTestUser("delete@example.com", "password123")
+            repository.createUserDocuments(userId, "delete@example.com", "deleteuser")
+
+            repository.deleteAccount()
+
+            // Verify documents deleted
+            val userDoc = firestore.collection("users").document(userId).get().await()
+            assertFalse(userDoc.exists())
+
+            val profileDoc = firestore.collection("userProfiles").document(userId).get().await()
+            assertFalse(profileDoc.exists())
+
+            // Verify auth user deleted (should be signed out)
+            assertNull(auth.currentUser)
+        }
+
+    @Test
+    fun signOut_clearsCurrentUser() =
+        runBlocking {
+            FirebaseTestUtils.createTestUser("signout@example.com", "password123")
+            assertNotNull(auth.currentUser)
+
+            repository.signOut()
+
+            assertNull(auth.currentUser)
+        }
 }

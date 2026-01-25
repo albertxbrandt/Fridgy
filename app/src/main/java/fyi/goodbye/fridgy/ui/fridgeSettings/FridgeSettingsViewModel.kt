@@ -8,7 +8,6 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.HouseholdRole
@@ -58,21 +57,21 @@ class FridgeSettingsViewModel
         /** The User ID of the currently authenticated user. */
         val currentUserId = firebaseAuth.currentUser?.uid
 
-    private val _canManageFridge = MutableStateFlow(false)
-    
-    /** Indicates if the current user can manage this fridge (OWNER or MANAGER role). */
-    val canManageFridge: StateFlow<Boolean> = _canManageFridge.asStateFlow()
+        private val _canManageFridge = MutableStateFlow(false)
 
-    private val _householdId = MutableStateFlow<String?>(null)
-    
-    /** The householdId of the fridge being managed, available after loading. */
-    val householdId: StateFlow<String?> = _householdId.asStateFlow()
+        /** Indicates if the current user can manage this fridge (OWNER or MANAGER role). */
+        val canManageFridge: StateFlow<Boolean> = _canManageFridge.asStateFlow()
 
-    init {
-        loadFridgeDetails()
-    }
+        private val _householdId = MutableStateFlow<String?>(null)
 
-    private fun loadFridgeDetails() {
+        /** The householdId of the fridge being managed, available after loading. */
+        val householdId: StateFlow<String?> = _householdId.asStateFlow()
+
+        init {
+            loadFridgeDetails()
+        }
+
+        private fun loadFridgeDetails() {
             viewModelScope.launch {
                 _uiState.value = FridgeSettingsUiState.Loading
                 try {
@@ -81,7 +80,7 @@ class FridgeSettingsViewModel
 
                     if (displayFridge != null && rawFridge != null) {
                         _uiState.value = FridgeSettingsUiState.Success(displayFridge, rawFridge)
-                    
+
                         // Store householdId for navigation after deletion
                         val householdId = displayFridge.householdId
                         _householdId.value = householdId
@@ -89,8 +88,8 @@ class FridgeSettingsViewModel
                             try {
                                 val household = householdRepository.getHouseholdById(householdId)
                                 val userRole = household?.getRoleForUser(currentUserId)
-                                _canManageFridge.value = userRole == fyi.goodbye.fridgy.models.HouseholdRole.OWNER || 
-                                                         userRole == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
+                                _canManageFridge.value = userRole == fyi.goodbye.fridgy.models.HouseholdRole.OWNER ||
+                                    userRole == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
                             } catch (e: Exception) {
                                 Log.e("FridgeSettingsVM", "Error checking fridge management permission: ${e.message}")
                                 _canManageFridge.value = false
@@ -122,7 +121,7 @@ class FridgeSettingsViewModel
                     Log.d("FridgeSettingsVM", "Fridge householdId: ${fridge?.householdId}")
                     Log.d("FridgeSettingsVM", "Current user ID: $currentUserId")
                     Log.d("FridgeSettingsVM", "Can manage fridge: ${_canManageFridge.value}")
-                    
+
                     fridgeRepository.deleteFridge(fridgeId)
                     onSuccess()
                 } catch (e: Exception) {

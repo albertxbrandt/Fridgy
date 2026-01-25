@@ -32,6 +32,7 @@ import kotlin.random.Random
  * - Member management via invite codes (join, leave, remove)
  * - Household-level shopping list operations
  * - Real-time presence tracking for collaborative shopping
+ * - Shopping list notifications for active shoppers
  * - Legacy fridge migration support
  *
  * ## Household Model
@@ -42,6 +43,11 @@ import kotlin.random.Random
  * Users join households by redeeming 6-character alphanumeric codes. Codes can have
  * optional expiration dates and are single-use by default.
  *
+ * ## Shopping List Notifications
+ * When a user adds an item to the shopping list, notifications are sent to:
+ * - Users who viewed the list in the last 30 minutes
+ * - Excludes the user who added the item
+ *
  * ## Thread Safety
  * - Uses coroutines for async operations
  * - Presence tracking uses batch coroutine fetching to avoid race conditions
@@ -49,18 +55,21 @@ import kotlin.random.Random
  *
  * @param firestore The Firestore instance for database operations.
  * @param auth The Auth instance for user identification.
+ * @param notificationRepository The NotificationRepository for sending notifications.
  * @see FridgeRepository For fridge-level operations
  * @see InviteCode For invite code data model
  */
 class HouseholdRepository(
     private val firestore: FirebaseFirestore,
-    private val auth: FirebaseAuth
+    private val auth: FirebaseAuth,
+    private val notificationRepository: NotificationRepository
 ) {
     companion object {
         private const val TAG = "HouseholdRepository"
         private const val INVITE_CODE_LENGTH = 6
         private const val INVITE_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // Exclude confusing chars (I, O, 0, 1)
-        private const val PRESENCE_TIMEOUT_MS = 30_000L
+        private const val PRESENCE_TIMEOUT_MS = 30_000L // 30 seconds for active presence
+        private const val RECENT_VIEWER_TIMEOUT_MS = 30 * 60 * 1000L // 30 minutes for notifications
     }
 
     // ==================== Household CRUD ====================
@@ -698,10 +707,10 @@ class HouseholdRepository(
         val batch = firestore.batch()
 
         val householdRef = firestore.collection("households").document(inviteCode.householdId)
-        
+
         // Add to members array
         batch.update(householdRef, "members", FieldValue.arrayUnion(currentUser.uid))
-        
+
         // Add role to memberRoles map
         batch.update(
             householdRef,
@@ -794,7 +803,10 @@ class HouseholdRepository(
             .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
 
     /**
-     * Adds an item to the household's shopping list.
+     * Adds an item to the household's shopping list and notifies recent viewers.
+     *
+     * Sends notifications to users who viewed the shopping list in the last 30 minutes,
+     * excluding the user who added the item.
      */
     suspend fun addShoppingListItem(
         householdId: String,
@@ -817,10 +829,29 @@ class HouseholdRepository(
                 customName = customName
             )
 
+        // Add item to shopping list
         firestore.collection("households").document(householdId)
             .collection("shoppingList").document(upc)
             .set(item)
             .await()
+
+        // Get display name for notification (product name if customName is empty)
+        val displayName =
+            if (customName.isNotEmpty()) {
+                customName
+            } else {
+                // Fetch product name from products collection
+                try {
+                    val product = firestore.collection("products").document(upc).get().await()
+                    product.getString("name") ?: upc
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not fetch product name for UPC: $upc", e)
+                    upc
+                }
+            }
+
+        // Send notifications to recent shoppers
+        notifyRecentShoppers(householdId, displayName)
     }
 
     /**
@@ -994,7 +1025,126 @@ class HouseholdRepository(
     }
 
     /**
+     * Sends notifications to users who have viewed the shopping list in the last 30 minutes.
+     * Excludes the user who added the item.
+     *
+     * @param householdId The household ID
+     * @param itemName The name of the item that was added
+     */
+    private suspend fun notifyRecentShoppers(
+        householdId: String,
+        itemName: String
+    ) {
+        try {
+            val currentUserId = auth.currentUser?.uid ?: return
+
+            Log.d(TAG, "=== Shopping List Notification Debug ===")
+            Log.d(TAG, "Checking for recent viewers in household: $householdId")
+            Log.d(TAG, "Item added: $itemName by user: $currentUserId")
+
+            // Get recent viewers (last 30 minutes)
+            val recentViewers = getRecentShoppingListViewers(householdId)
+
+            Log.d(TAG, "Found ${recentViewers.size} total recent viewers")
+            recentViewers.forEach { viewer ->
+                val minutesAgo = (System.currentTimeMillis() - viewer.lastSeenTimestamp) / 60000
+                Log.d(TAG, "  - ${viewer.username} (${viewer.userId}) - last seen $minutesAgo minutes ago")
+            }
+
+            val viewersToNotify = recentViewers.filter { it.userId != currentUserId }
+
+            if (viewersToNotify.isEmpty()) {
+                Log.d(TAG, "No users to notify (excluding current user)")
+                return
+            }
+
+            Log.d(TAG, "Sending notifications to ${viewersToNotify.size} users")
+
+            // Send in-app notifications to each recent viewer
+            viewersToNotify.forEach { viewer ->
+                Log.d(TAG, "Sending notification to: ${viewer.username}")
+                notificationRepository.sendInAppNotification(
+                    userId = viewer.userId,
+                    title = "New item added to shopping list",
+                    body = "$itemName was just added",
+                    type = fyi.goodbye.fridgy.models.NotificationType.ITEM_ADDED,
+                    relatedFridgeId = null,
+                    relatedItemId = itemName
+                )
+            }
+
+            Log.d(TAG, "Successfully notified ${viewersToNotify.size} recent shoppers")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error notifying recent shoppers", e)
+            // Don't throw - notification failure shouldn't block adding items
+        }
+    }
+
+    /**
+     * Gets users who have viewed the shopping list in the last 30 minutes.
+     * Returns a list of ActiveViewer objects with user info and last seen timestamp.
+     */
+    private suspend fun getRecentShoppingListViewers(householdId: String): List<ActiveViewer> {
+        return try {
+            val currentTime = System.currentTimeMillis()
+            val thirtyMinutesAgo = currentTime - RECENT_VIEWER_TIMEOUT_MS
+
+            Log.d(TAG, "Querying presence documents for household: $householdId")
+            Log.d(TAG, "Current time: $currentTime, cutoff time: $thirtyMinutesAgo")
+            Log.d(TAG, "Looking for presence within last ${RECENT_VIEWER_TIMEOUT_MS / 60000} minutes")
+
+            val presenceSnapshot =
+                firestore.collection("households").document(householdId)
+                    .collection("shoppingListPresence")
+                    .get()
+                    .await()
+
+            Log.d(TAG, "Found ${presenceSnapshot.documents.size} presence documents total")
+
+            val recentUserData =
+                presenceSnapshot.documents.mapNotNull { doc ->
+                    val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+                    val userId = doc.getString("userId")
+
+                    val minutesAgo = if (lastSeen > 0) (currentTime - lastSeen) / 60000 else -1
+                    Log.d(TAG, "Presence doc: userId=$userId, lastSeen=$lastSeen (${minutesAgo}min ago)")
+
+                    // Check if user viewed within last 30 minutes
+                    if (userId != null && lastSeen >= thirtyMinutesAgo) {
+                        Log.d(TAG, "  -> INCLUDED (within 30 min)")
+                        userId to lastSeen
+                    } else {
+                        if (userId != null) {
+                            Log.d(TAG, "  -> EXCLUDED (too old or invalid)")
+                        }
+                        null
+                    }
+                }
+
+            if (recentUserData.isEmpty()) {
+                Log.d(TAG, "No recent viewers found after filtering")
+                return emptyList()
+            }
+
+            Log.d(TAG, "Fetching user profiles for ${recentUserData.size} recent viewers")
+
+            // Batch fetch user profiles
+            val userIds = recentUserData.map { it.first }
+            val profiles = getUsersByIds(userIds)
+
+            recentUserData.mapNotNull { (userId, lastSeen) ->
+                val username = profiles[userId]?.username ?: return@mapNotNull null
+                ActiveViewer(userId, username, lastSeen)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching recent shopping list viewers", e)
+            emptyList()
+        }
+    }
+
+    /**
      * Sets the current user as actively viewing the shopping list.
+     * Also performs periodic cleanup of stale presence documents (older than 24 hours).
      */
     suspend fun setShoppingListPresence(householdId: String) {
         val currentUserId = auth.currentUser?.uid ?: return
@@ -1008,10 +1158,76 @@ class HouseholdRepository(
                 "lastSeen" to FieldValue.serverTimestamp()
             )
         ).await()
+
+        // Periodically clean up old presence documents (every ~10 calls)
+        // This prevents database bloat while keeping recent activity for notifications
+        if (Random.nextInt(10) == 0) {
+            cleanupStalePresence(householdId, excludeUserId = currentUserId)
+        }
+    }
+
+    /**
+     * Removes presence documents older than 24 hours to prevent database bloat.
+     * Called periodically by setShoppingListPresence().
+     *
+     * @param householdId The household ID
+     * @param excludeUserId User ID to exclude from cleanup (typically the current user)
+     */
+    private suspend fun cleanupStalePresence(
+        householdId: String,
+        excludeUserId: String? = null
+    ) {
+        try {
+            val oneDayAgo = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
+
+            val stalePresence =
+                firestore.collection("households").document(householdId)
+                    .collection("shoppingListPresence")
+                    .get()
+                    .await()
+
+            val batch = firestore.batch()
+            var deleteCount = 0
+
+            stalePresence.documents.forEach { doc ->
+                val userId = doc.getString("userId")
+                val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+
+                // Skip if:
+                // 1. This is the excluded user (current user)
+                // 2. lastSeen is 0 (document just created, timestamp not set yet)
+                // 3. lastSeen is within last 24 hours (not stale)
+                if (userId == excludeUserId) {
+                    // Don't delete current user's presence
+                    return@forEach
+                }
+
+                if (lastSeen == 0L) {
+                    // Document just created, serverTimestamp not populated yet
+                    return@forEach
+                }
+
+                if (lastSeen < oneDayAgo) {
+                    batch.delete(doc.reference)
+                    deleteCount++
+                    Log.d(TAG, "Marking stale presence for deletion: userId=$userId, lastSeen=$lastSeen")
+                }
+            }
+
+            if (deleteCount > 0) {
+                batch.commit().await()
+                Log.d(TAG, "Cleaned up $deleteCount stale presence documents")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cleaning up stale presence", e)
+            // Don't throw - cleanup failure shouldn't affect presence updates
+        }
     }
 
     /**
      * Removes the current user's presence from the shopping list.
+     * Note: This is kept for explicit removal scenarios, but typically
+     * we don't remove presence to preserve lastSeen for notifications.
      */
     suspend fun removeShoppingListPresence(householdId: String) {
         val currentUserId = auth.currentUser?.uid ?: return

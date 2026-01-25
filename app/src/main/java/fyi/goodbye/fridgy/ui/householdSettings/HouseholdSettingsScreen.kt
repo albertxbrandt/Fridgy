@@ -129,8 +129,9 @@ fun HouseholdSettingsScreen(
                 val household = state.household
                 val isOwner = household.createdByUid == viewModel.currentUserId
                 val currentUserRole = viewModel.currentUserId?.let { household.getRoleForUser(it) }
-                val isManager = currentUserRole == fyi.goodbye.fridgy.models.HouseholdRole.OWNER || 
-                               currentUserRole == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
+                val isManager =
+                    currentUserRole == fyi.goodbye.fridgy.models.HouseholdRole.OWNER ||
+                        currentUserRole == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
 
                 Column(
                     modifier =
@@ -176,7 +177,7 @@ fun HouseholdSettingsScreen(
                                         role = memberRole,
                                         isOwner = isOwner,
                                         canRemove = canRemoveThisMember,
-                                        onRoleChange = { newRole -> 
+                                        onRoleChange = { newRole ->
                                             viewModel.updateMemberRole(member.uid, newRole)
                                         },
                                         onRemove = { viewModel.removeMember(member.uid) }
@@ -783,9 +784,10 @@ fun MemberCardContent(
     onRoleChange: (fyi.goodbye.fridgy.models.HouseholdRole) -> Unit
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -801,63 +803,74 @@ fun MemberCardContent(
                     text = "Manager",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) FontWeight.Bold else FontWeight.Normal,
-                    color = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) 
-                        MaterialTheme.colorScheme.onPrimary
-                    else 
-                        MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .background(
-                            color = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-                            else
-                                Color.Transparent,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onRoleChange(fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                    color =
+                        if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    modifier =
+                        Modifier
+                            .background(
+                                color =
+                                    if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                                    } else {
+                                        Color.Transparent
+                                    },
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable { onRoleChange(fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
-                
+
                 Text(
                     text = "/",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                
+
                 // Member option
                 Text(
                     text = "Member",
                     style = MaterialTheme.typography.bodyMedium,
                     fontWeight = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) FontWeight.Bold else FontWeight.Normal,
-                    color = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) 
-                        MaterialTheme.colorScheme.onPrimary
-                    else 
-                        MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .background(
-                            color = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER)
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
-                            else
-                                Color.Transparent,
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        .clickable { onRoleChange(fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) }
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                    color =
+                        if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    modifier =
+                        Modifier
+                            .background(
+                                color =
+                                    if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) {
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
+                                    } else {
+                                        Color.Transparent
+                                    },
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable { onRoleChange(fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) }
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
         } else {
             // Non-owner viewing: just show role badge
             Text(
-                text = when (role) {
-                    fyi.goodbye.fridgy.models.HouseholdRole.OWNER -> "Owner"
-                    fyi.goodbye.fridgy.models.HouseholdRole.MANAGER -> "Manager"
-                    fyi.goodbye.fridgy.models.HouseholdRole.MEMBER -> "Member"
-                },
+                text =
+                    when (role) {
+                        fyi.goodbye.fridgy.models.HouseholdRole.OWNER -> "Owner"
+                        fyi.goodbye.fridgy.models.HouseholdRole.MANAGER -> "Manager"
+                        fyi.goodbye.fridgy.models.HouseholdRole.MEMBER -> "Member"
+                    },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.weight(1f)
             )
         }
-        
+
         // Member name on the right
         Text(
             text = name,

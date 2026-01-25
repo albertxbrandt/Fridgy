@@ -94,9 +94,10 @@ class FridgeSettingsViewModelTest {
         coEvery { mockFridgeRepository.getFridgeById(any(), any()) } returns testDisplayFridge
         coEvery { mockFridgeRepository.getRawFridgeById(any()) } returns testRawFridge
 
-        savedStateHandle = SavedStateHandle().apply {
-            set("fridgeId", testFridgeId)
-        }
+        savedStateHandle =
+            SavedStateHandle().apply {
+                set("fridgeId", testFridgeId)
+            }
     }
 
     @After

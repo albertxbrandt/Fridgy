@@ -51,7 +51,6 @@ import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.SizeUnit
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
-import fyi.goodbye.fridgy.ui.shared.UiState
 import java.io.File
 
 /**

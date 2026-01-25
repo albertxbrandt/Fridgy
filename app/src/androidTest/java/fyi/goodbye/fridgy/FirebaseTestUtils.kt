@@ -57,18 +57,19 @@ object FirebaseTestUtils {
      */
     suspend fun clearFirestoreData() {
         val firestore = FirebaseFirestore.getInstance()
-        
+
         // Delete all collections
-        val collections = listOf(
-            "users",
-            "userProfiles",
-            "admins",
-            "households",
-            "fridges",
-            "products",
-            "inviteCodes",
-            "notifications"
-        )
+        val collections =
+            listOf(
+                "users",
+                "userProfiles",
+                "admins",
+                "households",
+                "fridges",
+                "products",
+                "inviteCodes",
+                "notifications"
+            )
 
         collections.forEach { collectionName ->
             try {
@@ -123,7 +124,7 @@ object FirebaseTestUtils {
     suspend fun clearAuthUsers() {
         // Sign out current user first
         signOut()
-        
+
         // Note: Full implementation would require HTTP calls to emulator API
         // For now, just sign out. Individual tests should clean up their users.
     }

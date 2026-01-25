@@ -66,10 +66,11 @@ fun FridgeListScreen(
     val userRole by viewModel.userRole.collectAsState()
 
     // Check if user can manage fridges (owner or manager)
-    val canManageFridges = userRole?.let { 
-        it == fyi.goodbye.fridgy.models.HouseholdRole.OWNER || 
-        it == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER 
-    } ?: false
+    val canManageFridges =
+        userRole?.let {
+            it == fyi.goodbye.fridgy.models.HouseholdRole.OWNER ||
+                it == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
+        } ?: false
 
     Scaffold(
         topBar = {

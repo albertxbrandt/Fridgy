@@ -62,14 +62,16 @@ object RepositoryModule {
      *
      * @param firestore The Firestore instance for database operations.
      * @param auth The Auth instance for user identification.
+     * @param notificationRepository The NotificationRepository for sending notifications.
      * @return A singleton [HouseholdRepository] instance.
      */
     @Provides
     @Singleton
     fun provideHouseholdRepository(
         firestore: FirebaseFirestore,
-        auth: FirebaseAuth
-    ): HouseholdRepository = HouseholdRepository(firestore, auth)
+        auth: FirebaseAuth,
+        notificationRepository: NotificationRepository
+    ): HouseholdRepository = HouseholdRepository(firestore, auth, notificationRepository)
 
     /**
      * Provides the product repository for barcode/product operations.

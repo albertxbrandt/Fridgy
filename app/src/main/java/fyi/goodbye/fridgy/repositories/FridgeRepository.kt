@@ -11,7 +11,6 @@ import com.google.firebase.firestore.Source
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.DisplayItem
 import fyi.goodbye.fridgy.models.Fridge
-import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
@@ -687,11 +686,12 @@ class FridgeRepository(
      */
     suspend fun getItemCount(fridgeId: String): Int {
         return try {
-            val snapshot = firestore.collection("fridges")
-                .document(fridgeId)
-                .collection("items")
-                .get()
-                .await()
+            val snapshot =
+                firestore.collection("fridges")
+                    .document(fridgeId)
+                    .collection("items")
+                    .get()
+                    .await()
             snapshot.size()
         } catch (e: Exception) {
             Log.e("FridgeRepo", "Error getting item count for fridge $fridgeId: ${e.message}")
@@ -835,36 +835,39 @@ class FridgeRepository(
      */
     suspend fun deleteFridge(fridgeId: String) {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
-        
+
         // Get fridge to check household
         val fridgeDoc = firestore.collection("fridges").document(fridgeId).get().await()
-        val fridge = fridgeDoc.toObject(Fridge::class.java)
-            ?: throw IllegalStateException("Fridge not found")
-        
+        val fridge =
+            fridgeDoc.toObject(Fridge::class.java)
+                ?: throw IllegalStateException("Fridge not found")
+
         // Check permission
-        val household = householdRepository.getHouseholdById(fridge.householdId)
-            ?: throw IllegalStateException("Household not found")
-        
+        val household =
+            householdRepository.getHouseholdById(fridge.householdId)
+                ?: throw IllegalStateException("Household not found")
+
         val userRole = household.getRoleForUser(currentUser.uid)
         if (!userRole.canManageFridges()) {
             throw IllegalStateException("You don't have permission to delete fridges")
         }
-        
+
         val fridgeRef = firestore.collection("fridges").document(fridgeId)
-        
+
         Log.d("FridgeRepository", "Attempting to read items for fridge: $fridgeId")
-        val items = try {
-            fridgeRef.collection("items").get().await()
-        } catch (e: Exception) {
-            Log.e("FridgeRepository", "Failed to read items subcollection: ${e.message}")
-            throw e
-        }
-        
+        val items =
+            try {
+                fridgeRef.collection("items").get().await()
+            } catch (e: Exception) {
+                Log.e("FridgeRepository", "Failed to read items subcollection: ${e.message}")
+                throw e
+            }
+
         Log.d("FridgeRepository", "Successfully read ${items.size()} items, creating batch delete")
         val batch = firestore.batch()
         items.documents.forEach { batch.delete(it.reference) }
         batch.delete(fridgeRef)
-        
+
         Log.d("FridgeRepository", "Committing batch delete (${items.size()} items + 1 fridge)")
         batch.commit().await()
         Log.d("FridgeRepository", "Batch delete successful")

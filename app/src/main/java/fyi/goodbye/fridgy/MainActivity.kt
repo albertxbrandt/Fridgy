@@ -161,7 +161,10 @@ class MainActivity : ComponentActivity() {
                         val prefs = getSharedPreferences("fridgy_prefs", MODE_PRIVATE)
                         val pendingCode = prefs.getString("pending_invite_code", null)
                         if (pendingCode != null) {
-                            Log.d("Fridgy_DeepLink", "Found pending invite code in MainActivity, navigating to householdList")
+                            Log.d(
+                                "Fridgy_DeepLink",
+                                "Found pending invite code in MainActivity, navigating to householdList"
+                            )
                             // Give auth state time to settle
                             kotlinx.coroutines.delay(300)
                             // Navigate to household list where the dialog will open
@@ -248,10 +251,11 @@ class MainActivity : ComponentActivity() {
                     val userPreferences = remember { UserPreferences.getInstance(this@MainActivity) }
 
                     // Check for pending invite code from deep link
-                    val hasPendingInvite = remember {
-                        getSharedPreferences("fridgy_prefs", MODE_PRIVATE)
-                            .getString("pending_invite_code", null) != null
-                    }
+                    val hasPendingInvite =
+                        remember {
+                            getSharedPreferences("fridgy_prefs", MODE_PRIVATE)
+                                .getString("pending_invite_code", null) != null
+                        }
 
                     // Determine start destination:
                     // - If not logged in: login

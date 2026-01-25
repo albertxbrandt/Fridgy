@@ -7,6 +7,7 @@ import com.google.firebase.firestore.Query
 import com.google.firebase.messaging.FirebaseMessaging
 import fyi.goodbye.fridgy.models.FcmToken
 import fyi.goodbye.fridgy.models.Notification
+import fyi.goodbye.fridgy.models.NotificationType
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -227,6 +228,84 @@ class NotificationRepository(
         } catch (e: Exception) {
             Log.e(TAG, "Error deleting notification", e)
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Send an in-app notification to a specific user.
+     * This creates a notification document in Firestore.
+     *
+     * @param userId The user to send the notification to
+     * @param title Notification title
+     * @param body Notification body message
+     * @param type Notification type
+     * @param relatedFridgeId Optional related fridge ID
+     * @param relatedItemId Optional related item ID
+     */
+    suspend fun sendInAppNotification(
+        userId: String,
+        title: String,
+        body: String,
+        type: NotificationType = NotificationType.GENERAL,
+        relatedFridgeId: String? = null,
+        relatedItemId: String? = null
+    ): Result<Unit> {
+        return try {
+            // Firestore will set createdAt via @ServerTimestamp
+            val notification =
+                Notification(
+                    userId = userId,
+                    title = title,
+                    body = body,
+                    type = type,
+                    relatedFridgeId = relatedFridgeId,
+                    relatedItemId = relatedItemId,
+                    isRead = false,
+                    createdAt = null
+                )
+
+            firestore.collection(COLLECTION_NOTIFICATIONS)
+                .add(notification)
+                .await()
+
+            Log.d(TAG, "In-app notification sent to user: $userId")
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending in-app notification", e)
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get FCM tokens for a list of user IDs.
+     * Returns a map of userId to FCM token.
+     */
+    suspend fun getFcmTokensForUsers(userIds: List<String>): Map<String, String> {
+        return try {
+            if (userIds.isEmpty()) return emptyMap()
+
+            // Firestore 'in' queries are limited to 10 items, so batch the requests
+            val tokens = mutableMapOf<String, String>()
+
+            userIds.chunked(10).forEach { batch ->
+                val snapshot =
+                    firestore.collection(COLLECTION_FCM_TOKENS)
+                        .whereIn("userId", batch)
+                        .get()
+                        .await()
+
+                snapshot.documents.forEach { doc ->
+                    doc.toObject(FcmToken::class.java)?.let { fcmToken ->
+                        tokens[fcmToken.userId] = fcmToken.token
+                    }
+                }
+            }
+
+            Log.d(TAG, "Retrieved ${tokens.size} FCM tokens for ${userIds.size} users")
+            tokens
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching FCM tokens", e)
+            emptyMap()
         }
     }
 }
