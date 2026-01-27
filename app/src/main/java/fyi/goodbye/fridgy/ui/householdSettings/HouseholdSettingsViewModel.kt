@@ -12,6 +12,7 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.MembershipRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -34,6 +35,7 @@ class HouseholdSettingsViewModel
         @ApplicationContext private val context: Context,
         savedStateHandle: SavedStateHandle,
         private val householdRepository: HouseholdRepository,
+        private val membershipRepository: MembershipRepository,
         private val firebaseAuth: FirebaseAuth
     ) : ViewModel() {
         private val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
@@ -112,7 +114,7 @@ class HouseholdSettingsViewModel
             inviteCodesJob =
                 viewModelScope.launch {
                     try {
-                        householdRepository.getInviteCodesFlow(householdId).collectLatest { codes ->
+                        membershipRepository.getInviteCodesFlow(householdId).collectLatest { codes ->
                             if (!isLeavingOrDeleted) {
                                 _inviteCodes.value = codes.sortedByDescending { it.createdAt }
                             }
@@ -154,7 +156,7 @@ class HouseholdSettingsViewModel
                             null
                         }
 
-                    val code = householdRepository.createInviteCode(householdId, expiresAt)
+                    val code = membershipRepository.createInviteCode(householdId, expiresAt)
                     _newInviteCode.value = code
                 } catch (e: Exception) {
                     Log.e("HouseholdSettingsVM", "Error creating invite code: ${e.message}")
@@ -171,7 +173,7 @@ class HouseholdSettingsViewModel
         fun revokeInviteCode(code: String) {
             viewModelScope.launch {
                 try {
-                    householdRepository.revokeInviteCode(householdId, code)
+                    membershipRepository.revokeInviteCode(householdId, code)
                 } catch (e: Exception) {
                     Log.e("HouseholdSettingsVM", "Error revoking invite code: ${e.message}")
                     _actionError.value = "Failed to revoke invite code: ${e.message}"
@@ -190,7 +192,7 @@ class HouseholdSettingsViewModel
             viewModelScope.launch {
                 try {
                     // Update in background without reload - Firestore listener will update UI
-                    householdRepository.updateMemberRole(householdId, userId, newRole)
+                    membershipRepository.updateMemberRole(householdId, userId, newRole)
                 } catch (e: Exception) {
                     Log.e("HouseholdSettingsVM", "Error updating member role: ${e.message}")
                     _actionError.value = "Failed to update member role: ${e.message}"
@@ -205,7 +207,7 @@ class HouseholdSettingsViewModel
         fun removeMember(userId: String) {
             viewModelScope.launch {
                 try {
-                    householdRepository.removeMember(householdId, userId)
+                    membershipRepository.removeMember(householdId, userId)
                     loadHouseholdDetails() // Refresh
                 } catch (e: Exception) {
                     Log.e("HouseholdSettingsVM", "Error removing member: ${e.message}")
@@ -229,7 +231,7 @@ class HouseholdSettingsViewModel
             // Perform leave operation BEFORE navigating to ensure it completes
             viewModelScope.launch {
                 try {
-                    householdRepository.leaveHousehold(householdId)
+                    membershipRepository.leaveHousehold(householdId)
                     Log.d("HouseholdSettingsVM", "Successfully left household")
 
                     // Navigate away AFTER successful leave operation

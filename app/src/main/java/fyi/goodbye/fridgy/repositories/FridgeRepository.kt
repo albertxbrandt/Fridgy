@@ -103,6 +103,8 @@ class FridgeRepository(
 
     /**
      * Removes the current user's presence from the shopping list.
+     *
+     * @param fridgeId The ID of the fridge to remove presence from.
      */
     suspend fun removeShoppingListPresence(fridgeId: String) {
         val currentUserId = auth.currentUser?.uid ?: return
@@ -111,6 +113,13 @@ class FridgeRepository(
             .delete().await()
     }
 
+    /**
+     * Represents an active viewer of the shopping list.
+     *
+     * @property userId The user's Firebase UID.
+     * @property username The user's display name.
+     * @property lastSeenTimestamp The last activity timestamp in milliseconds.
+     */
     data class ActiveViewer(
         val userId: String,
         val username: String,
@@ -184,6 +193,13 @@ class FridgeRepository(
 
     /**
      * Adds a UPC to the fridge's shopping list subcollection, with quantity and store.
+     *
+     * @param fridgeId The ID of the fridge.
+     * @param upc The Universal Product Code to add.
+     * @param quantity Number of items to purchase (default: 1).
+     * @param store Optional store name for purchase.
+     * @param customName Optional custom name for the item.
+     * @throws IllegalStateException if user is not logged in.
      */
     suspend fun addShoppingListItem(
         fridgeId: String,
@@ -208,6 +224,9 @@ class FridgeRepository(
 
     /**
      * Removes a UPC from the fridge's shopping list subcollection.
+     *
+     * @param fridgeId The ID of the fridge.
+     * @param upc The Universal Product Code to remove.
      */
     suspend fun removeShoppingListItem(
         fridgeId: String,
@@ -220,6 +239,12 @@ class FridgeRepository(
     /**
      * Updates the current user's obtained quantity atomically using Firestore transactions.
      * Prevents race conditions when multiple users shop simultaneously.
+     *
+     * @param fridgeId The ID of the fridge.
+     * @param upc The Universal Product Code of the item.
+     * @param obtainedQuantity The quantity obtained by current user.
+     * @param totalQuantity The total quantity needed.
+     * @throws IllegalStateException if user is not logged in.
      */
     suspend fun updateShoppingListItemPickup(
         fridgeId: String,
@@ -401,6 +426,8 @@ class FridgeRepository(
      * Preloads user's fridges from Firestore cache to memory for instant cold-start access.
      * Should be called on app initialization to populate cache before UI loads.
      * This reads from Firestore's local persistence layer without network access.
+     *
+     * Uses current user's ID to filter fridges from Firestore cache.
      */
     suspend fun preloadFridgesFromCache() {
         try {
@@ -592,6 +619,9 @@ class FridgeRepository(
      * Preloads items for a specific fridge from Firestore cache to memory.
      * Should be called when opening a fridge inventory to enable instant display.
      * This reads from Firestore's local persistence layer without network access.
+     *
+     * @param fridgeId The ID of the fridge to preload items for.
+     * @return List of preloaded items, or empty list if cache unavailable.
      */
     suspend fun preloadItemsFromCache(fridgeId: String): List<Item> {
         return try {
@@ -685,7 +715,6 @@ class FridgeRepository(
 
     /**
      * Adds a new item instance to a fridge.
-     * Adds a new item instance to a fridge.
      *
      * Items are now stored as individual instances rather than aggregated quantities,
      * allowing each instance to have its own expiration date.
@@ -762,23 +791,6 @@ class FridgeRepository(
             Log.e("FridgeRepo", "Error updating expiration date", e)
             throw e
         }
-    }
-
-    /**
-     * Legacy method for backward compatibility during migration.
-     * @deprecated Use updateItemExpirationDate instead
-     */
-    @Deprecated("Items are now individual instances, use deleteItem instead")
-    suspend fun updateItemQuantity(
-        fridgeId: String,
-        itemId: String,
-        newQuantity: Int
-    ) {
-        // For backward compatibility, if quantity is 0, delete the item
-        if (newQuantity <= 0) {
-            deleteItem(fridgeId, itemId)
-        }
-        // Note: Increasing quantity should now add new item instances
     }
 
     /**
@@ -889,6 +901,12 @@ class FridgeRepository(
      * Fetches multiple users' public profiles by their IDs.
      * Returns a map of userId to UserProfile for easy lookup.
      * This queries the userProfiles collection which contains only public data (username).
+     *
+     * Uses LRU cache to minimize network requests. Batches Firestore queries in chunks of 10
+     * due to 'in' query limitations.
+     *
+     * @param userIds List of user Firebase UIDs to fetch.
+     * @return Map of userId to UserProfile, empty map if fetch fails.
      */
     suspend fun getUsersByIds(userIds: List<String>): Map<String, UserProfile> {
         if (userIds.isEmpty()) return emptyMap()

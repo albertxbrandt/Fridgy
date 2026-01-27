@@ -243,12 +243,6 @@ class ItemDetailViewModel
             }
         }
 
-        @Deprecated("Items are now individual instances, use deleteItem instead")
-        fun updateQuantity(newQuantity: Int) {
-            // No-op: Quantity is deprecated
-            Log.w("ItemDetailVM", "updateQuantity called but quantity is deprecated")
-        }
-
         sealed interface ItemDetailUiState {
             data object Loading : ItemDetailUiState
 

@@ -155,45 +155,4 @@ class NotificationViewModel
         fun resetOperationState() {
             _operationState.value = OperationState.Idle
         }
-
-        /**
-         * Accept a fridge invitation from a notification.
-         *
-         * NOTE: This feature is deprecated. Invitations are now handled at the
-         * household level via invite codes. Legacy fridge invites are no longer supported.
-         */
-        @Deprecated("Fridge invites are now handled at household level via invite codes")
-        fun acceptFridgeInvite(
-            fridgeId: String,
-            notificationId: String
-        ) {
-            viewModelScope.launch {
-                _operationState.value =
-                    OperationState.Error(
-                        "This invite type is no longer supported. Please ask for a household invite code instead."
-                    )
-                // Clean up the notification since it can't be processed
-                repository.deleteNotification(notificationId)
-                Log.w(TAG, "Legacy fridge invite attempted: $fridgeId - feature deprecated")
-            }
-        }
-
-        /**
-         * Decline a fridge invitation from a notification.
-         *
-         * NOTE: This feature is deprecated. Invitations are now handled at the
-         * household level via invite codes. Legacy fridge invites are no longer supported.
-         */
-        @Deprecated("Fridge invites are now handled at household level via invite codes")
-        fun declineFridgeInvite(
-            fridgeId: String,
-            notificationId: String
-        ) {
-            viewModelScope.launch {
-                // Just delete the notification - can't process legacy invites
-                repository.deleteNotification(notificationId)
-                _operationState.value = OperationState.Success("Invite removed")
-                Log.w(TAG, "Legacy fridge invite declined: $fridgeId - feature deprecated")
-            }
-        }
     }

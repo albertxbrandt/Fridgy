@@ -10,8 +10,9 @@ import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.repositories.FridgeRepository
-import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
+import fyi.goodbye.fridgy.repositories.ShoppingListRepository
+import fyi.goodbye.fridgy.repositories.UserRepository
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -41,10 +42,11 @@ class ShoppingListViewModelTest {
 
     private lateinit var mockContext: Context
     private lateinit var mockProductRepository: ProductRepository
-    private lateinit var mockHouseholdRepository: HouseholdRepository
+    private lateinit var mockShoppingListRepository: ShoppingListRepository
     private lateinit var mockFridgeRepository: FridgeRepository
     private lateinit var mockAuth: FirebaseAuth
     private lateinit var mockUser: FirebaseUser
+    private lateinit var mockUserRepository: UserRepository
     private lateinit var savedStateHandle: SavedStateHandle
     private lateinit var viewModel: ShoppingListViewModel
 
@@ -88,17 +90,18 @@ class ShoppingListViewModelTest {
 
         mockContext = mockk(relaxed = true)
         mockProductRepository = mockk(relaxed = true)
-        mockHouseholdRepository = mockk(relaxed = true)
+        mockShoppingListRepository = mockk(relaxed = true)
         mockFridgeRepository = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
         mockUser = mockk(relaxed = true)
+        mockUserRepository = mockk(relaxed = true)
 
         every { mockAuth.currentUser } returns mockUser
         every { mockUser.uid } returns testUserId
 
         // Default repository behaviors
-        coEvery { mockHouseholdRepository.getShoppingListItems(any()) } returns flowOf(emptyList())
-        coEvery { mockHouseholdRepository.getShoppingListPresence(any()) } returns flowOf(emptyList())
+        coEvery { mockShoppingListRepository.getShoppingListItems(any()) } returns flowOf(emptyList())
+        coEvery { mockShoppingListRepository.getShoppingListPresence(any()) } returns flowOf(emptyList())
         coEvery { mockFridgeRepository.getFridgesForHousehold(any()) } returns flowOf(emptyList())
         coEvery { mockProductRepository.getProductInfo(any()) } returns testProduct
 
@@ -122,9 +125,10 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             assertEquals(testUserId, viewModel.currentUserId)
@@ -140,9 +144,10 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             assertEquals("", viewModel.currentUserId)
@@ -151,23 +156,24 @@ class ShoppingListViewModelTest {
     @Test
     fun `addItem calls repository with correct parameters`() =
         runTest {
-            coEvery { mockHouseholdRepository.addShoppingListItem(any(), any(), any(), any(), any()) } returns Unit
+            coEvery { mockShoppingListRepository.addShoppingListItem(any(), any(), any(), any(), any()) } returns Unit
 
             viewModel =
                 ShoppingListViewModel(
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.addItem(testUpc, 3, "Target", "Custom Name")
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify {
-                mockHouseholdRepository.addShoppingListItem(
+                mockShoppingListRepository.addShoppingListItem(
                     testHouseholdId,
                     testUpc,
                     3,
@@ -180,23 +186,24 @@ class ShoppingListViewModelTest {
     @Test
     fun `addManualItem generates manual UPC and calls repository`() =
         runTest {
-            coEvery { mockHouseholdRepository.addShoppingListItem(any(), any(), any(), any(), any()) } returns Unit
+            coEvery { mockShoppingListRepository.addShoppingListItem(any(), any(), any(), any(), any()) } returns Unit
 
             viewModel =
                 ShoppingListViewModel(
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.addManualItem("Bananas", 5, "Kroger")
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify {
-                mockHouseholdRepository.addShoppingListItem(
+                mockShoppingListRepository.addShoppingListItem(
                     testHouseholdId,
                     match { it.startsWith("manual_") },
                     5,
@@ -209,29 +216,30 @@ class ShoppingListViewModelTest {
     @Test
     fun `removeItem calls repository with correct UPC`() =
         runTest {
-            coEvery { mockHouseholdRepository.removeShoppingListItem(any(), any()) } returns Unit
+            coEvery { mockShoppingListRepository.removeShoppingListItem(any(), any()) } returns Unit
 
             viewModel =
                 ShoppingListViewModel(
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.removeItem(testUpc)
             testDispatcher.scheduler.advanceUntilIdle()
 
-            coVerify { mockHouseholdRepository.removeShoppingListItem(testHouseholdId, testUpc) }
+            coVerify { mockShoppingListRepository.removeShoppingListItem(testHouseholdId, testUpc) }
         }
 
     @Test
     fun `updateItemPickup calls repository with correct parameters`() =
         runTest {
             coEvery {
-                mockHouseholdRepository.updateShoppingListItemPickup(
+                mockShoppingListRepository.updateShoppingListItemPickup(
                     any(),
                     any(),
                     any(),
@@ -245,16 +253,17 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.updateItemPickup(testUpc, 2, 5, "fridge-1")
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify {
-                mockHouseholdRepository.updateShoppingListItemPickup(
+                mockShoppingListRepository.updateShoppingListItemPickup(
                     testHouseholdId,
                     testUpc,
                     2,
@@ -267,7 +276,7 @@ class ShoppingListViewModelTest {
     @Test
     fun `completeShopping calls repository and invokes callback`() =
         runTest {
-            coEvery { mockHouseholdRepository.completeShoppingSession(any()) } returns Unit
+            coEvery { mockShoppingListRepository.completeShoppingSession(any()) } returns Unit
             var callbackInvoked = false
 
             viewModel =
@@ -275,15 +284,16 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.completeShopping { callbackInvoked = true }
             testDispatcher.scheduler.advanceUntilIdle()
 
-            coVerify { mockHouseholdRepository.completeShoppingSession(testHouseholdId) }
+            coVerify { mockShoppingListRepository.completeShoppingSession(testHouseholdId) }
             assertTrue(callbackInvoked)
         }
 
@@ -295,9 +305,10 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.updateSearchQuery("milk")
@@ -316,9 +327,10 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.updateSearchQuery("")
@@ -341,9 +353,10 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.updateSearchQuery("milk")
@@ -365,9 +378,10 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             val product = viewModel.checkProductExists(testUpc)
@@ -386,9 +400,10 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             val product = viewModel.checkProductExists("unknown")
@@ -399,25 +414,26 @@ class ShoppingListViewModelTest {
     @Test
     fun `linkManualItemToProduct removes old item and adds new one`() =
         runTest {
-            coEvery { mockHouseholdRepository.removeShoppingListItem(any(), any()) } returns Unit
-            coEvery { mockHouseholdRepository.addShoppingListItem(any(), any(), any(), any(), any()) } returns Unit
+            coEvery { mockShoppingListRepository.removeShoppingListItem(any(), any()) } returns Unit
+            coEvery { mockShoppingListRepository.addShoppingListItem(any(), any(), any(), any(), any()) } returns Unit
 
             viewModel =
                 ShoppingListViewModel(
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.linkManualItemToProduct("manual_123", testUpc, 3, "Walmart", "Old Name")
             testDispatcher.scheduler.advanceUntilIdle()
 
-            coVerify { mockHouseholdRepository.removeShoppingListItem(testHouseholdId, "manual_123") }
+            coVerify { mockShoppingListRepository.removeShoppingListItem(testHouseholdId, "manual_123") }
             coVerify {
-                mockHouseholdRepository.addShoppingListItem(
+                mockShoppingListRepository.addShoppingListItem(
                     testHouseholdId,
                     testUpc,
                     3,
@@ -432,8 +448,8 @@ class ShoppingListViewModelTest {
         runTest {
             val newProduct = testProduct.copy(upc = "999999999")
             coEvery { mockProductRepository.saveProductWithImage(any(), any()) } returns newProduct
-            coEvery { mockHouseholdRepository.removeShoppingListItem(any(), any()) } returns Unit
-            coEvery { mockHouseholdRepository.addShoppingListItem(any(), any(), any(), any(), any()) } returns Unit
+            coEvery { mockShoppingListRepository.removeShoppingListItem(any(), any()) } returns Unit
+            coEvery { mockShoppingListRepository.addShoppingListItem(any(), any(), any(), any(), any()) } returns Unit
 
             var callbackInvoked = false
 
@@ -442,9 +458,10 @@ class ShoppingListViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.createProductAndLink(
@@ -461,9 +478,9 @@ class ShoppingListViewModelTest {
             testDispatcher.scheduler.advanceUntilIdle()
 
             coVerify { mockProductRepository.saveProductWithImage(any(), null) }
-            coVerify { mockHouseholdRepository.removeShoppingListItem(testHouseholdId, "manual_123") }
+            coVerify { mockShoppingListRepository.removeShoppingListItem(testHouseholdId, "manual_123") }
             coVerify {
-                mockHouseholdRepository.addShoppingListItem(
+                mockShoppingListRepository.addShoppingListItem(
                     testHouseholdId,
                     "999999999",
                     2,
@@ -477,16 +494,17 @@ class ShoppingListViewModelTest {
     @Test
     fun `startPresence initializes presence job`() =
         runTest {
-            coEvery { mockHouseholdRepository.setShoppingListPresence(any()) } returns Unit
+            coEvery { mockShoppingListRepository.setShoppingListPresence(any()) } returns Unit
 
             viewModel =
                 ShoppingListViewModel(
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.startPresence()
@@ -494,7 +512,7 @@ class ShoppingListViewModelTest {
             testDispatcher.scheduler.runCurrent()
 
             // Verify at least initial presence was set
-            coVerify(atLeast = 1) { mockHouseholdRepository.setShoppingListPresence(testHouseholdId) }
+            coVerify(atLeast = 1) { mockShoppingListRepository.setShoppingListPresence(testHouseholdId) }
 
             // Stop to cleanup
             viewModel.stopPresence()
@@ -503,22 +521,23 @@ class ShoppingListViewModelTest {
     @Test
     fun `stopPresence removes presence`() =
         runTest {
-            coEvery { mockHouseholdRepository.removeShoppingListPresence(any()) } returns Unit
+            coEvery { mockShoppingListRepository.removeShoppingListPresence(any()) } returns Unit
 
             viewModel =
                 ShoppingListViewModel(
                     mockContext,
                     savedStateHandle,
                     mockProductRepository,
-                    mockHouseholdRepository,
+                    mockShoppingListRepository,
                     mockFridgeRepository,
-                    mockAuth
+                    mockAuth,
+                    mockUserRepository
                 )
 
             viewModel.stopPresence()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            coVerify { mockHouseholdRepository.removeShoppingListPresence(testHouseholdId) }
+            coVerify { mockShoppingListRepository.removeShoppingListPresence(testHouseholdId) }
         }
 
     // NOTE: loadShoppingList, observeActiveViewers, and loadAvailableFridges tests removed

@@ -12,7 +12,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.models.DisplayFridge
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**

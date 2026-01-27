@@ -11,6 +11,7 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.MembershipRepository
 import fyi.goodbye.fridgy.ui.shared.UiState
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -43,6 +44,7 @@ class HouseholdSettingsViewModelTest {
 
     private lateinit var mockContext: Context
     private lateinit var mockHouseholdRepository: HouseholdRepository
+    private lateinit var mockMembershipRepository: MembershipRepository
     private lateinit var mockAuth: FirebaseAuth
     private lateinit var mockUser: FirebaseUser
     private lateinit var savedStateHandle: SavedStateHandle
@@ -83,6 +85,7 @@ class HouseholdSettingsViewModelTest {
 
         mockContext = mockk(relaxed = true)
         mockHouseholdRepository = mockk(relaxed = true)
+        mockMembershipRepository = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
         mockUser = mockk(relaxed = true)
 
@@ -93,7 +96,7 @@ class HouseholdSettingsViewModelTest {
 
         // Default repository behaviors
         coEvery { mockHouseholdRepository.getDisplayHouseholdById(any()) } returns testDisplayHousehold
-        coEvery { mockHouseholdRepository.getInviteCodesFlow(any()) } returns flowOf(listOf(testInviteCode))
+        coEvery { mockMembershipRepository.getInviteCodesFlow(any()) } returns flowOf(listOf(testInviteCode))
 
         savedStateHandle =
             SavedStateHandle().apply {
@@ -115,6 +118,7 @@ class HouseholdSettingsViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockHouseholdRepository,
+                    mockMembershipRepository,
                     mockAuth
                 )
 
@@ -129,6 +133,7 @@ class HouseholdSettingsViewModelTest {
                     mockContext,
                     savedStateHandle,
                     mockHouseholdRepository,
+                    mockMembershipRepository,
                     mockAuth
                 )
 
@@ -142,8 +147,7 @@ class HouseholdSettingsViewModelTest {
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -164,8 +168,7 @@ class HouseholdSettingsViewModelTest {
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
             testDispatcher.scheduler.advanceUntilIdle()
 
@@ -179,14 +182,13 @@ class HouseholdSettingsViewModelTest {
     @Test
     fun `createInviteCode with expiration creates code`() =
         runTest {
-            coEvery { mockHouseholdRepository.createInviteCode(any(), any()) } returns testInviteCode
+            coEvery { mockMembershipRepository.createInviteCode(any(), any()) } returns testInviteCode
 
             viewModel =
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             viewModel.createInviteCode(7)
@@ -201,14 +203,13 @@ class HouseholdSettingsViewModelTest {
     @Test
     fun `createInviteCode sets isCreatingInvite during operation`() =
         runTest {
-            coEvery { mockHouseholdRepository.createInviteCode(any(), any()) } returns testInviteCode
+            coEvery { mockMembershipRepository.createInviteCode(any(), any()) } returns testInviteCode
 
             viewModel =
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             assertFalse(viewModel.isCreatingInvite.value)
@@ -222,20 +223,19 @@ class HouseholdSettingsViewModelTest {
     @Test
     fun `revokeInviteCode calls repository`() =
         runTest {
-            coEvery { mockHouseholdRepository.revokeInviteCode(any()) } returns Unit
+            coEvery { mockMembershipRepository.revokeInviteCode(any()) } returns Unit
 
             viewModel =
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             viewModel.revokeInviteCode("ABC123")
             testDispatcher.scheduler.advanceUntilIdle()
 
-            coVerify { mockHouseholdRepository.revokeInviteCode("ABC123") }
+            coVerify { mockMembershipRepository.revokeInviteCode("ABC123") }
         }
 
     @Test
@@ -247,8 +247,7 @@ class HouseholdSettingsViewModelTest {
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             viewModel.removeMember("user-456")
@@ -267,8 +266,7 @@ class HouseholdSettingsViewModelTest {
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             viewModel.leaveHousehold { callbackInvoked = true }
@@ -287,8 +285,7 @@ class HouseholdSettingsViewModelTest {
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             assertFalse(viewModel.isDeletingOrLeaving.value)
@@ -310,8 +307,7 @@ class HouseholdSettingsViewModelTest {
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             viewModel.deleteHousehold { callbackInvoked = true }
@@ -331,8 +327,7 @@ class HouseholdSettingsViewModelTest {
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             viewModel.deleteHousehold { callbackInvoked = true }
@@ -348,14 +343,13 @@ class HouseholdSettingsViewModelTest {
     @Test
     fun `clearNewInviteCode sets newInviteCode to null`() =
         runTest {
-            coEvery { mockHouseholdRepository.createInviteCode(any(), any()) } returns testInviteCode
+            coEvery { mockMembershipRepository.createInviteCode(any(), any()) } returns testInviteCode
 
             viewModel =
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             viewModel.createInviteCode(7)
@@ -372,14 +366,13 @@ class HouseholdSettingsViewModelTest {
     @Test
     fun `clearError sets actionError to null`() =
         runTest {
-            coEvery { mockHouseholdRepository.revokeInviteCode(any()) } throws Exception("Test error")
+            coEvery { mockMembershipRepository.revokeInviteCode(any()) } throws Exception("Test error")
 
             viewModel =
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
 
             viewModel.revokeInviteCode("ABC123")
@@ -402,8 +395,7 @@ class HouseholdSettingsViewModelTest {
                 HouseholdSettingsViewModel(
                     mockContext,
                     savedStateHandle,
-                    mockHouseholdRepository,
-                    mockAuth
+                    mockHouseholdRepository, `n                    mockMembershipRepository,`n mockAuth
                 )
             testDispatcher.scheduler.advanceUntilIdle()
 

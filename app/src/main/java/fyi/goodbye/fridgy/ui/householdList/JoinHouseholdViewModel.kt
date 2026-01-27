@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.MembershipRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -17,14 +17,14 @@ import javax.inject.Inject
  * ViewModel for joining a household with an invite code.
  *
  * @param context Application context for accessing string resources.
- * @param householdRepository Repository for household operations.
+ * @param membershipRepository Repository for membership and invite code operations.
  */
 @HiltViewModel
 class JoinHouseholdViewModel
     @Inject
     constructor(
         @ApplicationContext private val context: Context,
-        private val householdRepository: HouseholdRepository
+        private val membershipRepository: MembershipRepository
     ) : ViewModel() {
         private val _uiState = MutableStateFlow<JoinHouseholdUiState>(JoinHouseholdUiState.Idle)
         val uiState: StateFlow<JoinHouseholdUiState> = _uiState.asStateFlow()
@@ -59,10 +59,10 @@ class JoinHouseholdViewModel
 
             viewModelScope.launch {
                 try {
-                    val result = householdRepository.validateInviteCode(code)
+                    val result = membershipRepository.validateInviteCode(code)
                     if (result != null) {
                         // Check if user is already a member of this household
-                        val isAlreadyMember = householdRepository.isUserMemberOfHousehold(result.householdId)
+                        val isAlreadyMember = membershipRepository.isUserMemberOfHousehold(result.householdId)
                         if (isAlreadyMember) {
                             _uiState.value = JoinHouseholdUiState.AlreadyMember(result.householdName)
                         } else {
@@ -89,7 +89,7 @@ class JoinHouseholdViewModel
 
             viewModelScope.launch {
                 try {
-                    val householdId = householdRepository.redeemInviteCode(code)
+                    val householdId = membershipRepository.redeemInviteCode(code)
                     _uiState.value = JoinHouseholdUiState.Success(householdId)
                 } catch (e: Exception) {
                     _uiState.value =

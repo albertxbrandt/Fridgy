@@ -61,16 +61,6 @@ class HouseholdListViewModel
         /** Any error message resulting from a failed household creation attempt. */
         val createHouseholdError: StateFlow<String?> = _createHouseholdError.asStateFlow()
 
-        private val _needsMigration = MutableStateFlow(false)
-
-        /** Indicates if the user has orphan fridges that need migration. */
-        val needsMigration: StateFlow<Boolean> = _needsMigration.asStateFlow()
-
-        private val _isMigrating = MutableStateFlow(false)
-
-        /** Indicates if migration is in progress. */
-        val isMigrating: StateFlow<Boolean> = _isMigrating.asStateFlow()
-
         init {
             val currentUserId = auth.currentUser?.uid
             if (currentUserId == null) {
@@ -82,15 +72,6 @@ class HouseholdListViewModel
                 // Check admin status
                 viewModelScope.launch {
                     _isAdmin.value = adminRepository.isCurrentUserAdmin()
-                }
-
-                // Check for orphan fridges that need migration
-                viewModelScope.launch {
-                    try {
-                        _needsMigration.value = householdRepository.hasOrphanFridges()
-                    } catch (e: Exception) {
-                        Log.e("HouseholdListVM", "Error checking for orphan fridges: ${e.message}")
-                    }
                 }
 
                 // Collect real-time stream of display households with live fridge counts
@@ -125,24 +106,6 @@ class HouseholdListViewModel
                         ?: context.getString(R.string.error_failed_to_create_household)
                 } finally {
                     _isCreatingHousehold.value = false
-                }
-            }
-        }
-
-        /**
-         * Migrates orphan fridges (fridges without a householdId) to a new household.
-         */
-        fun migrateOrphanFridges() {
-            _isMigrating.value = true
-            viewModelScope.launch {
-                try {
-                    householdRepository.migrateOrphanFridges()
-                    _needsMigration.value = false
-                } catch (e: Exception) {
-                    Log.e("HouseholdListVM", "Error migrating orphan fridges: ${e.message}")
-                    _createHouseholdError.value = "Failed to migrate fridges: ${e.message}"
-                } finally {
-                    _isMigrating.value = false
                 }
             }
         }

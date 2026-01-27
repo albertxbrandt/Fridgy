@@ -23,7 +23,6 @@ import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.theme.FridgeTypeColors
 import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**

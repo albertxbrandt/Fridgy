@@ -411,24 +411,6 @@ class ItemDetailViewModelTest {
         }
 
     @Test
-    fun `updateQuantity logs deprecation warning`() =
-        runTest {
-            viewModel =
-                ItemDetailViewModel(
-                    mockContext,
-                    savedStateHandle,
-                    mockFridgeRepository,
-                    mockProductRepository
-                )
-
-            // Should not throw, just log
-            viewModel.updateQuantity(5)
-
-            // Verify warning logged
-            io.mockk.verify { Log.w("ItemDetailVM", "updateQuantity called but quantity is deprecated") }
-        }
-
-    @Test
     fun `showEditExpirationDialog sets pendingItemForEdit to item`() =
         runTest {
             viewModel =

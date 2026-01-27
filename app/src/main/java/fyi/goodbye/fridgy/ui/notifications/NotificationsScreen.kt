@@ -18,8 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Notifications
@@ -27,7 +25,6 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -202,30 +199,10 @@ fun NotificationsScreen(
                                             }
                                         }
                                     }
-                                val onAcceptInvite =
-                                    remember(notification.id) {
-                                        { notif: Notification ->
-                                            notif.relatedFridgeId?.let { fridgeId ->
-                                                viewModel.acceptFridgeInvite(fridgeId, notif.id)
-                                            }
-                                            Unit
-                                        }
-                                    }
-                                val onDeclineInvite =
-                                    remember(notification.id) {
-                                        { notif: Notification ->
-                                            notif.relatedFridgeId?.let { fridgeId ->
-                                                viewModel.declineFridgeInvite(fridgeId, notif.id)
-                                            }
-                                            Unit
-                                        }
-                                    }
                                 SwipeToDeleteNotificationItem(
                                     notification = notification,
                                     onDelete = onDelete,
-                                    onClick = onClick,
-                                    onAcceptInvite = onAcceptInvite,
-                                    onDeclineInvite = onDeclineInvite
+                                    onClick = onClick
                                 )
                             }
                         }
@@ -241,9 +218,7 @@ fun NotificationsScreen(
 fun SwipeToDeleteNotificationItem(
     notification: Notification,
     onDelete: (Notification) -> Unit,
-    onClick: (Notification) -> Unit,
-    onAcceptInvite: (Notification) -> Unit,
-    onDeclineInvite: (Notification) -> Unit
+    onClick: (Notification) -> Unit
 ) {
     val dismissState =
         rememberSwipeToDismissBoxState(
@@ -278,9 +253,7 @@ fun SwipeToDeleteNotificationItem(
     ) {
         NotificationItem(
             notification = notification,
-            onClick = { onClick(notification) },
-            onAcceptInvite = { onAcceptInvite(notification) },
-            onDeclineInvite = { onDeclineInvite(notification) }
+            onClick = { onClick(notification) }
         )
     }
 }
@@ -288,9 +261,7 @@ fun SwipeToDeleteNotificationItem(
 @Composable
 fun NotificationItem(
     notification: Notification,
-    onClick: () -> Unit,
-    onAcceptInvite: () -> Unit,
-    onDeclineInvite: () -> Unit
+    onClick: () -> Unit
 ) {
     Card(
         modifier =
@@ -354,45 +325,6 @@ fun NotificationItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
                 )
-
-                // Show accept/decline buttons for fridge invites
-                if (notification.type.name == "FRIDGE_INVITE") {
-                    Spacer(modifier = Modifier.padding(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        FilledTonalButton(
-                            onClick = onAcceptInvite,
-                            modifier = Modifier.weight(1f),
-                            colors =
-                                androidx.compose.material3.ButtonDefaults.filledTonalButtonColors(
-                                    containerColor = FridgyPrimary
-                                )
-                        ) {
-                            Icon(
-                                Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Accept")
-                        }
-
-                        androidx.compose.material3.OutlinedButton(
-                            onClick = onDeclineInvite,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Decline")
-                        }
-                    }
-                }
             }
         }
     }

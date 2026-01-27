@@ -97,7 +97,7 @@ class HouseholdListViewModelTest {
 
         // Default repository behaviors
         coEvery { mockAdminRepository.isCurrentUserAdmin() } returns false
-        coEvery { mockHouseholdRepository.hasOrphanFridges() } returns false
+
         coEvery { mockHouseholdRepository.getDisplayHouseholdsForCurrentUser() } returns flowOf(testDisplayHouseholds)
     }
 
@@ -182,27 +182,6 @@ class HouseholdListViewModelTest {
             viewModel.isAdmin.test {
                 val isAdmin = awaitItem()
                 assertFalse(isAdmin)
-            }
-        }
-
-    @Test
-    fun `init checks for orphan fridges`() =
-        runTest {
-            coEvery { mockHouseholdRepository.hasOrphanFridges() } returns true
-
-            viewModel =
-                HouseholdListViewModel(
-                    mockContext,
-                    mockAuth,
-                    mockHouseholdRepository,
-                    mockAdminRepository,
-                    mockUserRepository
-                )
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            viewModel.needsMigration.test {
-                val needsMigration = awaitItem()
-                assertTrue(needsMigration)
             }
         }
 
@@ -310,75 +289,6 @@ class HouseholdListViewModelTest {
         }
 
     @Test
-    fun `migrateOrphanFridges calls repository and clears needsMigration`() =
-        runTest {
-            coEvery { mockHouseholdRepository.hasOrphanFridges() } returns true
-            coEvery { mockHouseholdRepository.migrateOrphanFridges() } returns "migrated-household-id"
-
-            viewModel =
-                HouseholdListViewModel(
-                    mockContext,
-                    mockAuth,
-                    mockHouseholdRepository,
-                    mockAdminRepository,
-                    mockUserRepository
-                )
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            viewModel.migrateOrphanFridges()
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            coVerify { mockHouseholdRepository.migrateOrphanFridges() }
-            assertFalse(viewModel.needsMigration.value)
-        }
-
-    @Test
-    fun `migrateOrphanFridges sets isMigrating during operation`() =
-        runTest {
-            coEvery { mockHouseholdRepository.migrateOrphanFridges() } returns "migrated-household-id"
-
-            viewModel =
-                HouseholdListViewModel(
-                    mockContext,
-                    mockAuth,
-                    mockHouseholdRepository,
-                    mockAdminRepository,
-                    mockUserRepository
-                )
-
-            assertFalse(viewModel.isMigrating.value)
-
-            viewModel.migrateOrphanFridges()
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            // Should be false after completion
-            assertFalse(viewModel.isMigrating.value)
-        }
-
-    @Test
-    fun `migrateOrphanFridges handles repository exception`() =
-        runTest {
-            coEvery { mockHouseholdRepository.migrateOrphanFridges() } throws Exception("Permission denied")
-
-            viewModel =
-                HouseholdListViewModel(
-                    mockContext,
-                    mockAuth,
-                    mockHouseholdRepository,
-                    mockAdminRepository,
-                    mockUserRepository
-                )
-
-            viewModel.migrateOrphanFridges()
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            viewModel.createHouseholdError.test {
-                val error = awaitItem()
-                assertTrue(error!!.contains("Permission denied"))
-            }
-        }
-
-    @Test
     fun `clearError sets error to null`() =
         runTest {
             coEvery { mockHouseholdRepository.createHousehold(any()) } throws Exception("Test error")
@@ -439,42 +349,6 @@ class HouseholdListViewModelTest {
             viewModel.isAdmin.test {
                 val isAdmin = awaitItem()
                 assertFalse(isAdmin)
-            }
-        }
-
-    @Test
-    fun `needsMigration is false initially`() =
-        runTest {
-            viewModel =
-                HouseholdListViewModel(
-                    mockContext,
-                    mockAuth,
-                    mockHouseholdRepository,
-                    mockAdminRepository,
-                    mockUserRepository
-                )
-
-            viewModel.needsMigration.test {
-                val needsMigration = awaitItem()
-                assertFalse(needsMigration)
-            }
-        }
-
-    @Test
-    fun `isMigrating is false initially`() =
-        runTest {
-            viewModel =
-                HouseholdListViewModel(
-                    mockContext,
-                    mockAuth,
-                    mockHouseholdRepository,
-                    mockAdminRepository,
-                    mockUserRepository
-                )
-
-            viewModel.isMigrating.test {
-                val isMigrating = awaitItem()
-                assertFalse(isMigrating)
             }
         }
 

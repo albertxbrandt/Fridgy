@@ -5,7 +5,7 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.InviteCode
-import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.MembershipRepository
 import fyi.goodbye.fridgy.ui.shared.UiState
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -33,7 +33,7 @@ class JoinHouseholdViewModelTest {
     private val testDispatcher = StandardTestDispatcher()
 
     private lateinit var mockContext: Context
-    private lateinit var mockHouseholdRepository: HouseholdRepository
+    private lateinit var mockMembershipRepository: MembershipRepository
     private lateinit var viewModel: JoinHouseholdViewModel
 
     @Before
@@ -41,7 +41,7 @@ class JoinHouseholdViewModelTest {
         Dispatchers.setMain(testDispatcher)
 
         mockContext = mockk(relaxed = true)
-        mockHouseholdRepository = mockk(relaxed = true)
+        mockMembershipRepository = mockk(relaxed = true)
 
         every { mockContext.getString(R.string.error_invalid_invite_code) } returns "Invalid invite code"
         every { mockContext.getString(R.string.error_failed_to_join_household) } returns "Failed to join household"
@@ -131,8 +131,8 @@ class JoinHouseholdViewModelTest {
                     expiresAt = null,
                     isActive = true
                 )
-            coEvery { mockHouseholdRepository.validateInviteCode(any()) } returns inviteCode
-            coEvery { mockHouseholdRepository.isUserMemberOfHousehold(any()) } returns false
+            coEvery { mockMembershipRepository.validateInviteCode(any()) } returns inviteCode
+            coEvery { mockMembershipRepository.isUserMemberOfHousehold(any()) } returns false
 
             viewModel = JoinHouseholdViewModel(mockContext, mockHouseholdRepository)
 
@@ -162,8 +162,8 @@ class JoinHouseholdViewModelTest {
                     expiresAt = null,
                     isActive = true
                 )
-            coEvery { mockHouseholdRepository.validateInviteCode(any()) } returns inviteCode
-            coEvery { mockHouseholdRepository.isUserMemberOfHousehold(any()) } returns true
+            coEvery { mockMembershipRepository.validateInviteCode(any()) } returns inviteCode
+            coEvery { mockMembershipRepository.isUserMemberOfHousehold(any()) } returns true
 
             viewModel = JoinHouseholdViewModel(mockContext, mockHouseholdRepository)
 
@@ -182,7 +182,7 @@ class JoinHouseholdViewModelTest {
     @Test
     fun `validateCode with invalid code sets Error`() =
         runTest {
-            coEvery { mockHouseholdRepository.validateInviteCode(any()) } returns null
+            coEvery { mockMembershipRepository.validateInviteCode(any()) } returns null
 
             viewModel = JoinHouseholdViewModel(mockContext, mockHouseholdRepository)
 
@@ -200,7 +200,7 @@ class JoinHouseholdViewModelTest {
     @Test
     fun `validateCode handles repository exception`() =
         runTest {
-            coEvery { mockHouseholdRepository.validateInviteCode(any()) } throws Exception("Network error")
+            coEvery { mockMembershipRepository.validateInviteCode(any()) } throws Exception("Network error")
 
             viewModel = JoinHouseholdViewModel(mockContext, mockHouseholdRepository)
 
@@ -218,7 +218,7 @@ class JoinHouseholdViewModelTest {
     @Test
     fun `joinHousehold calls repository and sets Success state`() =
         runTest {
-            coEvery { mockHouseholdRepository.redeemInviteCode(any()) } returns "household-123"
+            coEvery { mockMembershipRepository.redeemInviteCode(any()) } returns "household-123"
 
             viewModel = JoinHouseholdViewModel(mockContext, mockHouseholdRepository)
 
@@ -226,7 +226,7 @@ class JoinHouseholdViewModelTest {
             viewModel.joinHousehold()
             testDispatcher.scheduler.advanceUntilIdle()
 
-            coVerify { mockHouseholdRepository.redeemInviteCode("ABC123") }
+            coVerify { mockMembershipRepository.redeemInviteCode("ABC123") }
 
             viewModel.uiState.test {
                 val state = awaitItem()
@@ -240,7 +240,7 @@ class JoinHouseholdViewModelTest {
     @Test
     fun `joinHousehold handles repository exception`() =
         runTest {
-            coEvery { mockHouseholdRepository.redeemInviteCode(any()) } throws Exception("Expired code")
+            coEvery { mockMembershipRepository.redeemInviteCode(any()) } throws Exception("Expired code")
 
             viewModel = JoinHouseholdViewModel(mockContext, mockHouseholdRepository)
 
@@ -258,7 +258,7 @@ class JoinHouseholdViewModelTest {
     @Test
     fun `resetState sets state back to Idle`() =
         runTest {
-            coEvery { mockHouseholdRepository.redeemInviteCode(any()) } returns "household-123"
+            coEvery { mockMembershipRepository.redeemInviteCode(any()) } returns "household-123"
 
             viewModel = JoinHouseholdViewModel(mockContext, mockHouseholdRepository)
 

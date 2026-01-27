@@ -69,16 +69,12 @@ fun HouseholdListScreen(
     val isAdmin by viewModel.isAdmin.collectAsState()
     val isCreatingHousehold by viewModel.isCreatingHousehold.collectAsState()
     val createHouseholdError by viewModel.createHouseholdError.collectAsState()
-    val needsMigration by viewModel.needsMigration.collectAsState()
-    val isMigrating by viewModel.isMigrating.collectAsState()
 
     HouseholdListContent(
         householdsUiState = householdsUiState,
         isAdmin = isAdmin,
         isCreatingHousehold = isCreatingHousehold,
         createHouseholdError = createHouseholdError,
-        needsMigration = needsMigration,
-        isMigrating = isMigrating,
         onNavigateToHousehold = onNavigateToHousehold,
         onJoinHouseholdSuccess = onJoinHouseholdSuccess,
         onNavigateToNotifications = onNavigateToNotifications,
@@ -89,8 +85,7 @@ fun HouseholdListScreen(
             onLogout()
         },
         onCreateHousehold = { name -> viewModel.createNewHousehold(name) },
-        onClearError = { viewModel.clearError() },
-        onMigrateOrphanFridges = { viewModel.migrateOrphanFridges() }
+        onClearError = { viewModel.clearError() }
     )
 }
 
@@ -101,8 +96,6 @@ private fun HouseholdListContent(
     isAdmin: Boolean,
     isCreatingHousehold: Boolean,
     createHouseholdError: String?,
-    needsMigration: Boolean,
-    isMigrating: Boolean,
     onNavigateToHousehold: (DisplayHousehold) -> Unit,
     onJoinHouseholdSuccess: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
@@ -110,13 +103,11 @@ private fun HouseholdListContent(
     onNavigateToAdminPanel: () -> Unit,
     onLogout: () -> Unit,
     onCreateHousehold: (String) -> Unit,
-    onClearError: () -> Unit,
-    onMigrateOrphanFridges: () -> Unit
+    onClearError: () -> Unit
 ) {
     var showAddHouseholdDialog by remember { mutableStateOf(false) }
     var newHouseholdName by remember { mutableStateOf("") }
     var isSidebarOpen by remember { mutableStateOf(false) }
-    var showMigrationDialog by remember { mutableStateOf(false) }
     var showJoinHouseholdDialog by remember { mutableStateOf(false) }
     var pendingInviteCode by remember { mutableStateOf<String?>(null) }
 
@@ -132,13 +123,6 @@ private fun HouseholdListContent(
             showJoinHouseholdDialog = true
             // Clear the pending code
             prefs.edit().remove("pending_invite_code").apply()
-        }
-    }
-
-    // Show migration dialog when needed
-    LaunchedEffect(needsMigration) {
-        if (needsMigration) {
-            showMigrationDialog = true
         }
     }
 
@@ -422,53 +406,6 @@ private fun HouseholdListContent(
         )
     }
 
-    // Migration Dialog
-    if (showMigrationDialog) {
-        AlertDialog(
-            onDismissRequest = { /* Don't allow dismissing */ },
-            title = {
-                Text(
-                    text = stringResource(R.string.migration_required),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = stringResource(R.string.migration_description),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    Text(
-                        text = stringResource(R.string.migration_details),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            },
-            confirmButton = {
-                FilledTonalButton(
-                    onClick = {
-                        onMigrateOrphanFridges()
-                        showMigrationDialog = false
-                    },
-                    enabled = !isMigrating
-                ) {
-                    if (isMigrating) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Text(stringResource(R.string.migrate_now))
-                    }
-                }
-            },
-            shape = MaterialTheme.shapes.extraLarge,
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    }
-
     // Join Household Dialog
     if (showJoinHouseholdDialog) {
         JoinHouseholdDialog(
@@ -495,8 +432,6 @@ private fun HouseholdListPreviewLoading() {
             isAdmin = false,
             isCreatingHousehold = false,
             createHouseholdError = null,
-            needsMigration = false,
-            isMigrating = false,
             onNavigateToHousehold = {},
             onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
@@ -505,7 +440,6 @@ private fun HouseholdListPreviewLoading() {
             onLogout = {},
             onCreateHousehold = {},
             onClearError = {},
-            onMigrateOrphanFridges = {}
         )
     }
 }
@@ -519,8 +453,6 @@ private fun HouseholdListPreviewEmpty() {
             isAdmin = false,
             isCreatingHousehold = false,
             createHouseholdError = null,
-            needsMigration = false,
-            isMigrating = false,
             onNavigateToHousehold = {},
             onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
@@ -529,7 +461,6 @@ private fun HouseholdListPreviewEmpty() {
             onLogout = {},
             onCreateHousehold = {},
             onClearError = {},
-            onMigrateOrphanFridges = {}
         )
     }
 }
@@ -594,8 +525,6 @@ private fun HouseholdListPreviewWithHouseholds() {
             isAdmin = true,
             isCreatingHousehold = false,
             createHouseholdError = null,
-            needsMigration = false,
-            isMigrating = false,
             onNavigateToHousehold = {},
             onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
@@ -604,7 +533,6 @@ private fun HouseholdListPreviewWithHouseholds() {
             onLogout = {},
             onCreateHousehold = {},
             onClearError = {},
-            onMigrateOrphanFridges = {}
         )
     }
 }
@@ -618,8 +546,6 @@ private fun HouseholdListPreviewError() {
             isAdmin = false,
             isCreatingHousehold = false,
             createHouseholdError = null,
-            needsMigration = false,
-            isMigrating = false,
             onNavigateToHousehold = {},
             onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
@@ -628,7 +554,6 @@ private fun HouseholdListPreviewError() {
             onLogout = {},
             onCreateHousehold = {},
             onClearError = {},
-            onMigrateOrphanFridges = {}
         )
     }
 }

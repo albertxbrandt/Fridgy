@@ -14,8 +14,10 @@ import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.repositories.CategoryRepository
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.MembershipRepository
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
+import fyi.goodbye.fridgy.repositories.ShoppingListRepository
 import fyi.goodbye.fridgy.repositories.UserRepository
 import javax.inject.Singleton
 
@@ -144,4 +146,38 @@ object RepositoryModule {
         auth: FirebaseAuth,
         storage: FirebaseStorage
     ): AdminRepository = AdminRepository(firestore, auth, storage)
+
+    /**
+     * Provides the membership repository for household member management.
+     *
+     * @param firestore The Firestore instance for database operations.
+     * @param auth The Auth instance for user identification.
+     * @param householdRepository The HouseholdRepository for permission checks.
+     * @return A singleton [MembershipRepository] instance.
+     */
+    @Provides
+    @Singleton
+    fun provideMembershipRepository(
+        firestore: FirebaseFirestore,
+        auth: FirebaseAuth,
+        householdRepository: HouseholdRepository
+    ): MembershipRepository = MembershipRepository(firestore, auth, householdRepository)
+
+    /**
+     * Provides the shopping list repository for shopping list operations.
+     *
+     * @param firestore The Firestore instance for database operations.
+     * @param auth The Auth instance for user identification.
+     * @param notificationRepository The NotificationRepository for sending notifications.
+     * @param householdRepository The HouseholdRepository for user profile lookups.
+     * @return A singleton [ShoppingListRepository] instance.
+     */
+    @Provides
+    @Singleton
+    fun provideShoppingListRepository(
+        firestore: FirebaseFirestore,
+        auth: FirebaseAuth,
+        notificationRepository: NotificationRepository,
+        householdRepository: HouseholdRepository
+    ): ShoppingListRepository = ShoppingListRepository(firestore, auth, notificationRepository, householdRepository)
 }

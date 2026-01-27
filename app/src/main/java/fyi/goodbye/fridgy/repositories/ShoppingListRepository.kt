@@ -1,0 +1,644 @@
+package fyi.goodbye.fridgy.repositories
+
+import android.util.Log
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.FirebaseFirestore
+import fyi.goodbye.fridgy.models.Item
+import fyi.goodbye.fridgy.models.ShoppingListItem
+import fyi.goodbye.fridgy.models.UserProfile
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import kotlin.random.Random
+
+/**
+ * Repository for managing household shopping list operations.
+ *
+ * Handles shopping list functionality at the household level:
+ * - Adding, updating, and removing shopping list items
+ * - Tracking user pickup status (obtained quantities and target fridges)
+ * - Completing shopping sessions (moving items to fridges)
+ * - Real-time presence tracking for active shoppers
+ * - Notifications to recent viewers when items are added
+ * - Periodic cleanup of stale presence documents
+ *
+ * ## Shopping List Model
+ * Each household has a shopping list where members can add items they need.
+ * Items track:
+ * - Who added them
+ * - Total quantity needed
+ * - Per-user obtained quantities
+ * - Per-user target fridges
+ *
+ * ## Presence Tracking
+ * Tracks which users are actively viewing the shopping list:
+ * - Updates timestamp when user views the list
+ * - Active presence: viewed within last 30 seconds
+ * - Recent viewer: viewed within last 30 minutes (for notifications)
+ * - Automatic cleanup of stale presence (>24 hours old)
+ *
+ * ## Notifications
+ * When a user adds an item, notifications are sent to users who viewed
+ * the list in the last 30 minutes (excluding the user who added the item).
+ *
+ * @param firestore The Firestore instance for database operations
+ * @param auth The Auth instance for user identification
+ * @param notificationRepository The NotificationRepository for sending notifications
+ * @param householdRepository The HouseholdRepository for user profile lookups
+ */
+class ShoppingListRepository(
+    private val firestore: FirebaseFirestore,
+    private val auth: FirebaseAuth,
+    private val notificationRepository: NotificationRepository,
+    private val householdRepository: HouseholdRepository
+) {
+    companion object {
+        private const val TAG = "ShoppingListRepository"
+        private const val PRESENCE_TIMEOUT_MS = 30_000L // 30 seconds for active presence
+        private const val RECENT_VIEWER_TIMEOUT_MS = 30 * 60 * 1000L // 30 minutes for notifications
+    }
+
+    /**
+     * Returns a Flow of shopping list items for a household.
+     * Closes gracefully on permission errors.
+     *
+     * @param householdId The household ID
+     * @return Flow of shopping list items with real-time updates
+     */
+    fun getShoppingListItems(householdId: String): Flow<List<ShoppingListItem>> =
+        callbackFlow {
+            val colRef =
+                firestore.collection("households").document(householdId)
+                    .collection("shoppingList")
+
+            val listener =
+                colRef.addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.e(TAG, "Error loading shopping list: ${e.message}")
+                        channel.close()
+                        return@addSnapshotListener
+                    }
+                    val items =
+                        snapshot?.documents?.mapNotNull {
+                            it.toObject(ShoppingListItem::class.java)
+                        } ?: emptyList()
+                    trySend(items).isSuccess
+                }
+            awaitClose { listener.remove() }
+        }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
+
+    /**
+     * Adds an item to the household's shopping list and notifies recent viewers.
+     *
+     * Sends notifications to users who viewed the shopping list in the last 30 minutes,
+     * excluding the user who added the item.
+     *
+     * @param householdId The household ID
+     * @param upc The product UPC code
+     * @param quantity The quantity needed
+     * @param store Optional store name
+     * @param customName Optional custom name for the item
+     * @throws IllegalStateException if user is not logged in
+     */
+    suspend fun addShoppingListItem(
+        householdId: String,
+        upc: String,
+        quantity: Int = 1,
+        store: String = "",
+        customName: String = ""
+    ) {
+        val currentUser =
+            auth.currentUser?.uid
+                ?: throw IllegalStateException("User not logged in.")
+
+        val item =
+            ShoppingListItem(
+                upc = upc,
+                addedBy = currentUser,
+                quantity = quantity,
+                store = store,
+                customName = customName
+            )
+
+        // Add item to shopping list (addedAt and lastUpdatedAt set via @ServerTimestamp)
+        firestore.collection("households").document(householdId)
+            .collection("shoppingList").document(upc)
+            .set(item)
+            .await()
+
+        // Get display name for notification (product name if customName is empty)
+        val displayName =
+            if (customName.isNotEmpty()) {
+                customName
+            } else {
+                // Fetch product name from products collection
+                try {
+                    val product = firestore.collection("products").document(upc).get().await()
+                    product.getString("name") ?: upc
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not fetch product name for UPC: $upc", e)
+                    upc
+                }
+            }
+
+        // Send notifications to recent shoppers
+        notifyRecentShoppers(householdId, displayName)
+    }
+
+    /**
+     * Removes an item from the shopping list.
+     *
+     * @param householdId The household ID
+     * @param upc The product UPC code
+     */
+    suspend fun removeShoppingListItem(
+        householdId: String,
+        upc: String
+    ) {
+        firestore.collection("households").document(householdId)
+            .collection("shoppingList").document(upc)
+            .delete()
+            .await()
+    }
+
+    /**
+     * Updates the current user's obtained quantity and target fridge for an item.
+     *
+     * Uses a Firestore transaction to ensure atomic updates to the shopping list item.
+     *
+     * @param householdId The household ID
+     * @param upc The product UPC code
+     * @param obtainedQuantity The quantity obtained by current user
+     * @param totalQuantity The total quantity needed
+     * @param targetFridgeId The fridge where items will be placed
+     * @throws IllegalStateException if user is not logged in
+     */
+    suspend fun updateShoppingListItemPickup(
+        householdId: String,
+        upc: String,
+        obtainedQuantity: Int,
+        totalQuantity: Int,
+        targetFridgeId: String
+    ) {
+        val currentUserId =
+            auth.currentUser?.uid
+                ?: throw IllegalStateException("User not logged in.")
+
+        val itemRef =
+            firestore.collection("households").document(householdId)
+                .collection("shoppingList").document(upc)
+
+        firestore.runTransaction { transaction ->
+            val snapshot = transaction.get(itemRef)
+            val currentObtainedBy = snapshot.get("obtainedBy") as? Map<String, Long> ?: emptyMap()
+            val currentTargetFridgeId = snapshot.get("targetFridgeId") as? Map<String, String> ?: emptyMap()
+
+            // Update obtained quantity map
+            val updatedObtainedBy = currentObtainedBy.toMutableMap()
+            if (obtainedQuantity > 0) {
+                updatedObtainedBy[currentUserId] = obtainedQuantity.toLong()
+            } else {
+                updatedObtainedBy.remove(currentUserId)
+            }
+
+            // Update target fridge map
+            val updatedTargetFridgeId = currentTargetFridgeId.toMutableMap()
+            if (obtainedQuantity > 0 && targetFridgeId.isNotEmpty()) {
+                updatedTargetFridgeId[currentUserId] = targetFridgeId
+            } else {
+                updatedTargetFridgeId.remove(currentUserId)
+            }
+
+            val newTotal = updatedObtainedBy.values.sum().toInt()
+            val checked = newTotal >= totalQuantity
+
+            transaction.update(
+                itemRef,
+                mapOf(
+                    "obtainedBy" to updatedObtainedBy,
+                    "targetFridgeId" to updatedTargetFridgeId,
+                    "obtainedQuantity" to newTotal,
+                    "checked" to checked,
+                    "lastUpdatedBy" to currentUserId,
+                    "lastUpdatedAt" to FieldValue.serverTimestamp()
+                )
+            )
+        }.await()
+    }
+
+    /**
+     * Completes the current user's shopping session by moving their obtained items to designated fridges.
+     *
+     * This operation performs an atomic batch write that:
+     * 1. Adds user's obtained quantities to their selected fridges (creates new items or increments existing)
+     * 2. Removes user's contribution from shopping list items
+     * 3. Deletes shopping list items that no other users need
+     *
+     * **Important**: This function performs sequential reads for each item to check existence before writing.
+     * It works reliably with large shopping lists (tested with 22+ items) because the reads happen
+     * outside the batch operation and don't count against Firestore's 10-read batch limit.
+     *
+     * @param householdId The ID of the household whose shopping session is being completed
+     * @throws IllegalStateException if user is not logged in
+     * @throws Exception if Firestore operations fail (e.g., network issues, permission denied)
+     */
+    suspend fun completeShoppingSession(householdId: String) {
+        val currentUserId =
+            auth.currentUser?.uid
+                ?: throw IllegalStateException("User not logged in.")
+
+        val shoppingListRef =
+            firestore.collection("households").document(householdId)
+                .collection("shoppingList")
+
+        try {
+            val snapshot = shoppingListRef.get().await()
+            val items =
+                snapshot.documents.mapNotNull {
+                    it.toObject(ShoppingListItem::class.java)
+                }
+
+            val batch = firestore.batch()
+
+            items.forEach { item ->
+                val userQuantity = item.obtainedBy[currentUserId]?.toInt() ?: 0
+                val targetFridgeId = item.targetFridgeId[currentUserId]
+
+                if (userQuantity > 0 && targetFridgeId != null) {
+                    // Create individual item instances for each unit obtained
+                    // Items are now stored as individual instances, not aggregated by UPC
+                    val itemsCollection =
+                        firestore.collection("fridges")
+                            .document(targetFridgeId)
+                            .collection("items")
+
+                    repeat(userQuantity) {
+                        // Auto-generate ID
+                        val newItemRef = itemsCollection.document()
+                        val newItem =
+                            Item(
+                                upc = item.upc,
+                                // No expiration from shopping list
+                                expirationDate = null,
+                                addedBy = currentUserId
+                                // addedAt and lastUpdatedAt set via @ServerTimestamp
+                            )
+                        batch.set(newItemRef, newItem)
+                    }
+
+                    Log.d(TAG, "Adding $userQuantity instance(s) of ${item.upc} to fridge $targetFridgeId")
+
+                    // Update shopping list item
+                    val shoppingItemRef = shoppingListRef.document(item.upc)
+                    val remainingObtainedBy = item.obtainedBy.toMutableMap()
+                    val remainingTargetFridgeId = item.targetFridgeId.toMutableMap()
+                    remainingObtainedBy.remove(currentUserId)
+                    remainingTargetFridgeId.remove(currentUserId)
+
+                    val remainingQuantityNeeded = item.quantity - userQuantity
+                    val newTotalObtained = remainingObtainedBy.values.sum()
+
+                    if (remainingQuantityNeeded <= 0) {
+                        batch.delete(shoppingItemRef)
+                    } else {
+                        batch.update(
+                            shoppingItemRef,
+                            mapOf(
+                                "quantity" to remainingQuantityNeeded,
+                                "obtainedBy" to remainingObtainedBy,
+                                "targetFridgeId" to remainingTargetFridgeId,
+                                "obtainedQuantity" to newTotalObtained,
+                                "checked" to false,
+                                "lastUpdatedBy" to currentUserId,
+                                "lastUpdatedAt" to FieldValue.serverTimestamp()
+                            )
+                        )
+                    }
+                }
+            }
+
+            batch.commit().await()
+            Log.d(TAG, "Shopping session completed successfully")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error completing shopping session", e)
+            throw e
+        }
+    }
+
+    /**
+     * Sends notifications to users who have viewed the shopping list in the last 30 minutes.
+     * Excludes the user who added the item.
+     *
+     * @param householdId The household ID
+     * @param itemName The name of the item that was added
+     */
+    private suspend fun notifyRecentShoppers(
+        householdId: String,
+        itemName: String
+    ) {
+        try {
+            val currentUserId = auth.currentUser?.uid ?: return
+
+            Log.d(TAG, "=== Shopping List Notification Debug ===")
+            Log.d(TAG, "Checking for recent viewers in household: $householdId")
+            Log.d(TAG, "Item added: $itemName by user: $currentUserId")
+
+            // Get recent viewers (last 30 minutes)
+            val recentViewers = getRecentShoppingListViewers(householdId)
+
+            Log.d(TAG, "Found ${recentViewers.size} total recent viewers")
+            recentViewers.forEach { viewer ->
+                val minutesAgo = (System.currentTimeMillis() - viewer.lastSeenTimestamp) / 60000
+                Log.d(TAG, "  - ${viewer.username} (${viewer.userId}) - last seen $minutesAgo minutes ago")
+            }
+
+            val viewersToNotify = recentViewers.filter { it.userId != currentUserId }
+
+            if (viewersToNotify.isEmpty()) {
+                Log.d(TAG, "No users to notify (excluding current user)")
+                return
+            }
+
+            Log.d(TAG, "Sending notifications to ${viewersToNotify.size} users")
+
+            // Send in-app notifications to each recent viewer
+            viewersToNotify.forEach { viewer ->
+                Log.d(TAG, "Sending notification to: ${viewer.username}")
+                notificationRepository.sendInAppNotification(
+                    userId = viewer.userId,
+                    title = "New item added to shopping list",
+                    body = "$itemName was just added",
+                    type = fyi.goodbye.fridgy.models.NotificationType.ITEM_ADDED,
+                    relatedFridgeId = null,
+                    relatedItemId = itemName
+                )
+            }
+
+            Log.d(TAG, "Successfully notified ${viewersToNotify.size} recent shoppers")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error notifying recent shoppers", e)
+            // Don't throw - notification failure shouldn't block adding items
+        }
+    }
+
+    /**
+     * Gets users who have viewed the shopping list in the last 30 minutes.
+     * Returns a list of ActiveViewer objects with user info and last seen timestamp.
+     *
+     * @param householdId The household ID
+     * @return List of active viewers within the last 30 minutes
+     */
+    private suspend fun getRecentShoppingListViewers(householdId: String): List<ActiveViewer> {
+        return try {
+            val currentTime = System.currentTimeMillis()
+            val thirtyMinutesAgo = currentTime - RECENT_VIEWER_TIMEOUT_MS
+
+            Log.d(TAG, "Querying presence documents for household: $householdId")
+            Log.d(TAG, "Current time: $currentTime, cutoff time: $thirtyMinutesAgo")
+            Log.d(TAG, "Looking for presence within last ${RECENT_VIEWER_TIMEOUT_MS / 60000} minutes")
+
+            val presenceSnapshot =
+                firestore.collection("households").document(householdId)
+                    .collection("shoppingListPresence")
+                    .get()
+                    .await()
+
+            Log.d(TAG, "Found ${presenceSnapshot.documents.size} presence documents total")
+
+            val recentUserData =
+                presenceSnapshot.documents.mapNotNull { doc ->
+                    val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+                    val userId = doc.getString("userId")
+
+                    val minutesAgo = if (lastSeen > 0) (currentTime - lastSeen) / 60000 else -1
+                    Log.d(TAG, "Presence doc: userId=$userId, lastSeen=$lastSeen (${minutesAgo}min ago)")
+
+                    // Check if user viewed within last 30 minutes
+                    if (userId != null && lastSeen >= thirtyMinutesAgo) {
+                        Log.d(TAG, "  -> INCLUDED (within 30 min)")
+                        userId to lastSeen
+                    } else {
+                        if (userId != null) {
+                            Log.d(TAG, "  -> EXCLUDED (too old or invalid)")
+                        }
+                        null
+                    }
+                }
+
+            if (recentUserData.isEmpty()) {
+                Log.d(TAG, "No recent viewers found after filtering")
+                return emptyList()
+            }
+
+            Log.d(TAG, "Fetching user profiles for ${recentUserData.size} recent viewers")
+
+            // Batch fetch user profiles
+            val userIds = recentUserData.map { it.first }
+            val profiles = getUsersByIds(userIds)
+
+            recentUserData.mapNotNull { (userId, lastSeen) ->
+                val username = profiles[userId]?.username ?: return@mapNotNull null
+                ActiveViewer(userId, username, lastSeen)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching recent shopping list viewers", e)
+            emptyList()
+        }
+    }
+
+    /**
+     * Sets the current user as actively viewing the shopping list.
+     * Also performs periodic cleanup of stale presence documents (older than 24 hours).
+     *
+     * @param householdId The household ID
+     */
+    suspend fun setShoppingListPresence(householdId: String) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        val presenceRef =
+            firestore.collection("households").document(householdId)
+                .collection("shoppingListPresence").document(currentUserId)
+
+        presenceRef.set(
+            mapOf(
+                "userId" to currentUserId,
+                "lastSeen" to FieldValue.serverTimestamp()
+            )
+        ).await()
+
+        // Periodically clean up old presence documents (every ~10 calls)
+        // This prevents database bloat while keeping recent activity for notifications
+        if (Random.nextInt(10) == 0) {
+            cleanupStalePresence(householdId, excludeUserId = currentUserId)
+        }
+    }
+
+    /**
+     * Removes presence documents older than 24 hours to prevent database bloat.
+     * Called periodically by setShoppingListPresence().
+     *
+     * @param householdId The household ID
+     * @param excludeUserId User ID to exclude from cleanup (typically the current user)
+     */
+    private suspend fun cleanupStalePresence(
+        householdId: String,
+        excludeUserId: String? = null
+    ) {
+        try {
+            val oneDayAgo = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
+
+            val stalePresence =
+                firestore.collection("households").document(householdId)
+                    .collection("shoppingListPresence")
+                    .get()
+                    .await()
+
+            val batch = firestore.batch()
+            var deleteCount = 0
+
+            stalePresence.documents.forEach { doc ->
+                val userId = doc.getString("userId")
+                val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+
+                // Skip if:
+                // 1. This is the excluded user (current user)
+                // 2. lastSeen is 0 (document just created, timestamp not set yet)
+                // 3. lastSeen is within last 24 hours (not stale)
+                if (userId == excludeUserId) {
+                    // Don't delete current user's presence
+                    return@forEach
+                }
+
+                if (lastSeen == 0L) {
+                    // Document just created, serverTimestamp not populated yet
+                    return@forEach
+                }
+
+                if (lastSeen < oneDayAgo) {
+                    batch.delete(doc.reference)
+                    deleteCount++
+                    Log.d(TAG, "Marking stale presence for deletion: userId=$userId, lastSeen=$lastSeen")
+                }
+            }
+
+            if (deleteCount > 0) {
+                batch.commit().await()
+                Log.d(TAG, "Cleaned up $deleteCount stale presence documents")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error cleaning up stale presence", e)
+            // Don't throw - cleanup failure shouldn't affect presence updates
+        }
+    }
+
+    /**
+     * Removes the current user's presence from the shopping list.
+     * Note: This is kept for explicit removal scenarios, but typically
+     * we don't remove presence to preserve lastSeen for notifications.
+     *
+     * @param householdId The household ID
+     */
+    suspend fun removeShoppingListPresence(householdId: String) {
+        val currentUserId = auth.currentUser?.uid ?: return
+        firestore.collection("households").document(householdId)
+            .collection("shoppingListPresence").document(currentUserId)
+            .delete()
+            .await()
+    }
+
+    /**
+     * Data class representing an active viewer of the shopping list.
+     *
+     * @property userId The user's Firebase Auth UID
+     * @property username The user's display username
+     * @property lastSeenTimestamp The timestamp (milliseconds) when user last viewed the list
+     */
+    data class ActiveViewer(
+        val userId: String,
+        val username: String,
+        val lastSeenTimestamp: Long
+    )
+
+    /**
+     * Returns a Flow of active viewers for the shopping list.
+     * Closes gracefully on permission errors.
+     *
+     * Thread-safe implementation that batch fetches user profiles using coroutines
+     * instead of async callbacks to avoid race conditions on shared mutable state.
+     *
+     * @param householdId The household ID
+     * @return Flow of active viewers (viewed within last 30 seconds)
+     */
+    fun getShoppingListPresence(householdId: String): Flow<List<ActiveViewer>> =
+        callbackFlow {
+            val presenceRef =
+                firestore.collection("households").document(householdId)
+                    .collection("shoppingListPresence")
+
+            val listener =
+                presenceRef.addSnapshotListener { snapshot, e ->
+                    if (e != null) {
+                        Log.e(TAG, "Error loading shopping list presence: ${e.message}")
+                        channel.close()
+                        return@addSnapshotListener
+                    }
+
+                    val currentTime = System.currentTimeMillis()
+
+                    // Collect active user IDs and their timestamps first (no async here)
+                    val activeUserData =
+                        snapshot?.documents?.mapNotNull { doc ->
+                            val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+                            val userId = doc.getString("userId")
+                            // Consider active if seen within last 30 seconds
+                            if (userId != null && (currentTime - lastSeen) < PRESENCE_TIMEOUT_MS) {
+                                userId to lastSeen
+                            } else {
+                                null
+                            }
+                        } ?: emptyList()
+
+                    if (activeUserData.isEmpty()) {
+                        trySend(emptyList()).isSuccess
+                        return@addSnapshotListener
+                    }
+
+                    // Batch fetch all user profiles in a coroutine (thread-safe)
+                    CoroutineScope(Dispatchers.IO).launch {
+                        try {
+                            val userIds = activeUserData.map { it.first }
+                            val profiles = getUsersByIds(userIds)
+
+                            val viewers =
+                                activeUserData.mapNotNull { (userId, lastSeen) ->
+                                    val username = profiles[userId]?.username ?: return@mapNotNull null
+                                    ActiveViewer(userId, username, lastSeen)
+                                }
+                            trySend(viewers).isSuccess
+                        } catch (ex: Exception) {
+                            Log.e(TAG, "Error fetching user profiles for presence", ex)
+                            trySend(emptyList()).isSuccess
+                        }
+                    }
+                }
+
+            awaitClose { listener.remove() }
+        }
+            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
+
+    /**
+     * Fetches user profiles by their IDs in a batch operation.
+     *
+     * @param userIds List of user IDs to fetch
+     * @return Map of user ID to UserProfile
+     */
+    private suspend fun getUsersByIds(userIds: List<String>): Map<String, UserProfile> {
+        return householdRepository.getUsersByIds(userIds)
+    }
+}

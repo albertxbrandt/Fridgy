@@ -11,8 +11,8 @@ import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.repositories.FridgeRepository
-import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
+import fyi.goodbye.fridgy.repositories.ShoppingListRepository
 import fyi.goodbye.fridgy.repositories.UserRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -47,7 +47,7 @@ import javax.inject.Inject
  * @param householdId The ID of the household whose shopping list to manage.
  * @param productRepository Repository for fetching product information.
  *
- * @see HouseholdRepository For underlying shopping list operations
+ * @see ShoppingListRepository For underlying shopping list operations
  * @see ShoppingListItem For shopping list item data model
  */
 @HiltViewModel
@@ -57,7 +57,7 @@ class ShoppingListViewModel
         @ApplicationContext private val context: Context,
         savedStateHandle: SavedStateHandle,
         private val productRepository: ProductRepository,
-        private val repository: HouseholdRepository,
+        private val shoppingListRepository: ShoppingListRepository,
         private val fridgeRepository: FridgeRepository,
         private val firebaseAuth: FirebaseAuth,
         private val userRepository: UserRepository
@@ -100,8 +100,8 @@ class ShoppingListViewModel
         private val _searchResults = MutableStateFlow<List<Product>>(emptyList())
         val searchResults: StateFlow<List<Product>> = _searchResults.asStateFlow()
 
-        private val _activeViewers = MutableStateFlow<List<HouseholdRepository.ActiveViewer>>(emptyList())
-        val activeViewers: StateFlow<List<HouseholdRepository.ActiveViewer>> = _activeViewers.asStateFlow()
+        private val _activeViewers = MutableStateFlow<List<ShoppingListRepository.ActiveViewer>>(emptyList())
+        val activeViewers: StateFlow<List<ShoppingListRepository.ActiveViewer>> = _activeViewers.asStateFlow()
 
         private val _availableFridges = MutableStateFlow<List<Fridge>>(emptyList())
         val availableFridges: StateFlow<List<Fridge>> = _availableFridges.asStateFlow()
@@ -127,12 +127,12 @@ class ShoppingListViewModel
             presenceJob =
                 viewModelScope.launch {
                     // Set initial presence
-                    repository.setShoppingListPresence(householdId)
+                    shoppingListRepository.setShoppingListPresence(householdId)
 
                     // Update presence every 15 seconds to keep it fresh
                     while (isActive) {
                         delay(15_000)
-                        repository.setShoppingListPresence(householdId)
+                        shoppingListRepository.setShoppingListPresence(householdId)
                     }
                 }
         }
@@ -149,7 +149,7 @@ class ShoppingListViewModel
 
         private fun observeActiveViewers() {
             viewModelScope.launch {
-                repository.getShoppingListPresence(householdId).collect { viewers ->
+                shoppingListRepository.getShoppingListPresence(householdId).collect { viewers ->
                     val userId = firebaseAuth.currentUser?.uid
                     // Filter out current user from the list
                     _activeViewers.value = viewers.filter { it.userId != userId }
@@ -167,7 +167,7 @@ class ShoppingListViewModel
 
         private fun loadShoppingList() {
             viewModelScope.launch {
-                repository.getShoppingListItems(householdId).collect { items ->
+                shoppingListRepository.getShoppingListItems(householdId).collect { items ->
                     // Fetch product names and usernames for each item
                     val itemsWithProducts =
                         items.map { item ->
@@ -224,7 +224,7 @@ class ShoppingListViewModel
         ) {
             viewModelScope.launch {
                 try {
-                    repository.updateShoppingListItemPickup(
+                    shoppingListRepository.updateShoppingListItemPickup(
                         householdId = householdId,
                         upc = upc,
                         obtainedQuantity = obtainedQuantity,
@@ -245,7 +245,7 @@ class ShoppingListViewModel
         fun removeItem(upc: String) {
             viewModelScope.launch {
                 try {
-                    repository.removeShoppingListItem(householdId, upc)
+                    shoppingListRepository.removeShoppingListItem(householdId, upc)
                 } catch (e: Exception) {
                     _uiState.value = UiState.Error("Failed to remove item: ${e.message}")
                 }
@@ -268,7 +268,7 @@ class ShoppingListViewModel
         ) {
             viewModelScope.launch {
                 try {
-                    repository.addShoppingListItem(householdId, upc, quantity, store, customName)
+                    shoppingListRepository.addShoppingListItem(householdId, upc, quantity, store, customName)
                 } catch (e: Exception) {
                     _uiState.value = UiState.Error("Failed to add item: ${e.message}")
                 }
@@ -294,7 +294,7 @@ class ShoppingListViewModel
                 try {
                     // Generate a unique ID for manual entries
                     val generatedId = "manual_${System.currentTimeMillis()}"
-                    repository.addShoppingListItem(
+                    shoppingListRepository.addShoppingListItem(
                         householdId = householdId,
                         upc = generatedId,
                         quantity = quantity,
@@ -354,7 +354,7 @@ class ShoppingListViewModel
         fun completeShopping(onSuccess: () -> Unit) {
             viewModelScope.launch {
                 try {
-                    repository.completeShoppingSession(householdId)
+                    shoppingListRepository.completeShoppingSession(householdId)
                     onSuccess()
                 } catch (e: Exception) {
                     _uiState.value = UiState.Error("Failed to complete shopping: ${e.message}")
@@ -387,11 +387,11 @@ class ShoppingListViewModel
             viewModelScope.launch {
                 try {
                     // Remove old manual item
-                    repository.removeShoppingListItem(householdId, oldManualUpc)
+                    shoppingListRepository.removeShoppingListItem(householdId, oldManualUpc)
 
                     // Add new item with real UPC
                     // Clear custom name since we now have real product
-                    repository.addShoppingListItem(
+                    shoppingListRepository.addShoppingListItem(
                         householdId = householdId,
                         upc = newUpc,
                         quantity = quantity,

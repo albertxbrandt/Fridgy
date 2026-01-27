@@ -428,67 +428,6 @@ class NotificationViewModelTest {
         }
 
     @Test
-    fun `acceptFridgeInvite shows deprecation error`() =
-        runTest {
-            every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
-            every { mockRepository.getUnreadCountFlow() } returns flowOf(1)
-            coEvery { mockRepository.deleteNotification("notif1") } returns Result.success(Unit)
-
-            viewModel = NotificationViewModel(mockRepository)
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            viewModel.operationState.test {
-                val idle = awaitItem()
-                assertTrue(idle is UiState.Idle)
-
-                @Suppress("DEPRECATION")
-                viewModel.acceptFridgeInvite("fridge1", "notif1")
-                testDispatcher.scheduler.advanceUntilIdle()
-
-                // This method directly sets Error without Loading state
-                val error = awaitItem()
-                assertTrue(error is UiState.Error)
-                assertTrue(
-                    (error as UiState.Error).message.contains("no longer supported")
-                )
-
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // Should still delete the notification
-            coVerify { mockRepository.deleteNotification("notif1") }
-        }
-
-    @Test
-    fun `declineFridgeInvite deletes notification and shows success`() =
-        runTest {
-            every { mockRepository.getNotificationsFlow() } returns flowOf(testNotifications)
-            every { mockRepository.getUnreadCountFlow() } returns flowOf(1)
-            coEvery { mockRepository.deleteNotification("notif1") } returns Result.success(Unit)
-
-            viewModel = NotificationViewModel(mockRepository)
-            testDispatcher.scheduler.advanceUntilIdle()
-
-            viewModel.operationState.test {
-                val idle = awaitItem()
-                assertTrue(idle is UiState.Idle)
-
-                @Suppress("DEPRECATION")
-                viewModel.declineFridgeInvite("fridge1", "notif1")
-                testDispatcher.scheduler.advanceUntilIdle()
-
-                // This method directly sets Success without Loading state
-                val success = awaitItem()
-                assertTrue(success is UiState.Success)
-                assertEquals("Invite removed", (success as UiState.Success).data)
-
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            coVerify { mockRepository.deleteNotification("notif1") }
-        }
-
-    @Test
     fun `empty notifications list emits Success state`() =
         runTest {
             every { mockRepository.getNotificationsFlow() } returns flowOf(emptyList())
