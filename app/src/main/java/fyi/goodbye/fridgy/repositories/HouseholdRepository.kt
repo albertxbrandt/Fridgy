@@ -353,6 +353,9 @@ class HouseholdRepository(
      * Deletes a household and all associated data (fridges, shopping list).
      * Only the owner can delete a household.
      * Note: Invite codes are deleted by MembershipRepository.
+     *
+     * PERFORMANCE FIX: Uses paginated deletion to handle large households safely.
+     * Processes documents in batches of 200 to avoid memory issues and Firestore limits.
      */
     suspend fun deleteHousehold(householdId: String) {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
@@ -366,38 +369,88 @@ class HouseholdRepository(
             throw IllegalStateException("Only the owner can delete the household")
         }
 
-        val batch = firestore.batch()
+        // Delete all fridges and their items (paginated)
+        deleteFridgesForHousehold(householdId)
 
-        // Delete all fridges in this household
-        val fridges =
-            firestore.collection("fridges")
-                .whereEqualTo("householdId", householdId)
-                .get()
-                .await()
+        // Delete shopping list subcollection (paginated)
+        deleteCollectionInBatches(
+            firestore.collection("households").document(householdId).collection("shoppingList")
+        )
 
-        fridges.documents.forEach { fridgeDoc ->
-            // Delete fridge items subcollection
-            val items = fridgeDoc.reference.collection("items").get().await()
-            items.documents.forEach { batch.delete(it.reference) }
-            batch.delete(fridgeDoc.reference)
+        // Delete shopping list presence subcollection (paginated)
+        deleteCollectionInBatches(
+            firestore.collection("households").document(householdId).collection("shoppingListPresence")
+        )
+
+        // Delete the household document itself
+        firestore.collection("households").document(householdId).delete().await()
+
+        Log.d(TAG, "Successfully deleted household: $householdId")
+    }
+
+    /**
+     * Deletes all fridges for a household and their items subcollections.
+     * Uses pagination to handle large numbers of fridges safely.
+     */
+    private suspend fun deleteFridgesForHousehold(householdId: String) {
+        val batchSize = 100 // Conservative limit to avoid hitting Firestore's 500 operation limit
+        var hasMore = true
+
+        while (hasMore) {
+            val fridgesSnapshot =
+                firestore.collection("fridges")
+                    .whereEqualTo("householdId", householdId)
+                    .limit(batchSize.toLong())
+                    .get()
+                    .await()
+
+            if (fridgesSnapshot.isEmpty) {
+                hasMore = false
+                break
+            }
+
+            // For each fridge, delete its items subcollection first, then the fridge itself
+            for (fridgeDoc in fridgesSnapshot.documents) {
+                // Delete items subcollection for this fridge
+                deleteCollectionInBatches(fridgeDoc.reference.collection("items"))
+
+                // Delete the fridge document
+                fridgeDoc.reference.delete().await()
+            }
+
+            // If we got fewer documents than the batch size, we're done
+            hasMore = fridgesSnapshot.size() >= batchSize
         }
+    }
 
-        // Delete shopping list subcollection
-        val shoppingList =
-            firestore.collection("households").document(householdId)
-                .collection("shoppingList").get().await()
-        shoppingList.documents.forEach { batch.delete(it.reference) }
+    /**
+     * Deletes all documents in a collection using batched writes.
+     * Processes documents in chunks to avoid memory issues and Firestore limits.
+     *
+     * @param collection The collection reference to delete
+     */
+    private suspend fun deleteCollectionInBatches(collection: com.google.firebase.firestore.CollectionReference) {
+        val batchSize = 200 // Documents per batch
+        var hasMore = true
 
-        // Delete shopping list presence subcollection
-        val presence =
-            firestore.collection("households").document(householdId)
-                .collection("shoppingListPresence").get().await()
-        presence.documents.forEach { batch.delete(it.reference) }
+        while (hasMore) {
+            val snapshot = collection.limit(batchSize.toLong()).get().await()
 
-        // Delete the household document
-        batch.delete(firestore.collection("households").document(householdId))
+            if (snapshot.isEmpty) {
+                hasMore = false
+                break
+            }
 
-        batch.commit().await()
+            // Delete documents in batches of up to 500 operations (Firestore limit)
+            val batch = firestore.batch()
+            snapshot.documents.forEach { doc ->
+                batch.delete(doc.reference)
+            }
+            batch.commit().await()
+
+            // If we got fewer documents than the batch size, we're done
+            hasMore = snapshot.size() >= batchSize
+        }
     }
 
     // ==================== Utility Methods ====================
