@@ -11,6 +11,7 @@ import fyi.goodbye.fridgy.models.Fridge
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.repositories.FridgeRepository
+import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import fyi.goodbye.fridgy.repositories.ShoppingListRepository
 import fyi.goodbye.fridgy.repositories.UserRepository
@@ -59,6 +60,7 @@ class ShoppingListViewModel
         private val productRepository: ProductRepository,
         private val shoppingListRepository: ShoppingListRepository,
         private val fridgeRepository: FridgeRepository,
+        private val householdRepository: HouseholdRepository,
         private val firebaseAuth: FirebaseAuth,
         private val userRepository: UserRepository
     ) : ViewModel() {
@@ -168,21 +170,38 @@ class ShoppingListViewModel
         private fun loadShoppingList() {
             viewModelScope.launch {
                 shoppingListRepository.getShoppingListItems(householdId).collect { items ->
-                    // Fetch product names and usernames for each item
+                    // PERFORMANCE FIX: Batch fetch all user profiles and products upfront
+                    // This reduces N+1 queries to just 2-3 batch queries
+
+                    // 1. Collect all unique user IDs that need fetching
+                    val userIdsToFetch =
+                        items.map { it.addedBy }
+                            .filter { !usernameCache.containsKey(it) }
+                            .distinct()
+
+                    // 2. Batch fetch missing user profiles
+                    if (userIdsToFetch.isNotEmpty()) {
+                        val userProfiles = householdRepository.getUsersByIds(userIdsToFetch)
+                        userProfiles.forEach { (userId, profile) ->
+                            usernameCache[userId] = profile.username
+                        }
+                    }
+
+                    // 3. Collect all unique UPCs that need product info
+                    val upcsToFetch =
+                        items
+                            .filter { it.customName.isEmpty() } // Only fetch for non-custom items
+                            .map { it.upc }
+                            .distinct()
+
+                    // 4. Batch fetch all products at once
+                    val products = productRepository.getProductsByUpcs(upcsToFetch)
+
+                    // 5. Map items to display models using pre-fetched data
                     val itemsWithProducts =
                         items.map { item ->
-                            // Fetch username (with caching)
-                            val username =
-                                if (usernameCache.containsKey(item.addedBy)) {
-                                    usernameCache[item.addedBy]!!
-                                } else {
-                                    val profile = userRepository.getUserProfile(item.addedBy)
-                                    val fetchedUsername = profile?.username ?: "Unknown User"
-                                    usernameCache[item.addedBy] = fetchedUsername
-                                    fetchedUsername
-                                }
+                            val username = usernameCache[item.addedBy] ?: "Unknown User"
 
-                            // Use custom name if available (manual entry), otherwise fetch from DB
                             if (item.customName.isNotEmpty()) {
                                 ShoppingListItemWithProduct(
                                     item = item,
@@ -191,7 +210,7 @@ class ShoppingListViewModel
                                     addedByUsername = username
                                 )
                             } else {
-                                val product = productRepository.getProductInfo(item.upc)
+                                val product = products[item.upc]
                                 ShoppingListItemWithProduct(
                                     item = item,
                                     productName = product?.name ?: "Unknown Product",

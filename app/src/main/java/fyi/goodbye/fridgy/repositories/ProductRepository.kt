@@ -273,6 +273,63 @@ class ProductRepository(
     }
 
     /**
+     * Fetches multiple products by their UPCs in batches.
+     * Uses cache first, then batches Firestore queries (max 10 per query due to 'in' limit).
+     * Returns a map of UPC to Product for easy lookup.
+     *
+     * PERFORMANCE: Reduces N queries to ceil(N/10) queries.
+     *
+     * @param upcs List of UPCs to fetch
+     * @return Map of UPC to Product, empty map if all fail
+     */
+    suspend fun getProductsByUpcs(upcs: List<String>): Map<String, Product> {
+        if (upcs.isEmpty()) return emptyMap()
+
+        val result = mutableMapOf<String, Product>()
+        val missingUpcs = mutableListOf<String>()
+
+        // Check cache first
+        upcs.distinct().forEach { upc ->
+            val cached = productCache[upc]
+            if (cached != null) {
+                result[upc] = cached
+            } else {
+                missingUpcs.add(upc)
+            }
+        }
+
+        // Batch fetch missing products (max 10 per query)
+        if (missingUpcs.isNotEmpty()) {
+            try {
+                missingUpcs.chunked(10).forEach { chunk ->
+                    val snapshot =
+                        productsCollection
+                            .whereIn(com.google.firebase.firestore.FieldPath.documentId(), chunk)
+                            .get()
+                            .await()
+
+                    snapshot.documents.forEach { doc ->
+                        doc.toObject(Product::class.java)?.let { product ->
+                            val productWithUpc = product.copy(upc = doc.id)
+                            result[doc.id] = productWithUpc
+                            // Cache for future use
+                            productCache[doc.id] = productWithUpc
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ProductRepo", "Error batch fetching products: ${e.message}")
+            }
+        }
+
+        Log.d(
+            "ProductRepo",
+            "Batch fetched ${result.size} products (${result.size - missingUpcs.size} from cache, ${missingUpcs.size} from network)"
+        )
+        return result
+    }
+
+    /**
      * Saves a product to the global database.
      * Optimistically updates the cache before hitting the network.
      * Automatically generates searchTokens for efficient searching.
