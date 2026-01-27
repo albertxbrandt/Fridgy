@@ -230,11 +230,15 @@ class FridgeInventoryViewModel
             viewModelScope.launch {
                 val cachedItems = fridgeRepository.preloadItemsFromCache(fridgeId)
                 if (cachedItems.isNotEmpty()) {
+                    // PERFORMANCE FIX: Batch fetch products instead of N individual queries
+                    val upcs = cachedItems.map { it.upc }
+                    val productsMap = productRepository.getProductsByUpcs(upcs)
+
                     // Map cached items to products and show immediately
                     val inventoryItems =
                         cachedItems.map { item ->
                             val product =
-                                productRepository.getProductInfo(item.upc)
+                                productsMap[item.upc]
                                     ?: Product(upc = item.upc, name = context.getString(R.string.unknown_product))
                             InventoryItem(item, product)
                         }
@@ -272,11 +276,15 @@ class FridgeInventoryViewModel
                     fridgeRepository.getItemsForFridge(fridgeId)
                         .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
                         .collectLatest { displayItems ->
-                            // Fetch product info for each item
+                            // PERFORMANCE FIX: Batch fetch all products instead of N individual queries
+                            val upcs = displayItems.map { it.item.upc }.distinct()
+                            val productsMap = productRepository.getProductsByUpcs(upcs)
+
+                            // Map display items to inventory items with batch-fetched products
                             val inventoryItems =
                                 displayItems.map { displayItem ->
                                     val product =
-                                        productRepository.getProductInfoFresh(displayItem.item.upc)
+                                        productsMap[displayItem.item.upc]
                                             ?: Product(
                                                 upc = displayItem.item.upc,
                                                 name = context.getString(R.string.unknown_product)
