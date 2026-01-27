@@ -2,6 +2,7 @@ package fyi.goodbye.fridgy.repositories
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.models.Admin
@@ -11,6 +12,18 @@ import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
 import kotlinx.coroutines.tasks.await
+
+/**
+ * Represents a paginated result set.
+ * @property items The list of items in this page
+ * @property lastDocument The last document in this page, used as cursor for next page
+ * @property hasMore Whether there are more items available
+ */
+data class PaginatedResult<T>(
+    val items: List<T>,
+    val lastDocument: DocumentSnapshot?,
+    val hasMore: Boolean
+)
 
 /**
  * Repository for managing admin user privileges.
@@ -63,6 +76,8 @@ class AdminRepository(
     /**
      * Gets all users from the users and userProfiles collections.
      * Combines data for admin panel display.
+     *
+     * WARNING: Loads all users into memory. Use getAllUsersPaginated() for large datasets.
      */
     suspend fun getAllUsers(): List<AdminUserDisplay> {
         return try {
@@ -114,7 +129,98 @@ class AdminRepository(
     }
 
     /**
+     * Gets users with pagination support.
+     * PERFORMANCE FIX: Limits memory usage and Firestore reads for admin panel.
+     *
+     * @param pageSize Number of users to fetch per page (default: 50)
+     * @param startAfter Last document from previous page, null for first page
+     * @return PaginatedResult containing users and pagination info
+     */
+    suspend fun getAllUsersPaginated(
+        pageSize: Int = 50,
+        startAfter: DocumentSnapshot? = null
+    ): PaginatedResult<AdminUserDisplay> {
+        return try {
+            // Build query with pagination
+            var usersQuery =
+                firestore.collection("users")
+                    .orderBy("createdAt")
+                    .limit(pageSize.toLong() + 1) // Fetch one extra to check if there are more
+
+            if (startAfter != null) {
+                usersQuery = usersQuery.startAfter(startAfter)
+            }
+
+            val usersSnapshot = usersQuery.get().await()
+            val hasMore = usersSnapshot.documents.size > pageSize
+
+            // Take only requested page size
+            val userDocuments = usersSnapshot.documents.take(pageSize)
+            val lastDocument = if (hasMore) userDocuments.lastOrNull() else null
+
+            // Parse users from documents
+            val users =
+                userDocuments.mapNotNull { doc ->
+                    try {
+                        val createdAtValue = doc.get("createdAt")
+                        val createdAt: java.util.Date? =
+                            when (createdAtValue) {
+                                is Long -> java.util.Date(createdAtValue)
+                                is java.util.Date -> createdAtValue
+                                is com.google.firebase.Timestamp -> createdAtValue.toDate()
+                                else -> null
+                            }
+
+                        User(
+                            uid = doc.id,
+                            email = doc.getString("email") ?: "",
+                            createdAt = createdAt
+                        )
+                    } catch (e: Exception) {
+                        Log.e("AdminRepo", "Error parsing user ${doc.id}: ${e.message}")
+                        null
+                    }
+                }
+
+            // Batch fetch profiles for these users
+            val userIds = users.map { it.uid }
+            val profilesSnapshot =
+                firestore.collection("userProfiles")
+                    .whereIn(com.google.firebase.firestore.FieldPath.documentId(), userIds)
+                    .get()
+                    .await()
+
+            val profiles =
+                profilesSnapshot.documents.mapNotNull { doc ->
+                    doc.toObject(UserProfile::class.java)?.copy(uid = doc.id)
+                }.associateBy { it.uid }
+
+            // Combine data
+            val adminUsers =
+                users.map { user ->
+                    AdminUserDisplay(
+                        uid = user.uid,
+                        username = profiles[user.uid]?.username ?: "Unknown",
+                        email = user.email,
+                        createdAt = user.createdAt
+                    )
+                }
+
+            PaginatedResult(
+                items = adminUsers,
+                lastDocument = lastDocument,
+                hasMore = hasMore
+            )
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error fetching paginated users: ${e.message}")
+            PaginatedResult(emptyList(), null, false)
+        }
+    }
+
+    /**
      * Gets all products from the products collection, sorted by most recently updated first.
+     *
+     * WARNING: Loads all products into memory. Use getAllProductsPaginated() for large datasets.
      */
     suspend fun getAllProducts(): List<Product> {
         return try {
@@ -159,6 +265,78 @@ class AdminRepository(
         } catch (e: Exception) {
             Log.e("AdminRepo", "Error fetching products: ${e.message}", e)
             emptyList()
+        }
+    }
+
+    /**
+     * Gets products with pagination support, sorted by most recently updated first.
+     * PERFORMANCE FIX: Limits memory usage and Firestore reads for admin panel.
+     *
+     * @param pageSize Number of products to fetch per page (default: 100)
+     * @param startAfter Last document from previous page, null for first page
+     * @return PaginatedResult containing products and pagination info
+     */
+    suspend fun getAllProductsPaginated(
+        pageSize: Int = 100,
+        startAfter: DocumentSnapshot? = null
+    ): PaginatedResult<Product> {
+        return try {
+            // Build query with pagination (ordered by lastUpdated descending)
+            var query =
+                firestore.collection("products")
+                    .orderBy("lastUpdated", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                    .limit(pageSize.toLong() + 1) // Fetch one extra to check if there are more
+
+            if (startAfter != null) {
+                query = query.startAfter(startAfter)
+            }
+
+            val snapshot = query.get().await()
+            val hasMore = snapshot.documents.size > pageSize
+
+            // Take only requested page size
+            val productDocuments = snapshot.documents.take(pageSize)
+            val lastDocument = if (hasMore) productDocuments.lastOrNull() else null
+
+            Log.d("AdminRepo", "Fetched ${productDocuments.size} products (hasMore: $hasMore)")
+
+            val products =
+                productDocuments.mapNotNull { doc ->
+                    try {
+                        val lastUpdatedValue = doc.get("lastUpdated")
+                        val lastUpdated: java.util.Date? =
+                            when (lastUpdatedValue) {
+                                is Long -> java.util.Date(lastUpdatedValue)
+                                is java.util.Date -> lastUpdatedValue
+                                is com.google.firebase.Timestamp -> lastUpdatedValue.toDate()
+                                else -> null
+                            }
+
+                        Product(
+                            upc = doc.id,
+                            name = doc.getString("name") ?: "",
+                            brand = doc.getString("brand") ?: "",
+                            category = doc.getString("category") ?: "Other",
+                            imageUrl = doc.getString("imageUrl"),
+                            size = doc.getDouble("size"),
+                            unit = doc.getString("unit"),
+                            searchTokens = (doc.get("searchTokens") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                            lastUpdated = lastUpdated
+                        )
+                    } catch (e: Exception) {
+                        Log.e("AdminRepo", "Failed to deserialize product ${doc.id}: ${e.message}")
+                        null
+                    }
+                }
+
+            PaginatedResult(
+                items = products,
+                lastDocument = lastDocument,
+                hasMore = hasMore
+            )
+        } catch (e: Exception) {
+            Log.e("AdminRepo", "Error fetching paginated products: ${e.message}", e)
+            PaginatedResult(emptyList(), null, false)
         }
     }
 
