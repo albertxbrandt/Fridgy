@@ -2,13 +2,15 @@ package fyi.goodbye.fridgy.models
 
 import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.ServerTimestamp
 import kotlinx.parcelize.Parcelize
+import java.util.Date
 
 /**
  * Represents an item in a household's shopping list subcollection.
  *
  * @property upc The product UPC code or generated ID for manual entries.
- * @property addedAt Timestamp when the item was added.
+ * @property addedAt Server timestamp when the item was added.
  * @property addedBy User ID who added the item.
  * @property quantity Total quantity needed to purchase.
  * @property store Optional store name where item should be purchased.
@@ -17,14 +19,15 @@ import kotlinx.parcelize.Parcelize
  * @property obtainedBy Map of userId to quantity obtained by that user (for multi-user shopping).
  * @property targetFridgeId Map of userId to the fridge ID where they want to store their obtained items.
  * @property lastUpdatedBy User ID who last updated the item.
- * @property lastUpdatedAt Timestamp of last update.
+ * @property lastUpdatedAt Server timestamp of last update.
  * @property customName Optional custom name for manual entries (when product not in database).
  */
 @Parcelize
 data class ShoppingListItem(
     @DocumentId
     val upc: String = "",
-    val addedAt: Long = System.currentTimeMillis(),
+    @ServerTimestamp
+    val addedAt: Date? = null,
     val addedBy: String = "",
     val quantity: Int = 1,
     val store: String = "",
@@ -33,7 +36,8 @@ data class ShoppingListItem(
     val obtainedBy: Map<String, Int> = emptyMap(),
     val targetFridgeId: Map<String, String> = emptyMap(),
     val lastUpdatedBy: String = "",
-    val lastUpdatedAt: Long = System.currentTimeMillis(),
+    @ServerTimestamp
+    val lastUpdatedAt: Date? = null,
     // For manual entries without UPC
     val customName: String = ""
 ) : Parcelable

@@ -184,6 +184,8 @@
     <string name="unauthorized_access">Unauthorized Access</string>
     <string name="order_label">Order: %1$d</string>
     <string name="no_admin_privileges">You don\'t have admin privileges</string>
+    
+    <!-- Admin Panel - Errors -->
     <string name="error_failed_to_load_categories">Failed to load categories</string>
     <string name="error_failed_to_create_category">Failed to create category</string>
     <string name="error_failed_to_update_category">Failed to update category</string>
@@ -405,6 +407,7 @@
 
     <!-- Misc -->
     <string name="just_now">Just now</string>
+    <string name="recently">Recently</string>
 
     <!-- User Profile Screen -->
     <string name="profile_information">Profile Information</string>

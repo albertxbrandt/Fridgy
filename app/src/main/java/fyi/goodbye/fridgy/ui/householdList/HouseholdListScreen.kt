@@ -555,7 +555,7 @@ private fun HouseholdListPreviewWithHouseholds() {
                                     UserProfile(uid = "user4", username = "Sally Smith")
                                 ),
                             fridgeCount = 3,
-                            createdAt = System.currentTimeMillis()
+                            createdAt = java.util.Date()
                         ),
                         DisplayHousehold(
                             id = "2",
@@ -568,7 +568,7 @@ private fun HouseholdListPreviewWithHouseholds() {
                                     UserProfile(uid = "user5", username = "Mike Johnson")
                                 ),
                             fridgeCount = 1,
-                            createdAt = System.currentTimeMillis()
+                            createdAt = java.util.Date()
                         ),
                         DisplayHousehold(
                             id = "3",
@@ -587,7 +587,7 @@ private fun HouseholdListPreviewWithHouseholds() {
                                     UserProfile(uid = "user12", username = "Grace Purple")
                                 ),
                             fridgeCount = 2,
-                            createdAt = System.currentTimeMillis()
+                            createdAt = java.util.Date()
                         )
                     )
                 ),

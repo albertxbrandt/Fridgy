@@ -76,7 +76,7 @@ fun FridgeCardMinimal(
             }
 
             Text(
-                text = dateFormatter.format(Date(fridge.createdAt)),
+                text = fridge.createdAt?.let { dateFormatter.format(it) } ?: "Recently",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

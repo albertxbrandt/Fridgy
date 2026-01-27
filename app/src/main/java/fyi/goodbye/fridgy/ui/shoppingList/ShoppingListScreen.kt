@@ -146,7 +146,7 @@ fun ShoppingListScreen(
                             item =
                                 fyi.goodbye.fridgy.models.ShoppingListItem(
                                     upc = manualItemUpc,
-                                    addedAt = 0,
+                                    // addedAt will be set by server when saved
                                     addedBy = "",
                                     quantity = manualItemQuantity,
                                     store = manualItemStore,
@@ -564,7 +564,7 @@ fun ShoppingListScreen(
     // Scanned Item Dialog - prompt for quantity and store
     scannedUpcForDialog?.let { upc ->
         AddItemFromSearchDialog(
-            product = Product(upc = upc, name = "", brand = "", category = "", imageUrl = "", lastUpdated = 0),
+            product = Product(upc = upc, name = "", brand = "", category = "", imageUrl = "", lastUpdated = null),
             onDismiss = { scannedUpcForDialog = null },
             onConfirm = { quantity, store ->
                 viewModel.addItem(upc, quantity, store)

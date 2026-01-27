@@ -67,25 +67,25 @@ fun RecentUsersSectionPreview() {
                             uid = "user1",
                             username = "johndoe",
                             email = "john.doe@example.com",
-                            createdAt = System.currentTimeMillis()
+                            createdAt = null
                         ),
                         AdminUserDisplay(
-                            uid = "user2",
+                            uid = "2",
                             username = "janedoe",
-                            email = "jane.doe@example.com",
-                            createdAt = System.currentTimeMillis() - 86400000
+                            email = "janedoe@example.com",
+                            createdAt = null
                         ),
                         AdminUserDisplay(
                             uid = "user3",
                             username = "bobsmith",
                             email = "bob.smith@example.com",
-                            createdAt = System.currentTimeMillis() - 172800000
+                            createdAt = null
                         ),
                         AdminUserDisplay(
                             uid = "user4",
                             username = "alicejones",
                             email = "alice.jones@example.com",
-                            createdAt = System.currentTimeMillis() - 259200000
+                            createdAt = null
                         )
                     ),
                 onEditUser = {},

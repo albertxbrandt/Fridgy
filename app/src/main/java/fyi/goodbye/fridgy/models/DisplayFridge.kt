@@ -2,6 +2,7 @@ package fyi.goodbye.fridgy.models
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
+import java.util.Date
 
 /**
  * A UI-optimized representation of a [Fridge].
@@ -13,7 +14,7 @@ import kotlinx.parcelize.Parcelize
  * @property name The display name of the fridge (e.g., "Kitchen Fridge").
  * @property type The type of storage (fridge, freezer, pantry).
  * @property householdId The ID of the household this fridge belongs to.
- * @property createdAt The timestamp (ms) when the fridge was created.
+ * @property createdAt The timestamp when the fridge was created.
  * @property itemCount The number of items currently in this fridge.
  */
 @Parcelize
@@ -22,6 +23,6 @@ data class DisplayFridge(
     val name: String = "",
     val type: String = "fridge",
     val householdId: String = "",
-    val createdAt: Long = System.currentTimeMillis(),
+    val createdAt: Date? = null,
     val itemCount: Int = 0
 ) : Parcelable

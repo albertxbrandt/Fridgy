@@ -37,9 +37,6 @@ import fyi.goodbye.fridgy.ui.shared.UiState
  * @param onAddCategory Callback for adding a new category
  * @param onEditCategory Callback for editing a category
  * @param onDeleteCategory Callback for deleting a category
- * @param onMigrateFridges Callback for migrating fridge ownership
- * @param isMigratingFridges Whether migration is in progress
- * @param migrationResult Result message from migration operation
  */
 @Composable
 fun AdminSuccessContent(
@@ -116,7 +113,7 @@ fun AdminSuccessContentPreview() {
                     uid = "user1",
                     username = "johndoe",
                     email = "johndoe@example.com",
-                    createdAt = System.currentTimeMillis()
+                    createdAt = null
                 )
             ),
         products =

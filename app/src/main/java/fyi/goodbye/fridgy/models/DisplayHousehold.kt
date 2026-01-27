@@ -2,6 +2,7 @@ package fyi.goodbye.fridgy.models
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize
+import java.util.Date
 
 /**
  * A UI-optimized representation of a [Household].
@@ -16,7 +17,7 @@ import kotlinx.parcelize.Parcelize
  * @property memberUsers A list of UserProfile objects for all members (including owner).
  * @property memberRoles A map of User IDs to their role in the household.
  * @property fridgeCount The number of fridges in this household.
- * @property createdAt The timestamp (ms) when the household was created.
+ * @property createdAt The timestamp when the household was created.
  */
 @Parcelize
 data class DisplayHousehold(
@@ -27,7 +28,7 @@ data class DisplayHousehold(
     val memberUsers: List<UserProfile> = listOf(),
     val memberRoles: Map<String, String> = mapOf(),
     val fridgeCount: Int = 0,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Date? = null
 ) : Parcelable {
     /**
      * Gets the role of a specific user in this household.

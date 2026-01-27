@@ -44,7 +44,7 @@ fun UserListItemPreview() {
                 uid = "11",
                 username = "john_doe",
                 email = "john_doe@example.com",
-                createdAt = 1767421399
+                createdAt = null
             ),
         onEdit = {},
         onDelete = {}

@@ -196,7 +196,7 @@ class FridgeRepository(
         val item =
             fyi.goodbye.fridgy.models.ShoppingListItem(
                 upc = upc,
-                addedAt = System.currentTimeMillis(),
+                // addedAt set via @ServerTimestamp
                 addedBy = currentUser,
                 quantity = quantity,
                 store = store,
@@ -255,7 +255,7 @@ class FridgeRepository(
                     "obtainedQuantity" to newTotal,
                     "checked" to checked,
                     "lastUpdatedBy" to currentUserId,
-                    "lastUpdatedAt" to System.currentTimeMillis()
+                    "lastUpdatedAt" to FieldValue.serverTimestamp()
                 )
             )
         }.await()
@@ -296,10 +296,8 @@ class FridgeRepository(
                             Item(
                                 upc = item.upc,
                                 expirationDate = null,
-                                addedBy = currentUserId,
-                                addedAt = System.currentTimeMillis(),
-                                lastUpdatedBy = currentUserId,
-                                lastUpdatedAt = System.currentTimeMillis()
+                                addedBy = currentUserId
+                                // addedAt and lastUpdatedAt set via @ServerTimestamp
                             )
                         batch.set(newItemRef, newItem)
                     }
@@ -327,7 +325,7 @@ class FridgeRepository(
                                 "obtainedQuantity" to newTotalObtained,
                                 "checked" to false,
                                 "lastUpdatedBy" to currentUserId,
-                                "lastUpdatedAt" to System.currentTimeMillis()
+                                "lastUpdatedAt" to FieldValue.serverTimestamp()
                             )
                         )
                     }
@@ -440,22 +438,8 @@ class FridgeRepository(
      * Note: createdBy field is ignored as fridges are now household-owned.
      */
     private fun DocumentSnapshot.toFridgeCompat(): Fridge? {
-        try {
-            val id = this.id
-            val name = this.getString("name") ?: ""
-            val type = this.getString("type") ?: "fridge"
-            val location = this.getString("location") ?: ""
-            val householdId = this.getString("householdId") ?: ""
-            val createdAt = this.getLong("createdAt") ?: System.currentTimeMillis()
-
-            return Fridge(
-                id = id,
-                name = name,
-                type = type,
-                location = location,
-                householdId = householdId,
-                createdAt = createdAt
-            )
+        return try {
+            this.toObject(Fridge::class.java)?.copy(id = this.id)
         } catch (e: Exception) {
             Log.e("FridgeRepo", "Error parsing fridge document: ${e.message}")
             return null
@@ -592,8 +576,8 @@ class FridgeRepository(
                 name = fridgeName,
                 type = fridgeType,
                 location = fridgeLocation,
-                householdId = householdId,
-                createdAt = System.currentTimeMillis()
+                householdId = householdId
+                // createdAt set via @ServerTimestamp
             )
 
         newFridgeDocRef.set(newFridge).await()
@@ -725,10 +709,8 @@ class FridgeRepository(
             Item(
                 upc = upc,
                 expirationDate = expirationDate,
-                addedBy = currentUser.uid,
-                addedAt = System.currentTimeMillis(),
-                lastUpdatedBy = currentUser.uid,
-                lastUpdatedAt = System.currentTimeMillis()
+                addedBy = currentUser.uid
+                // addedAt and lastUpdatedAt set via @ServerTimestamp
             )
 
         try {
@@ -770,7 +752,7 @@ class FridgeRepository(
                     mapOf(
                         "expirationDate" to expirationDate,
                         "lastUpdatedBy" to currentUser.uid,
-                        "lastUpdatedAt" to System.currentTimeMillis()
+                        "lastUpdatedAt" to FieldValue.serverTimestamp()
                     )
                 )
                 .await()

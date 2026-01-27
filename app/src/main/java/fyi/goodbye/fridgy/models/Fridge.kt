@@ -2,7 +2,9 @@ package fyi.goodbye.fridgy.models
 
 import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.ServerTimestamp
 import kotlinx.parcelize.Parcelize
+import java.util.Date
 
 /**
  * Data model representing a physical fridge within a household.
@@ -16,7 +18,7 @@ import kotlinx.parcelize.Parcelize
  * @property type The type of storage (fridge, freezer, pantry).
  * @property location Optional physical location description (e.g., "Kitchen", "Garage").
  * @property householdId The ID of the household this fridge belongs to.
- * @property createdAt The timestamp (ms) when the fridge was created.
+ * @property createdAt Server timestamp when the fridge was created.
  */
 @Parcelize
 data class Fridge(
@@ -27,5 +29,6 @@ data class Fridge(
     val type: String = "fridge",
     val location: String = "",
     val householdId: String = "",
-    val createdAt: Long = System.currentTimeMillis(),
+    @ServerTimestamp
+    val createdAt: Date? = null,
 ) : Parcelable

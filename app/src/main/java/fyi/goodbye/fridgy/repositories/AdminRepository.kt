@@ -2,6 +2,7 @@ package fyi.goodbye.fridgy.repositories
 
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.models.Admin
@@ -69,10 +70,28 @@ class AdminRepository(
             val usersSnapshot = firestore.collection("users").get().await()
             val profilesSnapshot = firestore.collection("userProfiles").get().await()
 
-            // Create maps for easy lookup
+            // Create maps for easy lookup, manually parsing to handle Long/Date migration
             val users =
                 usersSnapshot.documents.mapNotNull { doc ->
-                    doc.toObject(User::class.java)?.copy(uid = doc.id)
+                    try {
+                        val createdAtValue = doc.get("createdAt")
+                        val createdAt: java.util.Date? =
+                            when (createdAtValue) {
+                                is Long -> java.util.Date(createdAtValue)
+                                is java.util.Date -> createdAtValue
+                                is com.google.firebase.Timestamp -> createdAtValue.toDate()
+                                else -> null
+                            }
+
+                        User(
+                            uid = doc.id,
+                            email = doc.getString("email") ?: "",
+                            createdAt = createdAt
+                        )
+                    } catch (e: Exception) {
+                        Log.e("AdminRepo", "Error parsing user ${doc.id}: ${e.message}")
+                        null
+                    }
                 }.associateBy { it.uid }
 
             val profiles =
@@ -102,7 +121,6 @@ class AdminRepository(
         return try {
             val snapshot =
                 firestore.collection("products")
-                    .orderBy("lastUpdated", com.google.firebase.firestore.Query.Direction.DESCENDING)
                     .get()
                     .await()
 
@@ -111,12 +129,31 @@ class AdminRepository(
             val products =
                 snapshot.documents.mapNotNull { doc ->
                     try {
-                        doc.toObject(Product::class.java)?.copy(upc = doc.id)
+                        val lastUpdatedValue = doc.get("lastUpdated")
+                        val lastUpdated: java.util.Date? =
+                            when (lastUpdatedValue) {
+                                is Long -> java.util.Date(lastUpdatedValue)
+                                is java.util.Date -> lastUpdatedValue
+                                is com.google.firebase.Timestamp -> lastUpdatedValue.toDate()
+                                else -> null
+                            }
+
+                        Product(
+                            upc = doc.id,
+                            name = doc.getString("name") ?: "",
+                            brand = doc.getString("brand") ?: "",
+                            category = doc.getString("category") ?: "Other",
+                            imageUrl = doc.getString("imageUrl"),
+                            size = doc.getDouble("size"),
+                            unit = doc.getString("unit"),
+                            searchTokens = (doc.get("searchTokens") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                            lastUpdated = lastUpdated
+                        )
                     } catch (e: Exception) {
                         Log.e("AdminRepo", "Failed to deserialize product ${doc.id}: ${e.message}")
                         null
                     }
-                }
+                }.sortedByDescending { it.lastUpdated }
 
             Log.d("AdminRepo", "Successfully deserialized ${products.size} products")
             products

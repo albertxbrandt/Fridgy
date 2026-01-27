@@ -84,7 +84,7 @@ fun EditUserDialogPreview() {
             uid = "123",
             username = "johndoe",
             email = "johndoe@example.com",
-            createdAt = 1767421399
+            createdAt = null
         )
     EditUserDialog(
         user = sampleUser,

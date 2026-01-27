@@ -88,13 +88,11 @@ class UserRepository(
         email: String,
         username: String
     ) {
-        val timestamp = System.currentTimeMillis()
-
         // Create private user data (email, createdAt)
         val userMap =
             hashMapOf(
                 "email" to email,
-                "createdAt" to timestamp
+                "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
 
         // Create public profile data (username only)

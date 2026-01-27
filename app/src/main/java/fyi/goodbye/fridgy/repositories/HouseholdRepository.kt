@@ -343,8 +343,8 @@ class HouseholdRepository(
                 name = name,
                 createdBy = currentUser.uid,
                 members = listOf(currentUser.uid),
-                memberRoles = mapOf(currentUser.uid to HouseholdRole.OWNER.name),
-                createdAt = System.currentTimeMillis()
+                memberRoles = mapOf(currentUser.uid to HouseholdRole.OWNER.name)
+                // createdAt set via @ServerTimestamp
             )
 
         docRef.set(household).await()
@@ -822,14 +822,13 @@ class HouseholdRepository(
         val item =
             ShoppingListItem(
                 upc = upc,
-                addedAt = System.currentTimeMillis(),
                 addedBy = currentUser,
                 quantity = quantity,
                 store = store,
                 customName = customName
             )
 
-        // Add item to shopping list
+        // Add item to shopping list (addedAt and lastUpdatedAt set via @ServerTimestamp)
         firestore.collection("households").document(householdId)
             .collection("shoppingList").document(upc)
             .set(item)
@@ -917,7 +916,7 @@ class HouseholdRepository(
                     "obtainedQuantity" to newTotal,
                     "checked" to checked,
                     "lastUpdatedBy" to currentUserId,
-                    "lastUpdatedAt" to System.currentTimeMillis()
+                    "lastUpdatedAt" to FieldValue.serverTimestamp()
                 )
             )
         }.await()
@@ -977,10 +976,8 @@ class HouseholdRepository(
                                 upc = item.upc,
                                 // No expiration from shopping list
                                 expirationDate = null,
-                                addedBy = currentUserId,
-                                addedAt = System.currentTimeMillis(),
-                                lastUpdatedBy = currentUserId,
-                                lastUpdatedAt = System.currentTimeMillis()
+                                addedBy = currentUserId
+                                // addedAt and lastUpdatedAt set via @ServerTimestamp
                             )
                         batch.set(newItemRef, newItem)
                     }
@@ -1009,7 +1006,7 @@ class HouseholdRepository(
                                 "obtainedQuantity" to newTotalObtained,
                                 "checked" to false,
                                 "lastUpdatedBy" to currentUserId,
-                                "lastUpdatedAt" to System.currentTimeMillis()
+                                "lastUpdatedAt" to FieldValue.serverTimestamp()
                             )
                         )
                     }

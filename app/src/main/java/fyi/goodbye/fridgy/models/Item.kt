@@ -2,7 +2,9 @@ package fyi.goodbye.fridgy.models
 
 import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.ServerTimestamp
 import kotlinx.parcelize.Parcelize
+import java.util.Date
 
 /**
  * Data model representing a single item instance in a fridge inventory.
@@ -18,9 +20,9 @@ import kotlinx.parcelize.Parcelize
  * @property upc Product barcode/UPC for linking to product information
  * @property expirationDate Expiration date in milliseconds since epoch (null = no expiration)
  * @property addedBy The User ID of the person who originally added this item
- * @property addedAt The timestamp (ms) when the item was first created
+ * @property addedAt Server timestamp when the item was first created
  * @property lastUpdatedBy The User ID of the person who last modified this item
- * @property lastUpdatedAt The timestamp (ms) when the item was last modified
+ * @property lastUpdatedAt Server timestamp when the item was last modified
  */
 @Parcelize
 data class Item(
@@ -29,9 +31,11 @@ data class Item(
     val upc: String = "",
     val expirationDate: Long? = null,
     val addedBy: String = "",
-    val addedAt: Long = System.currentTimeMillis(),
+    @ServerTimestamp
+    val addedAt: Date? = null,
     val lastUpdatedBy: String = "",
-    val lastUpdatedAt: Long = System.currentTimeMillis()
+    @ServerTimestamp
+    val lastUpdatedAt: Date? = null
 ) : Parcelable {
     companion object {
         private const val EXPIRING_SOON_THRESHOLD_DAYS = 3

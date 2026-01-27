@@ -1,11 +1,14 @@
 package fyi.goodbye.fridgy.repositories
 
+import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.models.Category
-import fyi.goodbye.fridgy.utils.asFlow
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
+import java.util.Date
 
 /**
  * Repository for managing food categories in Firestore.
@@ -21,12 +24,50 @@ class CategoryRepository(
 
     /**
      * Returns a real-time Flow of all categories, ordered by their sort order.
+     * Handles both Long and Date types for createdAt during migration period.
      */
     fun getCategories(): Flow<List<Category>> =
-        categoriesCollection
-            .orderBy("order")
-            .asFlow<Category>()
-            .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
+        callbackFlow {
+            val listener =
+                categoriesCollection
+                    .orderBy("order")
+                    .addSnapshotListener { snapshot, error ->
+                        if (error != null) {
+                            Log.e("CategoryRepo", "Error listening to categories: ${error.message}")
+                            return@addSnapshotListener
+                        }
+
+                        if (snapshot != null) {
+                            val categories =
+                                snapshot.documents.mapNotNull { doc ->
+                                    try {
+                                        // Get the raw createdAt value
+                                        val createdAtValue = doc.get("createdAt")
+                                        val createdAt: Date? =
+                                            when (createdAtValue) {
+                                                is Long -> Date(createdAtValue)
+                                                is Date -> createdAtValue
+                                                is com.google.firebase.Timestamp -> createdAtValue.toDate()
+                                                else -> null
+                                            }
+
+                                        Category(
+                                            id = doc.id,
+                                            name = doc.getString("name") ?: "",
+                                            order = doc.getLong("order")?.toInt() ?: Category.DEFAULT_ORDER,
+                                            createdAt = createdAt
+                                        )
+                                    } catch (e: Exception) {
+                                        Log.e("CategoryRepo", "Error parsing category ${doc.id}: ${e.message}")
+                                        null
+                                    }
+                                }
+                            trySend(categories)
+                        }
+                    }
+
+            awaitClose { listener.remove() }
+        }.distinctUntilChanged()
 
     /**
      * Creates a new category.
@@ -43,7 +84,7 @@ class CategoryRepository(
             hashMapOf(
                 "name" to name,
                 "order" to order,
-                "createdAt" to System.currentTimeMillis()
+                "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
         val docRef = categoriesCollection.add(category).await()
         return docRef.id

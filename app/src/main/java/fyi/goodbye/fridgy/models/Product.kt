@@ -2,7 +2,9 @@ package fyi.goodbye.fridgy.models
 
 import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId
+import com.google.firebase.firestore.ServerTimestamp
 import kotlinx.parcelize.Parcelize
+import java.util.Date
 
 /**
  * Data model representing a global product entry in the crowdsourced database.
@@ -15,7 +17,7 @@ import kotlinx.parcelize.Parcelize
  * @property size Numeric size/quantity (e.g., 1.0 for "1 gallon", 12 for "12 pack")
  * @property unit Unit of measurement (e.g., "GALLON", "QUART", "LITER", "DOZEN", etc.)
  * @property searchTokens Lowercase word fragments for efficient search (auto-generated)
- * @property lastUpdated Timestamp of the last time this product info was modified.
+ * @property lastUpdated Timestamp of the last time this product info was modified (managed by Firestore).
  */
 @Parcelize
 data class Product(
@@ -28,7 +30,8 @@ data class Product(
     val size: Double? = null,
     val unit: String? = null,
     val searchTokens: List<String> = emptyList(),
-    val lastUpdated: Long = System.currentTimeMillis()
+    @ServerTimestamp
+    val lastUpdated: Date? = null
 ) : Parcelable {
     companion object {
         /**

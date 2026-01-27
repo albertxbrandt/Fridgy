@@ -438,7 +438,7 @@ class ShoppingListViewModel
                             brand = brand,
                             category = category,
                             imageUrl = "",
-                            lastUpdated = System.currentTimeMillis()
+                            lastUpdated = null
                         )
 
                     // Save product with image to database

@@ -106,7 +106,7 @@ fun ShoppingListItemCard(
 
                 // Show who added the item and when
                 val dateFormat = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
-                val formattedDate = dateFormat.format(Date(item.addedAt))
+                val formattedDate = item.addedAt?.let { dateFormat.format(it) } ?: stringResource(R.string.recently)
                 Text(
                     text = stringResource(R.string.added_by_user_at_time, itemWithProduct.addedByUsername, formattedDate),
                     style = MaterialTheme.typography.bodySmall,

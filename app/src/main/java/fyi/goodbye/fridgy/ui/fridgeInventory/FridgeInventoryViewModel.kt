@@ -68,7 +68,7 @@ class FridgeInventoryViewModel
                             id = fridgeId,
                             name = initialFridgeName,
                             householdId = "",
-                            createdAt = 0L
+                            createdAt = null
                         )
                     )
                 } else {
@@ -376,7 +376,7 @@ class FridgeInventoryViewModel
                         imageUrl = "",
                         size = size,
                         unit = unit,
-                        lastUpdated = System.currentTimeMillis()
+                        lastUpdated = null
                     )
 
                 // TODO: Optimistic updates need rework for instance-based items

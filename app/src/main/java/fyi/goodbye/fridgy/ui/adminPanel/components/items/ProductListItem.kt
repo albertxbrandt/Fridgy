@@ -46,7 +46,7 @@ fun PreviewProductListItem() {
                 brand = "DairyBest",
                 imageUrl = "www.google.com",
                 category = "Dairy",
-                lastUpdated = 12302130981
+                lastUpdated = null
             ),
         onEdit = {},
         onDelete = {}

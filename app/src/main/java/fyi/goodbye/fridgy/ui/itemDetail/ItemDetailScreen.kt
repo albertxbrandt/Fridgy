@@ -398,7 +398,7 @@ fun ItemInstanceCard(
         )
         DetailRow(
             label = "Added on",
-            value = dateFormatter.format(Date(item.addedAt))
+            value = item.addedAt?.let { dateFormatter.format(it) } ?: "Recently"
         )
     }
 }

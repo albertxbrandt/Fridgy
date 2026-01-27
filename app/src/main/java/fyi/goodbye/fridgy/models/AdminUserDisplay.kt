@@ -1,5 +1,7 @@
 package fyi.goodbye.fridgy.models
 
+import java.util.Date
+
 /**
  * Data Transfer Object for admin panel display.
  * Combines private User data with public UserProfile data.
@@ -9,5 +11,5 @@ data class AdminUserDisplay(
     val uid: String,
     val username: String,
     val email: String,
-    val createdAt: Long
+    val createdAt: Date?
 )
