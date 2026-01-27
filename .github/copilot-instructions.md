@@ -536,6 +536,26 @@ val currentUserId = FirebaseAuth.getInstance().currentUser?.uid
 - Use `remember { }` for expensive computations or objects that shouldn't recreate on recomposition
 - Prefer Material3 components over Material2
 
+## Documentation & Commit Guidelines
+
+### Documentation Files
+- **Location**: All documentation files MUST be placed in `.dev-notes/` directory
+- **Naming**: Use lowercase names with hyphens for multi-word files (e.g., `shopping-list-notifications.md`, `firebase-security-rules.md`)
+- **Purpose**: Keep root directory clean and documentation organized
+
+### Commit Message Format
+- **Conventional Commits**: Always prefix commits with type:
+  - `feat:` for new features
+  - `fix:` for bug fixes
+  - `refactor:` for code refactoring
+  - `docs:` for documentation updates
+  - `test:` for test additions/modifications
+  - `chore:` for maintenance tasks
+- **Keep it simple**: Write short, clear commit messages (avoid verbose explanations in title)
+- **No emojis**: Never use emojis in commit messages
+- **No co-authorship**: Never include "Co-authored-by: GitHub Copilot" or similar attribution in commits
+- **Example**: `feat: add shopping list notifications for recent viewers`
+
 ## Testing Notes
 - Ensure Firebase emulators or test project for integration testing
 - Test both authenticated and unauthenticated states

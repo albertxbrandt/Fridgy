@@ -60,6 +60,7 @@ fun HouseholdListScreen(
     onNavigateToHousehold: (DisplayHousehold) -> Unit,
     onJoinHouseholdSuccess: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
+    onNavigateToUserProfile: () -> Unit,
     onNavigateToAdminPanel: () -> Unit,
     onLogout: () -> Unit,
     viewModel: HouseholdListViewModel = hiltViewModel()
@@ -81,6 +82,7 @@ fun HouseholdListScreen(
         onNavigateToHousehold = onNavigateToHousehold,
         onJoinHouseholdSuccess = onJoinHouseholdSuccess,
         onNavigateToNotifications = onNavigateToNotifications,
+        onNavigateToUserProfile = onNavigateToUserProfile,
         onNavigateToAdminPanel = onNavigateToAdminPanel,
         onLogout = {
             viewModel.logout()
@@ -104,6 +106,7 @@ private fun HouseholdListContent(
     onNavigateToHousehold: (DisplayHousehold) -> Unit,
     onJoinHouseholdSuccess: (String) -> Unit,
     onNavigateToNotifications: () -> Unit,
+    onNavigateToUserProfile: () -> Unit,
     onNavigateToAdminPanel: () -> Unit,
     onLogout: () -> Unit,
     onCreateHousehold: (String) -> Unit,
@@ -166,7 +169,10 @@ private fun HouseholdListContent(
                 SidebarMenuItem(
                     icon = Icons.Default.AccountCircle,
                     label = stringResource(R.string.account),
-                    onClick = { isSidebarOpen = false }
+                    onClick = {
+                        isSidebarOpen = false
+                        onNavigateToUserProfile()
+                    }
                 )
             )
             add(
@@ -494,6 +500,7 @@ private fun HouseholdListPreviewLoading() {
             onNavigateToHousehold = {},
             onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
+            onNavigateToUserProfile = {},
             onNavigateToAdminPanel = {},
             onLogout = {},
             onCreateHousehold = {},
@@ -517,6 +524,7 @@ private fun HouseholdListPreviewEmpty() {
             onNavigateToHousehold = {},
             onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
+            onNavigateToUserProfile = {},
             onNavigateToAdminPanel = {},
             onLogout = {},
             onCreateHousehold = {},
@@ -591,6 +599,7 @@ private fun HouseholdListPreviewWithHouseholds() {
             onNavigateToHousehold = {},
             onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
+            onNavigateToUserProfile = {},
             onNavigateToAdminPanel = {},
             onLogout = {},
             onCreateHousehold = {},
@@ -614,6 +623,7 @@ private fun HouseholdListPreviewError() {
             onNavigateToHousehold = {},
             onJoinHouseholdSuccess = {},
             onNavigateToNotifications = {},
+            onNavigateToUserProfile = {},
             onNavigateToAdminPanel = {},
             onLogout = {},
             onCreateHousehold = {},

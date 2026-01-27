@@ -340,6 +340,11 @@ class MainActivity : ComponentActivity() {
                                         launchSingleTop = true
                                     }
                                 },
+                                onNavigateToUserProfile = {
+                                    navController.navigate("userProfile") {
+                                        launchSingleTop = true
+                                    }
+                                },
                                 onNavigateToAdminPanel = {
                                     navController.navigate("adminPanel") {
                                         launchSingleTop = true
