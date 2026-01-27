@@ -15,6 +15,9 @@ import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
  * Modern card displaying a single item in the shopping list.
@@ -100,6 +103,16 @@ fun ShoppingListItemCard(
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
+
+                // Show who added the item and when
+                val dateFormat = SimpleDateFormat("MMM d, h:mm a", Locale.getDefault())
+                val formattedDate = dateFormat.format(Date(item.addedAt))
+                Text(
+                    text = stringResource(R.string.added_by_user_at_time, itemWithProduct.addedByUsername, formattedDate),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
 
                 // Show multi-user shopping status
                 if (othersObtainedQty > 0 && myObtainedQty > 0) {

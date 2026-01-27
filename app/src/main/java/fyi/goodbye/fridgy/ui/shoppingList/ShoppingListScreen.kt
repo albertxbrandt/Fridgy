@@ -153,7 +153,8 @@ fun ShoppingListScreen(
                                     customName = manualItemName
                                 ),
                             productName = manualItemName,
-                            productBrand = ""
+                            productBrand = "",
+                            addedByUsername = ""
                         )
                     showNewProductDialog = Pair(scannedUpc, manualItem)
                 }

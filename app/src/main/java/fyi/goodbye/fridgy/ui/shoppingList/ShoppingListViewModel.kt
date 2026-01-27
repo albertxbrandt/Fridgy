@@ -13,6 +13,7 @@ import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
+import fyi.goodbye.fridgy.repositories.UserRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,10 +59,14 @@ class ShoppingListViewModel
         private val productRepository: ProductRepository,
         private val repository: HouseholdRepository,
         private val fridgeRepository: FridgeRepository,
-        private val firebaseAuth: FirebaseAuth
+        private val firebaseAuth: FirebaseAuth,
+        private val userRepository: UserRepository
     ) : ViewModel() {
         private val householdId: String = savedStateHandle.get<String>("householdId") ?: ""
         private var presenceJob: Job? = null
+
+        // Cache usernames to avoid repeated fetches
+        private val usernameCache = mutableMapOf<String, String>()
 
         /**
          * Data class combining a shopping list item with its resolved product information.
@@ -69,11 +74,13 @@ class ShoppingListViewModel
          * @property item The shopping list item data from Firestore.
          * @property productName Display name (from product DB or custom entry).
          * @property productBrand Product brand (empty for custom entries).
+         * @property addedByUsername Username of the person who added the item.
          */
         data class ShoppingListItemWithProduct(
             val item: ShoppingListItem,
             val productName: String,
-            val productBrand: String
+            val productBrand: String,
+            val addedByUsername: String
         )
 
         sealed interface UiState {
@@ -161,22 +168,35 @@ class ShoppingListViewModel
         private fun loadShoppingList() {
             viewModelScope.launch {
                 repository.getShoppingListItems(householdId).collect { items ->
-                    // Fetch product names for each item
+                    // Fetch product names and usernames for each item
                     val itemsWithProducts =
                         items.map { item ->
+                            // Fetch username (with caching)
+                            val username =
+                                if (usernameCache.containsKey(item.addedBy)) {
+                                    usernameCache[item.addedBy]!!
+                                } else {
+                                    val profile = userRepository.getUserProfile(item.addedBy)
+                                    val fetchedUsername = profile?.username ?: "Unknown User"
+                                    usernameCache[item.addedBy] = fetchedUsername
+                                    fetchedUsername
+                                }
+
                             // Use custom name if available (manual entry), otherwise fetch from DB
                             if (item.customName.isNotEmpty()) {
                                 ShoppingListItemWithProduct(
                                     item = item,
                                     productName = item.customName,
-                                    productBrand = ""
+                                    productBrand = "",
+                                    addedByUsername = username
                                 )
                             } else {
                                 val product = productRepository.getProductInfo(item.upc)
                                 ShoppingListItemWithProduct(
                                     item = item,
                                     productName = product?.name ?: "Unknown Product",
-                                    productBrand = product?.brand ?: ""
+                                    productBrand = product?.brand ?: "",
+                                    addedByUsername = username
                                 )
                             }
                         }
