@@ -38,7 +38,7 @@ import javax.inject.Inject
  *
  * ## Real-Time Collaboration
  * - Uses Firestore snapshot listeners for live updates
- * - Presence system shows active viewers with 15-second heartbeat
+ * - Presence system shows active viewers with 20-second heartbeat (optimized)
  * - Transactional updates prevent race conditions when multiple users shop
  *
  * ## State Management
@@ -123,6 +123,7 @@ class ShoppingListViewModel
 
         /**
          * Starts broadcasting presence and keeps it alive with periodic updates.
+         * PERFORMANCE FIX: Uses 20-second heartbeat (was 15s) to reduce Firestore writes by 25%.
          */
         fun startPresence() {
             presenceJob?.cancel()
@@ -131,9 +132,9 @@ class ShoppingListViewModel
                     // Set initial presence
                     shoppingListRepository.setShoppingListPresence(householdId)
 
-                    // Update presence every 15 seconds to keep it fresh
+                    // Update presence every 20 seconds (optimized from 15s)
                     while (isActive) {
-                        delay(15_000)
+                        delay(20_000)
                         shoppingListRepository.setShoppingListPresence(householdId)
                     }
                 }

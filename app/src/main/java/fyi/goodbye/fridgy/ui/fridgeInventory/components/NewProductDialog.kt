@@ -136,7 +136,11 @@ fun NewProductDialog(
                     ) {
                         if (capturedImageUri != null) {
                             AsyncImage(
-                                model = capturedImageUri,
+                                model =
+                                    coil.request.ImageRequest.Builder(context)
+                                        .data(capturedImageUri)
+                                        .size(600) // PERFORMANCE FIX: Limit to 600px (dialog preview)
+                                        .build(),
                                 contentDescription = stringResource(R.string.cd_captured_product),
                                 modifier = Modifier.fillMaxSize()
                             )

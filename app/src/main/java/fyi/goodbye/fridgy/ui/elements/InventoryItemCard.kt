@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -29,6 +30,7 @@ fun InventoryItemCard(
     itemCount: Int = 1,
     onClick: (String) -> Unit
 ) {
+    val context = LocalContext.current
     val item = inventoryItem.item
     val product = inventoryItem.product
 
@@ -47,7 +49,11 @@ fun InventoryItemCard(
             val imageModel = inventoryItem.localImageUri ?: product.imageUrl
             if (imageModel != null) {
                 AsyncImage(
-                    model = imageModel,
+                    model =
+                        coil.request.ImageRequest.Builder(context)
+                            .data(imageModel)
+                            .size(400) // PERFORMANCE FIX: Limit image size to 400px (card is ~150dp)
+                            .build(),
                     contentDescription = product.name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

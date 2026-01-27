@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,6 +45,7 @@ fun ItemDetailScreen(
     onBackClick: () -> Unit,
     viewModel: ItemDetailViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val userNames by viewModel.userNames.collectAsState()
     val pendingItemForDate by viewModel.pendingItemForDate.collectAsState()
@@ -175,7 +177,11 @@ fun ItemDetailScreen(
                         ) {
                             if (product.imageUrl != null) {
                                 AsyncImage(
-                                    model = product.imageUrl,
+                                    model =
+                                        coil.request.ImageRequest.Builder(context)
+                                            .data(product.imageUrl)
+                                            .size(800) // PERFORMANCE FIX: Limit to 800px (detail view is larger)
+                                            .build(),
                                     contentDescription = product.name,
                                     contentScale = ContentScale.Fit,
                                     modifier = Modifier.fillMaxSize()
