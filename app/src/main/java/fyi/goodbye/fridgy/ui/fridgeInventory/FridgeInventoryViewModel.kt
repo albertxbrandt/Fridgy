@@ -2,7 +2,7 @@ package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.content.Context
 import android.net.Uri
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -99,7 +99,7 @@ class FridgeInventoryViewModel
                                     val household = householdRepository.getHouseholdById(householdId)
                                     household?.createdBy == currentUserId
                                 } catch (e: Exception) {
-                                    Log.e("FridgeInventoryVM", "Error checking household ownership: ${e.message}")
+                                    Timber.e("Error checking household ownership: ${e.message}")
                                     false
                                 }
                             }
@@ -132,8 +132,7 @@ class FridgeInventoryViewModel
                                     val userRole = household?.getRoleForUser(currentUserId)
                                     userRole == HouseholdRole.OWNER || userRole == HouseholdRole.MANAGER
                                 } catch (e: Exception) {
-                                    Log.e(
-                                        "FridgeInventoryVM",
+                                    Timber.e(
                                         "Error checking fridge management permission: ${e.message}"
                                     )
                                     false
@@ -302,7 +301,7 @@ class FridgeInventoryViewModel
                 } catch (e: Exception) {
                     // Handle permission errors gracefully (e.g., when fridge is deleted/left)
                     if (e.message?.contains("PERMISSION_DENIED") == true) {
-                        Log.w("FridgeInventoryVM", "Permission denied - fridge may have been deleted or left")
+                        Timber.w("Permission denied - fridge may have been deleted or left")
                         // Keep existing state, don't crash
                     } else {
                         _itemsUiState.value = ItemsUiState.Error(e.message ?: "Unknown error")
@@ -333,7 +332,7 @@ class FridgeInventoryViewModel
                         _pendingScannedUpc.value = upc
                     }
                 } catch (e: Exception) {
-                    Log.e("FridgeInventoryVM", "Error handling scan: ${e.message}")
+                    Timber.e("Error handling scan: ${e.message}")
                 }
             }
         }
@@ -407,9 +406,9 @@ class FridgeInventoryViewModel
                     productRepository.saveProductWithImage(optimisticProduct, imageUri)
                     addItemToFridge(upc)
 
-                    Log.d("FridgeInventoryVM", "Product and item added successfully: $name")
+                    Timber.d("Product and item added successfully: $name")
                 } catch (e: Exception) {
-                    Log.e("FridgeInventoryVM", "Failed to create product: ${e.message}")
+                    Timber.e("Failed to create product: ${e.message}")
                     _addItemError.value = context.getString(R.string.error_failed_to_add_item, e.message ?: "")
                     // Rollback optimistic item on failure
                     optimisticItems.value = optimisticItems.value.filter { it.item.upc != upc }
@@ -469,3 +468,4 @@ class FridgeInventoryViewModel
             data class Error(val message: String) : ItemsUiState
         }
     }
+

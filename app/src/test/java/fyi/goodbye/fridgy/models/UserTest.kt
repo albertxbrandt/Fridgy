@@ -86,3 +86,4 @@ class UserTest {
         assertEquals("test@example.com", user.email)
     }
 }
+

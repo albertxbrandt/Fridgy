@@ -135,6 +135,9 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     androidTestImplementation("io.mockk:mockk-android:1.13.8")
 
+    // Logging
+    implementation("com.jakewharton.timber:timber:5.0.1")
+
     // Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)

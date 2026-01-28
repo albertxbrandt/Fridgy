@@ -1,6 +1,6 @@
 package fyi.goodbye.fridgy.ui.adminPanel.components.sections
 
-import android.util.Log
+import timber.log.Timber
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -32,7 +32,7 @@ fun RecentProductsSection(
     onEditProduct: (Product) -> Unit,
     onDeleteProduct: (Product) -> Unit
 ) {
-    Log.d("RecentProductsSection", "Rendering with ${products.size} products")
+    Timber.d("Rendering with ${products.size} products")
 
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -45,16 +45,16 @@ fun RecentProductsSection(
             modifier = Modifier.padding(top = 16.dp)
         )
 
-        Log.d("RecentProductsSection", "About to iterate ${products.take(10).size} products")
+        Timber.d("About to iterate ${products.take(10).size} products")
         products.take(10).forEachIndexed { index, product ->
-            Log.d("RecentProductsSection", "Rendering product $index: ${product.name}")
+            Timber.d("Rendering product $index: ${product.name}")
             ProductListItem(
                 product = product,
                 onEdit = { onEditProduct(product) },
                 onDelete = { onDeleteProduct(product) }
             )
         }
-        Log.d("RecentProductsSection", "Finished rendering all products")
+        Timber.d("Finished rendering all products")
     }
 }
 
@@ -81,3 +81,5 @@ fun RecentProductsSectionPreview() {
         onDeleteProduct = {}
     )
 }
+
+

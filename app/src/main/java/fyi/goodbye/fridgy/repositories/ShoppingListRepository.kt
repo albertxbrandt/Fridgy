@@ -3,7 +3,7 @@ package fyi.goodbye.fridgy.repositories
 
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import android.util.Log
+import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -63,7 +63,7 @@ class ShoppingListRepository(
     private val householdRepository: HouseholdRepository
 ) {
     companion object {
-        private const val TAG = "ShoppingListRepository"
+        
         private const val PRESENCE_TIMEOUT_MS = 30_000L // 30 seconds for active presence
         private const val RECENT_VIEWER_TIMEOUT_MS = 30 * 60 * 1000L // 30 minutes for notifications
     }
@@ -84,7 +84,7 @@ class ShoppingListRepository(
             val listener =
                 colRef.addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        Log.e(TAG, "Error loading shopping list: ${e.message}")
+                        Timber.e("Error loading shopping list: ${e.message}")
                         channel.close()
                         return@addSnapshotListener
                     }
@@ -147,7 +147,7 @@ class ShoppingListRepository(
                     val product = firestore.collection(FirestoreCollections.PRODUCTS).document(upc).get().await()
                     product.getString(FirestoreFields.NAME) ?: upc
                 } catch (e: Exception) {
-                    Log.w(TAG, "Could not fetch product name for UPC: $upc", e)
+                    Timber.w(e, "Could not fetch product name for UPC: $upc")
                     upc
                 }
             }
@@ -297,7 +297,7 @@ class ShoppingListRepository(
                         batch.set(newItemRef, newItem)
                     }
 
-                    Log.d(TAG, "Adding $userQuantity instance(s) of ${item.upc} to fridge $targetFridgeId")
+                    Timber.d("Adding $userQuantity instance(s) of ${item.upc} to fridge $targetFridgeId")
 
                     // Update shopping list item
                     val shoppingItemRef = shoppingListRef.document(item.upc)
@@ -329,9 +329,9 @@ class ShoppingListRepository(
             }
 
             batch.commit().await()
-            Log.d(TAG, "Shopping session completed successfully")
+            Timber.d("Shopping session completed successfully")
         } catch (e: Exception) {
-            Log.e(TAG, "Error completing shopping session", e)
+            Timber.e(e, "Error completing shopping session")
             throw e
         }
     }
@@ -350,31 +350,31 @@ class ShoppingListRepository(
         try {
             val currentUserId = auth.currentUser?.uid ?: return
 
-            Log.d(TAG, "=== Shopping List Notification Debug ===")
-            Log.d(TAG, "Checking for recent viewers in household: $householdId")
-            Log.d(TAG, "Item added: $itemName by user: $currentUserId")
+            Timber.d("=== Shopping List Notification Debug ===")
+            Timber.d("Checking for recent viewers in household: $householdId")
+            Timber.d("Item added: $itemName by user: $currentUserId")
 
             // Get recent viewers (last 30 minutes)
             val recentViewers = getRecentShoppingListViewers(householdId)
 
-            Log.d(TAG, "Found ${recentViewers.size} total recent viewers")
+            Timber.d("Found ${recentViewers.size} total recent viewers")
             recentViewers.forEach { viewer ->
                 val minutesAgo = (System.currentTimeMillis() - viewer.lastSeenTimestamp) / 60000
-                Log.d(TAG, "  - ${viewer.username} (${viewer.userId}) - last seen $minutesAgo minutes ago")
+                Timber.d("  - ${viewer.username} (${viewer.userId}) - last seen $minutesAgo minutes ago")
             }
 
             val viewersToNotify = recentViewers.filter { it.userId != currentUserId }
 
             if (viewersToNotify.isEmpty()) {
-                Log.d(TAG, "No users to notify (excluding current user)")
+                Timber.d("No users to notify (excluding current user)")
                 return
             }
 
-            Log.d(TAG, "Sending notifications to ${viewersToNotify.size} users")
+            Timber.d("Sending notifications to ${viewersToNotify.size} users")
 
             // Send in-app notifications to each recent viewer
             viewersToNotify.forEach { viewer ->
-                Log.d(TAG, "Sending notification to: ${viewer.username}")
+                Timber.d("Sending notification to: ${viewer.username}")
                 notificationRepository.sendInAppNotification(
                     userId = viewer.userId,
                     title = "New item added to shopping list",
@@ -385,9 +385,9 @@ class ShoppingListRepository(
                 )
             }
 
-            Log.d(TAG, "Successfully notified ${viewersToNotify.size} recent shoppers")
+            Timber.d("Successfully notified ${viewersToNotify.size} recent shoppers")
         } catch (e: Exception) {
-            Log.e(TAG, "Error notifying recent shoppers", e)
+            Timber.e(e, "Error notifying recent shoppers")
             // Don't throw - notification failure shouldn't block adding items
         }
     }
@@ -404,9 +404,9 @@ class ShoppingListRepository(
             val currentTime = System.currentTimeMillis()
             val thirtyMinutesAgo = currentTime - RECENT_VIEWER_TIMEOUT_MS
 
-            Log.d(TAG, "Querying presence documents for household: $householdId")
-            Log.d(TAG, "Current time: $currentTime, cutoff time: $thirtyMinutesAgo")
-            Log.d(TAG, "Looking for presence within last ${RECENT_VIEWER_TIMEOUT_MS / 60000} minutes")
+            Timber.d("Querying presence documents for household: $householdId")
+            Timber.d("Current time: $currentTime, cutoff time: $thirtyMinutesAgo")
+            Timber.d("Looking for presence within last ${RECENT_VIEWER_TIMEOUT_MS / 60000} minutes")
 
             val presenceSnapshot =
                 firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
@@ -414,7 +414,7 @@ class ShoppingListRepository(
                     .get()
                     .await()
 
-            Log.d(TAG, "Found ${presenceSnapshot.documents.size} presence documents total")
+            Timber.d("Found ${presenceSnapshot.documents.size} presence documents total")
 
             val recentUserData =
                 presenceSnapshot.documents.mapNotNull { doc ->
@@ -422,26 +422,26 @@ class ShoppingListRepository(
                     val userId = doc.getString(FirestoreFields.USER_ID)
 
                     val minutesAgo = if (lastSeen > 0) (currentTime - lastSeen) / 60000 else -1
-                    Log.d(TAG, "Presence doc: userId=$userId, lastSeen=$lastSeen (${minutesAgo}min ago)")
+                    Timber.d("Presence doc: userId=$userId, lastSeen=$lastSeen (${minutesAgo}min ago)")
 
                     // Check if user viewed within last 30 minutes
                     if (userId != null && lastSeen >= thirtyMinutesAgo) {
-                        Log.d(TAG, "  -> INCLUDED (within 30 min)")
+                        Timber.d("  -> INCLUDED (within 30 min)")
                         userId to lastSeen
                     } else {
                         if (userId != null) {
-                            Log.d(TAG, "  -> EXCLUDED (too old or invalid)")
+                            Timber.d("  -> EXCLUDED (too old or invalid)")
                         }
                         null
                     }
                 }
 
             if (recentUserData.isEmpty()) {
-                Log.d(TAG, "No recent viewers found after filtering")
+                Timber.d("No recent viewers found after filtering")
                 return emptyList()
             }
 
-            Log.d(TAG, "Fetching user profiles for ${recentUserData.size} recent viewers")
+            Timber.d("Fetching user profiles for ${recentUserData.size} recent viewers")
 
             // Batch fetch user profiles
             val userIds = recentUserData.map { it.first }
@@ -452,7 +452,7 @@ class ShoppingListRepository(
                 ActiveViewer(userId, username, lastSeen)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching recent shopping list viewers", e)
+            Timber.e(e, "Error fetching recent shopping list viewers")
             emptyList()
         }
     }
@@ -527,16 +527,16 @@ class ShoppingListRepository(
                 if (lastSeen < oneDayAgo) {
                     batch.delete(doc.reference)
                     deleteCount++
-                    Log.d(TAG, "Marking stale presence for deletion: userId=$userId, lastSeen=$lastSeen")
+                    Timber.d("Marking stale presence for deletion: userId=$userId, lastSeen=$lastSeen")
                 }
             }
 
             if (deleteCount > 0) {
                 batch.commit().await()
-                Log.d(TAG, "Cleaned up $deleteCount stale presence documents")
+                Timber.d("Cleaned up $deleteCount stale presence documents")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error cleaning up stale presence", e)
+            Timber.e(e, "Error cleaning up stale presence")
             // Don't throw - cleanup failure shouldn't affect presence updates
         }
     }
@@ -588,7 +588,7 @@ class ShoppingListRepository(
             val listener =
                 presenceRef.addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        Log.e(TAG, "Error loading shopping list presence: ${e.message}")
+                        Timber.e("Error loading shopping list presence: ${e.message}")
                         channel.close()
                         return@addSnapshotListener
                     }
@@ -626,7 +626,7 @@ class ShoppingListRepository(
                                 }
                             trySend(viewers).isSuccess
                         } catch (ex: Exception) {
-                            Log.e(TAG, "Error fetching user profiles for presence", ex)
+                            Timber.e(ex, "Error fetching user profiles for presence")
                             trySend(emptyList()).isSuccess
                         }
                     }
@@ -646,3 +646,5 @@ class ShoppingListRepository(
         return householdRepository.getUsersByIds(userIds)
     }
 }
+
+

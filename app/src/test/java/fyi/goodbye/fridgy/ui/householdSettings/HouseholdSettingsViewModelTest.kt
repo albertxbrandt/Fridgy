@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.householdSettings
 
 import android.content.Context
-import android.util.Log
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
@@ -78,12 +77,7 @@ class HouseholdSettingsViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)
-        every { Log.d(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
-
-        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
         mockHouseholdRepository = mockk(relaxed = true)
         mockMembershipRepository = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
@@ -408,3 +402,4 @@ class HouseholdSettingsViewModelTest {
     // NOTE: Tests for getInviteCodesFlow collection removed
     // Real-time invite code updates require integration testing with Firebase emulator
 }
+

@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.householdList
 
 import android.content.Context
-import android.util.Log
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.google.firebase.auth.FirebaseAuth
@@ -77,12 +76,7 @@ class HouseholdListViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)
-        every { Log.d(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
-
-        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
         mockUser = mockk(relaxed = true)
         mockHouseholdRepository = mockk(relaxed = true)
@@ -392,3 +386,4 @@ class HouseholdListViewModelTest {
     // Real-time household list updates with Flow collection require integration testing
     // with Firebase emulator to test the live data stream functionality
 }
+

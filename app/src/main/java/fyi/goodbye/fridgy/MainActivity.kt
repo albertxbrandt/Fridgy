@@ -6,7 +6,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import timber.log.Timber
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
@@ -114,9 +114,9 @@ class MainActivity : ComponentActivity() {
                 FirebaseFirestoreSettings.Builder()
                     .build()
             firestore.firestoreSettings = settings
-            Log.d("Fridgy_Firestore", "Firestore configured with offline persistence (default)")
+            Timber.d("Firestore configured with offline persistence (default)")
         } catch (e: Exception) {
-            Log.w("Fridgy_Firestore", "Firestore settings already configured: ${e.message}")
+            Timber.w("Firestore settings already configured: ${e.message}")
         }
 
         // Initialize App Check
@@ -127,13 +127,13 @@ class MainActivity : ComponentActivity() {
             firebaseAppCheck.installAppCheckProviderFactory(
                 DebugAppCheckProviderFactory.getInstance()
             )
-            Log.d("Fridgy_AppCheck", "Firebase App Check initialized with Debug Provider")
+            Timber.d("Firebase App Check initialized with Debug Provider")
 
             // Explicitly request a token to force the debug secret to be printed in logcat early
             firebaseAppCheck.getAppCheckToken(false).addOnSuccessListener { token ->
-                Log.d("Fridgy_AppCheck", "Initial token retrieved: ${token.token.take(10)}...")
+                Timber.d("Initial token retrieved: ${token.token.take(10)}...")
             }.addOnFailureListener { e ->
-                Log.e("Fridgy_AppCheck", "Failed to retrieve initial token: ${e.message}")
+                Timber.e("Failed to retrieve initial token: ${e.message}")
             }
         } else {
             // Use Play Integrity for production
@@ -161,8 +161,7 @@ class MainActivity : ComponentActivity() {
                         val prefs = getSharedPreferences("fridgy_prefs", MODE_PRIVATE)
                         val pendingCode = prefs.getString("pending_invite_code", null)
                         if (pendingCode != null) {
-                            Log.d(
-                                "Fridgy_DeepLink",
+                            Timber.d(
                                 "Found pending invite code in MainActivity, navigating to householdList"
                             )
                             // Give auth state time to settle
@@ -174,7 +173,7 @@ class MainActivity : ComponentActivity() {
                                     launchSingleTop = true
                                 }
                             } else {
-                                Log.w("Fridgy_DeepLink", "User not logged in, cannot process invite code")
+                                Timber.w("User not logged in, cannot process invite code")
                                 // Clear the code since user can't join without being logged in
                                 prefs.edit().remove("pending_invite_code").apply()
                             }
@@ -189,8 +188,7 @@ class MainActivity : ComponentActivity() {
                             val itemId = notificationIntent.getStringExtra("itemId")
 
                             if (notificationType != null) {
-                                Log.d(
-                                    "Fridgy_DeepLink",
+                                Timber.d(
                                     "Handling notification: type=$notificationType, fridgeId=$fridgeId, itemId=$itemId"
                                 )
 
@@ -236,9 +234,9 @@ class MainActivity : ComponentActivity() {
                             contract = ActivityResultContracts.RequestPermission()
                         ) { isGranted ->
                             if (isGranted) {
-                                Log.d("Fridgy_Permission", "Camera permission granted")
+                                Timber.d("Camera permission granted")
                             } else {
-                                Log.w("Fridgy_Permission", "Camera permission denied - barcode scanning will not work")
+                                Timber.w("Camera permission denied - barcode scanning will not work")
                             }
                         }
 
@@ -284,14 +282,14 @@ class MainActivity : ComponentActivity() {
                                 val currentUserId = auth.currentUser?.uid
                                 if (household == null || currentUserId !in household.members) {
                                     // Household no longer exists or user is no longer a member
-                                    Log.d("Fridgy_Nav", "Last household no longer valid, clearing preference")
+                                    Timber.d("Last household no longer valid, clearing preference")
                                     userPreferences.clearLastSelectedHouseholdId()
                                     navController.navigate("householdList") {
                                         popUpTo(0) { inclusive = true }
                                     }
                                 }
                             } catch (e: Exception) {
-                                Log.e("Fridgy_Nav", "Error validating household: ${e.message}")
+                                Timber.e("Error validating household: ${e.message}")
                                 // On error, still go to household list to be safe
                                 userPreferences.clearLastSelectedHouseholdId()
                                 navController.navigate("householdList") {
@@ -589,27 +587,27 @@ class MainActivity : ComponentActivity() {
                     Manifest.permission.POST_NOTIFICATIONS
                 ) == PackageManager.PERMISSION_GRANTED -> {
                     // Permission already granted, initialize FCM
-                    Log.d("Fridgy_FCM", "Notification permission already granted")
+                    Timber.d("Notification permission already granted")
                     initializeFCMToken()
                 }
                 else -> {
                     // Request permission
-                    Log.d("Fridgy_FCM", "Requesting notification permission")
+                    Timber.d("Requesting notification permission")
                     registerForActivityResult(
                         ActivityResultContracts.RequestPermission()
                     ) { isGranted ->
                         if (isGranted) {
-                            Log.d("Fridgy_FCM", "Notification permission granted by user")
+                            Timber.d("Notification permission granted by user")
                             initializeFCMToken()
                         } else {
-                            Log.w("Fridgy_FCM", "Notification permission denied - push notifications will not work")
+                            Timber.w("Notification permission denied - push notifications will not work")
                         }
                     }.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }
             }
         } else {
             // Android 12 and below don't require permission
-            Log.d("Fridgy_FCM", "Android 12 or below - no permission needed")
+            Timber.d("Android 12 or below - no permission needed")
             initializeFCMToken()
         }
     }
@@ -622,18 +620,18 @@ class MainActivity : ComponentActivity() {
     private fun initializeFCMToken() {
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser == null) {
-            Log.d("Fridgy_FCM", "User not authenticated - skipping FCM token initialization")
+            Timber.d("User not authenticated - skipping FCM token initialization")
             return
         }
 
         lifecycleScope.launch {
-            Log.d("Fridgy_FCM", "Initializing FCM token for user: ${currentUser.uid}")
+            Timber.d("Initializing FCM token for user: ${currentUser.uid}")
             notificationRepository.refreshFcmToken()
                 .onSuccess {
-                    Log.d("Fridgy_FCM", "FCM token initialized successfully")
+                    Timber.d("FCM token initialized successfully")
                 }
                 .onFailure { error ->
-                    Log.e("Fridgy_FCM", "Failed to initialize FCM token: ${error.message}", error)
+                    Timber.e(error, "Failed to initialize FCM token: ${error.message}")
                 }
         }
     }
@@ -644,7 +642,7 @@ class MainActivity : ComponentActivity() {
      */
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        Log.d("Fridgy_MagicLink", "onNewIntent received")
+        Timber.d("onNewIntent received")
         handleMagicLinkIntent(intent)
         handleInviteDeepLink(intent)
     }
@@ -656,20 +654,20 @@ class MainActivity : ComponentActivity() {
     private fun handleMagicLinkIntent(intent: Intent?) {
         val data = intent?.data
         if (data != null) {
-            Log.d("Fridgy_MagicLink", "Checking intent data: $data")
+            Timber.d("Checking intent data: $data")
 
             // Check if it's our custom scheme redirect from the web page
             // The web page redirects: fridgy://auth?apiKey=...&oobCode=...&mode=signIn
             if (data.scheme == "fridgy" && data.host == "auth") {
-                Log.d("Fridgy_MagicLink", "Custom scheme magic link detected")
+                Timber.d("Custom scheme magic link detected")
 
                 // Reconstruct the original Firebase link format for verification
                 val originalLink = "https://fridgyapp.com/auth${data.query?.let { "?$it" } ?: ""}"
-                Log.d("Fridgy_MagicLink", "Reconstructed link: $originalLink")
+                Timber.d("Reconstructed link: $originalLink")
 
                 val auth = FirebaseAuth.getInstance()
                 if (auth.isSignInWithEmailLink(originalLink)) {
-                    Log.d("Fridgy_MagicLink", "Valid magic link, passing to handler")
+                    Timber.d("Valid magic link, passing to handler")
                     // Create a new intent with the reconstructed URL
                     val reconstructedIntent =
                         Intent(intent).apply {
@@ -677,7 +675,7 @@ class MainActivity : ComponentActivity() {
                         }
                     magicLinkHandler.handleIntent(reconstructedIntent)
                 } else {
-                    Log.w("Fridgy_MagicLink", "Link failed Firebase validation")
+                    Timber.w("Link failed Firebase validation")
                 }
                 return
             }
@@ -685,7 +683,7 @@ class MainActivity : ComponentActivity() {
             // Also handle direct https links (in case user opens link directly)
             val auth = FirebaseAuth.getInstance()
             if (auth.isSignInWithEmailLink(data.toString())) {
-                Log.d("Fridgy_MagicLink", "Direct HTTPS magic link detected, passing to handler")
+                Timber.d("Direct HTTPS magic link detected, passing to handler")
                 magicLinkHandler.handleIntent(intent)
             }
         }
@@ -701,7 +699,7 @@ class MainActivity : ComponentActivity() {
             if (uri.scheme == "fridgy" && uri.host == "invite") {
                 val inviteCode = uri.getQueryParameter("code")
                 if (inviteCode != null) {
-                    Log.d("Fridgy_DeepLink", "Handling invite code: $inviteCode")
+                    Timber.d("Handling invite code: $inviteCode")
                     // Store the invite code in shared preferences to auto-fill in join dialog
                     getSharedPreferences("fridgy_prefs", MODE_PRIVATE)
                         .edit()
@@ -710,9 +708,11 @@ class MainActivity : ComponentActivity() {
                     // Trigger the LaunchedEffect to handle navigation
                     inviteIntentTrigger.value = System.currentTimeMillis()
                 } else {
-                    Log.w("Fridgy_DeepLink", "Invite link missing code parameter: $uri")
+                    Timber.w("Invite link missing code parameter: $uri")
                 }
             }
         }
     }
 }
+
+

@@ -1,7 +1,7 @@
 package fyi.goodbye.fridgy.ui.adminPanel
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -56,7 +56,7 @@ class AdminPanelViewModel
                     // Ensure we're not setting success state with all empty data
                     // which could indicate a loading failure
                     if (users.isEmpty() && products.isEmpty() && fridges.isEmpty()) {
-                        Log.w("AdminPanelViewModel", "All collections returned empty - possible loading error")
+                        Timber.w("All collections returned empty - possible loading error")
                         _uiState.value = AdminUiState.Error("No data available. The system may be empty or there was a loading error.")
                         return@launch
                     }
@@ -71,7 +71,7 @@ class AdminPanelViewModel
                             fridges = fridges
                         )
                 } catch (e: Exception) {
-                    Log.e("AdminPanelViewModel", "Error loading admin data", e)
+                    Timber.e(e, "Error loading admin data")
                     _uiState.value = AdminUiState.Error(context.getString(R.string.error_failed_to_load_admin_data, e.message ?: ""))
                 }
             }
@@ -171,3 +171,4 @@ class AdminPanelViewModel
             data class Error(val message: String) : AdminUiState
         }
     }
+

@@ -1,7 +1,7 @@
 package fyi.goodbye.fridgy.ui.itemDetail
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -156,7 +156,7 @@ class ItemDetailViewModel
                 try {
                     fridgeRepository.deleteItem(fridgeId, itemIdToDelete)
                 } catch (e: Exception) {
-                    Log.e("ItemDetailVM", "Failed to delete item: ${e.message}")
+                    Timber.e("Failed to delete item: ${e.message}")
                 }
             }
         }
@@ -185,7 +185,7 @@ class ItemDetailViewModel
                 try {
                     fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate)
                 } catch (e: Exception) {
-                    Log.e("ItemDetailVM", "Failed to add new instance: ${e.message}")
+                    Timber.e("Failed to add new instance: ${e.message}")
                 }
             }
         }
@@ -238,7 +238,7 @@ class ItemDetailViewModel
                             expirationDate = expirationDate
                         )
                     } catch (e: Exception) {
-                        Log.e("ItemDetailVM", "Failed to update expiration: ${e.message}")
+                        Timber.e("Failed to update expiration: ${e.message}")
                     }
                 }
             }
@@ -252,3 +252,4 @@ class ItemDetailViewModel
             data class Error(val message: String) : ItemDetailUiState
         }
     }
+

@@ -1,7 +1,7 @@
 package fyi.goodbye.fridgy.ui.fridgeSettings
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -91,7 +91,7 @@ class FridgeSettingsViewModel
                                 _canManageFridge.value = userRole == HouseholdRole.OWNER ||
                                     userRole == HouseholdRole.MANAGER
                             } catch (e: Exception) {
-                                Log.e("FridgeSettingsVM", "Error checking fridge management permission: ${e.message}")
+                                Timber.e("Error checking fridge management permission: ${e.message}")
                                 _canManageFridge.value = false
                             }
                         }
@@ -100,7 +100,7 @@ class FridgeSettingsViewModel
                     }
                 } catch (e: Exception) {
                     _uiState.value = FridgeSettingsUiState.Error(e.message ?: "Unknown error")
-                    Log.e("FridgeSettingsVM", "Error loading fridge details: ${e.message}")
+                    Timber.e("Error loading fridge details: ${e.message}")
                 }
             }
         }
@@ -117,16 +117,16 @@ class FridgeSettingsViewModel
                 try {
                     // Log debugging info
                     val fridge = fridgeRepository.getRawFridgeById(fridgeId)
-                    Log.d("FridgeSettingsVM", "Attempting to delete fridge: $fridgeId")
-                    Log.d("FridgeSettingsVM", "Fridge householdId: ${fridge?.householdId}")
-                    Log.d("FridgeSettingsVM", "Current user ID: $currentUserId")
-                    Log.d("FridgeSettingsVM", "Can manage fridge: ${_canManageFridge.value}")
+                    Timber.d("Attempting to delete fridge: $fridgeId")
+                    Timber.d("Fridge householdId: ${fridge?.householdId}")
+                    Timber.d("Current user ID: $currentUserId")
+                    Timber.d("Can manage fridge: ${_canManageFridge.value}")
 
                     fridgeRepository.deleteFridge(fridgeId)
                     onSuccess()
                 } catch (e: Exception) {
                     _actionError.value = e.message
-                    Log.e("FridgeSettingsVM", "Error deleting fridge: ${e.message}")
+                    Timber.e("Error deleting fridge: ${e.message}")
                 } finally {
                     _isDeleting.value = false
                 }
@@ -142,3 +142,4 @@ class FridgeSettingsViewModel
             data class Error(val message: String) : FridgeSettingsUiState
         }
     }
+

@@ -76,3 +76,4 @@ class DisplayFridgeTest {
         assertEquals("household-2", displayFridge.householdId)
     }
 }
+

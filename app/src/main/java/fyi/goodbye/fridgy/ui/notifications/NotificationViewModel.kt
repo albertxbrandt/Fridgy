@@ -1,7 +1,7 @@
 package fyi.goodbye.fridgy.ui.notifications
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -37,7 +37,7 @@ class NotificationViewModel
         private val repository: NotificationRepository
     ) : ViewModel() {
         companion object {
-            private const val TAG = "NotificationViewModel"
+            
         }
 
         /**
@@ -60,7 +60,7 @@ class NotificationViewModel
                     NotificationUiState.Success(notifications)
                 }
                 .catch { error ->
-                    Log.e(TAG, "Error loading notifications", error)
+                    Timber.e(error, "Error loading notifications")
                     emit(
                         NotificationUiState.Error(
                             error.message ?: context.getString(R.string.failed_to_load_notifications)
@@ -79,7 +79,7 @@ class NotificationViewModel
         val unreadCount: StateFlow<Int> =
             repository.getUnreadCountFlow()
                 .catch { error ->
-                    Log.e(TAG, "Error loading unread count", error)
+                    Timber.e(error, "Error loading unread count")
                     emit(0)
                 }
                 .stateIn(
@@ -110,11 +110,11 @@ class NotificationViewModel
                 repository.markAsRead(notificationId)
                     .onSuccess {
                         _operationState.value = OperationState.Success("Marked as read")
-                        Log.d(TAG, "Notification $notificationId marked as read")
+                        Timber.d("Notification $notificationId marked as read")
                     }
                     .onFailure { error ->
                         _operationState.value = OperationState.Error("Failed to mark as read")
-                        Log.e(TAG, "Error marking notification as read", error)
+                        Timber.e(error, "Error marking notification as read")
                     }
             }
         }
@@ -128,11 +128,11 @@ class NotificationViewModel
                 repository.markAllAsRead()
                     .onSuccess {
                         _operationState.value = OperationState.Success("All marked as read")
-                        Log.d(TAG, "All notifications marked as read")
+                        Timber.d("All notifications marked as read")
                     }
                     .onFailure { error ->
                         _operationState.value = OperationState.Error("Failed to mark all as read")
-                        Log.e(TAG, "Error marking all notifications as read", error)
+                        Timber.e(error, "Error marking all notifications as read")
                     }
             }
         }
@@ -146,11 +146,11 @@ class NotificationViewModel
                 repository.deleteNotification(notificationId)
                     .onSuccess {
                         _operationState.value = OperationState.Success("Notification deleted")
-                        Log.d(TAG, "Notification $notificationId deleted")
+                        Timber.d("Notification $notificationId deleted")
                     }
                     .onFailure { error ->
                         _operationState.value = OperationState.Error("Failed to delete notification")
-                        Log.e(TAG, "Error deleting notification", error)
+                        Timber.e(error, "Error deleting notification")
                     }
             }
         }
@@ -162,3 +162,4 @@ class NotificationViewModel
             _operationState.value = OperationState.Idle
         }
     }
+

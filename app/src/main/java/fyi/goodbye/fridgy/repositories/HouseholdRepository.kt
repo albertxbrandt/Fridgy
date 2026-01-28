@@ -3,7 +3,7 @@ package fyi.goodbye.fridgy.repositories
 
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import android.util.Log
+import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
@@ -59,7 +59,7 @@ class HouseholdRepository(
     private val notificationRepository: NotificationRepository
 ) {
     companion object {
-        private const val TAG = "HouseholdRepository"
+        
     }
 
     // ==================== Household CRUD ====================
@@ -72,20 +72,20 @@ class HouseholdRepository(
         callbackFlow {
             val currentUserId =
                 auth.currentUser?.uid ?: run {
-                    Log.d(TAG, "No current user, sending empty list")
+                    Timber.d("No current user, sending empty list")
                     trySend(emptyList()).isSuccess
                     close()
                     return@callbackFlow
                 }
 
-            Log.d(TAG, "Starting households listener for user: $currentUserId")
+            Timber.d("Starting households listener for user: $currentUserId")
 
             val listener =
                 firestore.collection(FirestoreCollections.HOUSEHOLDS)
                     .whereArrayContains(FirestoreFields.MEMBERS, currentUserId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
-                            Log.e(TAG, "Error fetching households: ${e.message}")
+                            Timber.e("Error fetching households: ${e.message}")
                             // Send empty list on error instead of closing with exception
                             trySend(emptyList()).isSuccess
                             return@addSnapshotListener
@@ -94,11 +94,11 @@ class HouseholdRepository(
                             snapshot?.documents?.mapNotNull { doc ->
                                 doc.toObject(Household::class.java)?.copy(id = doc.id)
                             } ?: emptyList()
-                        Log.d(TAG, "Fetched ${households.size} households")
+                        Timber.d("Fetched ${households.size} households")
                         trySend(households).isSuccess
                     }
             awaitClose {
-                Log.d(TAG, "Closing households listener")
+                Timber.d("Closing households listener")
                 listener.remove()
             }
         }
@@ -111,16 +111,16 @@ class HouseholdRepository(
         return try {
             val doc = firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).get().await()
             if (!doc.exists()) {
-                Log.d(TAG, "Household $householdId does not exist")
+                Timber.d("Household $householdId does not exist")
                 return null
             }
             doc.toObject(Household::class.java)?.copy(id = doc.id)
         } catch (e: Exception) {
             // Silently handle permission errors - user likely no longer has access
             if (e.message?.contains("PERMISSION_DENIED") == true) {
-                Log.d(TAG, "Permission denied for household $householdId - user likely removed")
+                Timber.d("Permission denied for household $householdId - user likely removed")
             } else {
-                Log.e(TAG, "Error fetching household $householdId: ${e.message}")
+                Timber.e("Error fetching household $householdId: ${e.message}")
             }
             null
         }
@@ -136,7 +136,7 @@ class HouseholdRepository(
                     .document(householdId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
-                            Log.e(TAG, "Error listening to household: ${e.message}")
+                            Timber.e("Error listening to household: ${e.message}")
                             trySend(null).isSuccess
                             return@addSnapshotListener
                         }
@@ -249,7 +249,7 @@ class HouseholdRepository(
             }
             .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
             .catch { e: Throwable ->
-                Log.e(TAG, "Error in getDisplayHouseholdsForCurrentUser: ${e.message}")
+                Timber.e("Error in getDisplayHouseholdsForCurrentUser: ${e.message}")
                 emit(emptyList())
             }
 
@@ -270,7 +270,7 @@ class HouseholdRepository(
                     .whereArrayContains(FirestoreFields.MEMBERS, currentUserId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
-                            Log.e(TAG, "Error in households listener: ${e.message}")
+                            Timber.e("Error in households listener: ${e.message}")
                             trySend(emptyList()).isSuccess
                             return@addSnapshotListener
                         }
@@ -298,13 +298,12 @@ class HouseholdRepository(
                         if (e != null) {
                             // Handle permission errors gracefully (user might not have access yet)
                             if (e.message?.contains("PERMISSION_DENIED") == true) {
-                                Log.d(
-                                    TAG,
+                                Timber.d(
                                     "Permission denied for fridge count in household $householdId - setting count to 0"
                                 )
                                 trySend(0).isSuccess
                             } else {
-                                Log.e(TAG, "Error in fridge count listener for household $householdId: ${e.message}")
+                                Timber.e("Error in fridge count listener for household $householdId: ${e.message}")
                                 trySend(0).isSuccess
                             }
                             return@addSnapshotListener
@@ -389,7 +388,7 @@ class HouseholdRepository(
         // Delete the household document itself
         firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).delete().await()
 
-        Log.d(TAG, "Successfully deleted household: $householdId")
+        Timber.d("Successfully deleted household: $householdId")
     }
 
     /**
@@ -486,9 +485,10 @@ class HouseholdRepository(
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching user profiles: ${e.message}")
+            Timber.e("Error fetching user profiles: ${e.message}")
         }
 
         return result
     }
 }
+

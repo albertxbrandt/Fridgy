@@ -1,6 +1,6 @@
 package fyi.goodbye.fridgy.repositories
 
-import android.util.Log
+import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldPath
@@ -61,7 +61,6 @@ class FridgeRepository(
 ) {
 
     companion object {
-        private const val TAG = "FridgeRepository"
         private const val PRESENCE_TIMEOUT_MS = 30_000L
         private const val USER_PROFILE_CACHE_SIZE = 100
 
@@ -157,13 +156,12 @@ class FridgeRepository(
                 }
             }
 
-            Log.d(
-                TAG,
+            Timber.d(
                 "Fetched ${result.size} user profiles (${result.size - missingIds.size} from cache, ${missingIds.size} from network)"
             )
             result
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching user profiles by IDs: ${e.message}", e)
+            Timber.e(e, "Error fetching user profiles by IDs: ${e.message}")
             emptyMap()
         }
     }
@@ -181,7 +179,7 @@ class FridgeRepository(
         return try {
             this.toObject(Fridge::class.java)?.copy(id = this.id)
         } catch (e: Exception) {
-            Log.e(TAG, "Error parsing fridge document: ${e.message}")
+            Timber.e("Error parsing fridge document: ${e.message}")
             return null
         }
     }
@@ -203,9 +201,9 @@ class FridgeRepository(
                     .await()
 
             fridgeCache = snapshot.documents.mapNotNull { it.toFridgeCompat() }
-            Log.d(TAG, "Preloaded ${fridgeCache.size} fridges from cache")
+            Timber.d("Preloaded ${fridgeCache.size} fridges from cache")
         } catch (e: Exception) {
-            Log.w(TAG, "Could not preload from cache (likely first run): ${e.message}")
+            Timber.w("Could not preload from cache (likely first run): ${e.message}")
         }
     }
 
@@ -227,14 +225,13 @@ class FridgeRepository(
                         if (e != null) {
                             // Check if this is a permission error
                             if (e.message?.contains("PERMISSION_DENIED") == true) {
-                                Log.w(
-                                    TAG,
+                                Timber.w(
                                     "Permission denied for household $householdId - user likely removed. Clearing cache."
                                 )
                                 // Clear any cached fridges from this household
                                 fridgeCache = fridgeCache.filter { it.householdId != householdId }
                             } else {
-                                Log.e(TAG, "Error listening to fridges for household: ${e.message}", e)
+                                Timber.e(e, "Error listening to fridges for household: ${e.message}")
                             }
                             // Send empty list instead of closing with error to prevent app crash
                             trySend(emptyList()).isSuccess
@@ -259,7 +256,7 @@ class FridgeRepository(
             val doc = firestore.collection(FirestoreCollections.FRIDGES).document(fridgeId).get().await()
             doc.toFridgeCompat()
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching raw fridge: ${e.message}")
+            Timber.e("Error fetching raw fridge: ${e.message}")
             null
         }
     }
@@ -377,23 +374,23 @@ class FridgeRepository(
 
         val fridgeRef = firestore.collection(FirestoreCollections.FRIDGES).document(fridgeId)
 
-        Log.d(TAG, "Attempting to read items for fridge: $fridgeId")
+        Timber.d("Attempting to read items for fridge: $fridgeId")
         val items =
             try {
                 fridgeRef.collection(FirestoreCollections.ITEMS).get().await()
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to read items subcollection: ${e.message}")
+                Timber.e("Failed to read items subcollection: ${e.message}")
                 throw e
             }
 
-        Log.d(TAG, "Successfully read ${items.size()} items, creating batch delete")
+        Timber.d("Successfully read ${items.size()} items, creating batch delete")
         val batch = firestore.batch()
         items.documents.forEach { batch.delete(it.reference) }
         batch.delete(fridgeRef)
 
-        Log.d(TAG, "Committing batch delete (${items.size()} items + 1 fridge)")
+        Timber.d("Committing batch delete (${items.size()} items + 1 fridge)")
         batch.commit().await()
-        Log.d(TAG, "Batch delete successful")
+        Timber.d("Batch delete successful")
     }
 
     // ========================================
@@ -418,10 +415,10 @@ class FridgeRepository(
                     .await()
 
             val items = snapshot.documents.mapNotNull { it.toObject(Item::class.java) }
-            Log.d(TAG, "Preloaded ${items.size} items from cache for fridge $fridgeId")
+            Timber.d("Preloaded ${items.size} items from cache for fridge $fridgeId")
             items
         } catch (e: Exception) {
-            Log.w(TAG, "Could not preload items from cache: ${e.message}")
+            Timber.w("Could not preload items from cache: ${e.message}")
             emptyList()
         }
     }
@@ -442,7 +439,7 @@ class FridgeRepository(
                 firestore.collection(FirestoreCollections.FRIDGES).document(fridgeId).collection(FirestoreCollections.ITEMS)
                     .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, e ->
                         if (e != null) {
-                            Log.e(TAG, "Error fetching items for fridge $fridgeId: ${e.message}", e)
+                            Timber.e(e, "Error fetching items for fridge $fridgeId: ${e.message}")
                             // Send empty list instead of closing with error to prevent app crash
                             trySend(emptyList()).isSuccess
                             return@addSnapshotListener
@@ -453,7 +450,7 @@ class FridgeRepository(
                                 it.toObject(Item::class.java)?.copy(id = it.id)
                             } ?: emptyList()
 
-                        Log.d(TAG, "Items snapshot received for fridge $fridgeId: ${items.size} items")
+                        Timber.d("Items snapshot received for fridge $fridgeId: ${items.size} items")
 
                         // Create DisplayItems without product info (ViewModel will fetch products)
                         val displayItems =
@@ -493,7 +490,7 @@ class FridgeRepository(
                     .await()
             snapshot.size()
         } catch (e: Exception) {
-            Log.e(TAG, "Error getting item count for fridge $fridgeId: ${e.message}")
+            Timber.e("Error getting item count for fridge $fridgeId: ${e.message}")
             0
         }
     }
@@ -516,7 +513,7 @@ class FridgeRepository(
         upc: String,
         expirationDate: Long? = null
     ): Item {
-        Log.d(TAG, "Adding item instance for UPC: $upc with expiration: $expirationDate")
+        Timber.d("Adding item instance for UPC: $upc with expiration: $expirationDate")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
 
         val newItem =
@@ -535,10 +532,10 @@ class FridgeRepository(
                     .add(newItem)
                     .await()
 
-            Log.d(TAG, "Added item instance: ${docRef.id} (UPC: $upc)")
+            Timber.d("Added item instance: ${docRef.id} (UPC: $upc)")
             return newItem.copy(id = docRef.id)
         } catch (e: Exception) {
-            Log.e(TAG, "Error adding item to fridge", e)
+            Timber.e(e, "Error adding item to fridge")
             throw e
         }
     }
@@ -571,9 +568,9 @@ class FridgeRepository(
                 )
                 .await()
 
-            Log.d(TAG, "Updated expiration date for item: $itemId")
+            Timber.d("Updated expiration date for item: $itemId")
         } catch (e: Exception) {
-            Log.e(TAG, "Error updating expiration date", e)
+            Timber.e(e, "Error updating expiration date")
             throw e
         }
     }
@@ -596,9 +593,9 @@ class FridgeRepository(
                 .delete()
                 .await()
 
-            Log.d(TAG, "Deleted item: $itemId")
+            Timber.d("Deleted item: $itemId")
         } catch (e: Exception) {
-            Log.e(TAG, "Error deleting item", e)
+            Timber.e(e, "Error deleting item")
             throw e
         }
     }
@@ -619,7 +616,7 @@ class FridgeRepository(
             val listener =
                 colRef.addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        Log.e(TAG, "Error fetching shopping list items: ${e.message}", e)
+                        Timber.e(e, "Error fetching shopping list items: ${e.message}")
                         // Send empty list instead of closing with error to prevent app crash
                         trySend(emptyList()).isSuccess
                         return@addSnapshotListener
@@ -693,7 +690,7 @@ class FridgeRepository(
             val listener =
                 presenceRef.addSnapshotListener { snapshot, e ->
                     if (e != null) {
-                        Log.e(TAG, "Error fetching shopping list presence: ${e.message}", e)
+                        Timber.e(e, "Error fetching shopping list presence: ${e.message}")
                         // Send empty list instead of closing with error to prevent app crash
                         trySend(emptyList()).isSuccess
                         return@addSnapshotListener
@@ -732,7 +729,7 @@ class FridgeRepository(
                                 }
                             trySend(viewers).isSuccess
                         } catch (ex: Exception) {
-                            Log.e(TAG, "Error fetching user profiles for presence", ex)
+                            Timber.e(ex, "Error fetching user profiles for presence")
                             trySend(emptyList()).isSuccess
                         }
                     }
@@ -878,7 +875,7 @@ class FridgeRepository(
                         batch.set(newItemRef, newItem)
                     }
 
-                    Log.d(TAG, "Adding $userQuantity instance(s) of ${item.upc} to fridge $fridgeId")
+                    Timber.d("Adding $userQuantity instance(s) of ${item.upc} to fridge $fridgeId")
 
                     // Update shopping list item
                     val shoppingItemRef = shoppingListRef.document(item.upc)
@@ -909,9 +906,9 @@ class FridgeRepository(
             }
 
             batch.commit().await()
-            Log.d(TAG, "Shopping session completed successfully for fridge $fridgeId")
+            Timber.d("Shopping session completed successfully for fridge $fridgeId")
         } catch (e: Exception) {
-            Log.e(TAG, "Error completing shopping session", e)
+            Timber.e(e, "Error completing shopping session")
             throw e
         }
     }

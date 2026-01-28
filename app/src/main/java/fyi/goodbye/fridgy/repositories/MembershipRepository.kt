@@ -3,7 +3,7 @@ package fyi.goodbye.fridgy.repositories
 
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import android.util.Log
+import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -49,7 +49,7 @@ class MembershipRepository(
     private val householdRepository: HouseholdRepository
 ) {
     companion object {
-        private const val TAG = "MembershipRepository"
+        
         private const val INVITE_CODE_LENGTH = 6
         private const val INVITE_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // Exclude confusing chars (I, O, 0, 1)
     }
@@ -161,11 +161,11 @@ class MembershipRepository(
             } else {
                 // Household might not be fetchable due to permission issues
                 // Log and proceed with removal attempt
-                Log.w(TAG, "Could not fetch household $householdId before leaving, proceeding with removal")
+                Timber.w("Could not fetch household $householdId before leaving, proceeding with removal")
             }
         } catch (e: Exception) {
             // Log error but continue with removal - permission issues shouldn't block leaving
-            Log.w(TAG, "Error fetching household $householdId before leaving: ${e.message}, proceeding with removal")
+            Timber.w("Error fetching household $householdId before leaving: ${e.message}, proceeding with removal")
         }
 
         // Attempt to remove user from household regardless of fetch result
@@ -173,9 +173,9 @@ class MembershipRepository(
             firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
                 .update(FirestoreFields.MEMBERS, FieldValue.arrayRemove(currentUserId))
                 .await()
-            Log.d(TAG, "Successfully removed user from household $householdId")
+            Timber.d("Successfully removed user from household $householdId")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to remove user from household: ${e.message}")
+            Timber.e("Failed to remove user from household: ${e.message}")
             throw e
         }
     }
@@ -234,9 +234,9 @@ class MembershipRepository(
                 isActive = true
             )
 
-        Log.d(TAG, "Creating invite code: $code for household: $householdId, isActive: true")
+        Timber.d("Creating invite code: $code for household: $householdId, isActive: true")
         firestore.collection(FirestoreCollections.INVITE_CODES).document(code).set(inviteCode).await()
-        Log.d(TAG, "Invite code created successfully")
+        Timber.d("Invite code created successfully")
         return inviteCode
     }
 
@@ -256,7 +256,7 @@ class MembershipRepository(
                 doc.toObject(InviteCode::class.java)?.copy(code = doc.id)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching invite codes: ${e.message}")
+            Timber.e("Error fetching invite codes: ${e.message}")
             emptyList()
         }
     }
@@ -267,14 +267,14 @@ class MembershipRepository(
      */
     fun getInviteCodesFlow(householdId: String): Flow<List<InviteCode>> =
         callbackFlow {
-            Log.d(TAG, "Starting invite codes listener for household: $householdId")
+            Timber.d("Starting invite codes listener for household: $householdId")
             val listener =
                 firestore.collection(FirestoreCollections.INVITE_CODES)
                     .whereEqualTo(FirestoreFields.HOUSEHOLD_ID, householdId)
                     .whereEqualTo(FirestoreFields.ACTIVE, true)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
-                            Log.e(TAG, "Error loading invite codes: ${e.message}", e)
+                            Timber.e(e, "Error loading invite codes: ${e.message}")
                             // Don't crash - just close the flow gracefully
                             // This happens when user loses permission (e.g., leaves household)
                             channel.close()
@@ -284,7 +284,7 @@ class MembershipRepository(
                             snapshot?.documents?.mapNotNull { doc ->
                                 doc.toObject(InviteCode::class.java)?.copy(code = doc.id)
                             } ?: emptyList()
-                        Log.d(TAG, "Loaded ${codes.size} invite codes")
+                        Timber.d("Loaded ${codes.size} invite codes")
                         trySend(codes).isSuccess
                     }
             awaitClose { listener.remove() }
@@ -383,7 +383,7 @@ class MembershipRepository(
             val household = householdRepository.getHouseholdById(householdId) ?: return false
             household.members.contains(currentUserId)
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking membership: ${e.message}")
+            Timber.e("Error checking membership: ${e.message}")
             false
         }
     }
@@ -408,8 +408,9 @@ class MembershipRepository(
 
             inviteCode
         } catch (e: Exception) {
-            Log.e(TAG, "Error validating invite code: ${e.message}")
+            Timber.e("Error validating invite code: ${e.message}")
             null
         }
     }
 }
+

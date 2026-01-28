@@ -1,6 +1,6 @@
 package fyi.goodbye.fridgy.repositories
 
-import android.util.Log
+import timber.log.Timber
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -33,7 +33,7 @@ class UserRepository(
     private val auth: FirebaseAuth
 ) {
     companion object {
-        private const val TAG = "UserRepository"
+        
     }
 
     /**
@@ -58,7 +58,7 @@ class UserRepository(
                     .await()
             !existingProfiles.isEmpty
         } catch (e: Exception) {
-            Log.e(TAG, "Error checking username availability", e)
+            Timber.e(e, "Error checking username availability")
             // Return true (taken) on error to be safe
             true
         }
@@ -95,7 +95,7 @@ class UserRepository(
         firestore.collection(FirestoreCollections.USERS).document(uid).set(userMap).await()
         firestore.collection(FirestoreCollections.USER_PROFILES).document(uid).set(profileMap).await()
 
-        Log.d(TAG, "Created user documents for UID: $uid")
+        Timber.d("Created user documents for UID: $uid")
     }
 
     /**
@@ -103,7 +103,7 @@ class UserRepository(
      */
     fun signOut() {
         auth.signOut()
-        Log.d(TAG, "User signed out")
+        Timber.d("User signed out")
     }
 
     /**
@@ -121,7 +121,7 @@ class UserRepository(
                     .await()
             doc.toObject(UserProfile::class.java)?.copy(uid = userId)
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching user profile: ${e.message}", e)
+            Timber.e(e, "Error fetching user profile: ${e.message}")
             null
         }
     }
@@ -157,7 +157,7 @@ class UserRepository(
         }
         batch.commit().await()
 
-        Log.d(TAG, "Updated username to: $newUsername")
+        Timber.d("Updated username to: $newUsername")
     }
 
     /**
@@ -212,10 +212,11 @@ class UserRepository(
             // 4. Delete Firebase Auth account (must be last)
             auth.currentUser?.delete()?.await()
 
-            Log.d(TAG, "Successfully deleted user account: $userId")
+            Timber.d("Successfully deleted user account: $userId")
         } catch (e: Exception) {
-            Log.e(TAG, "Error deleting account", e)
+            Timber.e(e, "Error deleting account")
             throw e
         }
     }
 }
+

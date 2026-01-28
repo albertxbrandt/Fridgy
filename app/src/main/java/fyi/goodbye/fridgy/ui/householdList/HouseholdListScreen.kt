@@ -36,6 +36,7 @@ import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SidebarMenuItem
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
+import timber.log.Timber
 
 /**
  * The main screen displaying a list of the user's households.
@@ -116,9 +117,9 @@ private fun HouseholdListContent(
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("fridgy_prefs", Context.MODE_PRIVATE)
         val inviteCode = prefs.getString("pending_invite_code", null)
-        android.util.Log.d("Fridgy_DeepLink", "HouseholdListScreen checking for pending code: $inviteCode")
+        Timber.d("Fridgy_DeepLink", "HouseholdListScreen checking for pending code: $inviteCode")
         if (inviteCode != null) {
-            android.util.Log.d("Fridgy_DeepLink", "Found pending code, opening dialog")
+            Timber.d("Fridgy_DeepLink", "Found pending code, opening dialog")
             pendingInviteCode = inviteCode
             showJoinHouseholdDialog = true
             // Clear the pending code
@@ -557,3 +558,5 @@ private fun HouseholdListPreviewError() {
         )
     }
 }
+
+

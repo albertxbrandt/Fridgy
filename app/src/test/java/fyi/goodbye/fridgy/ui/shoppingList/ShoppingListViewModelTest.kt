@@ -544,3 +544,4 @@ class ShoppingListViewModelTest {
     // These test Flow collection with repository.getShoppingListItems().collect() which
     // requires integration testing with Firebase emulator for proper Flow behavior testing
 }
+

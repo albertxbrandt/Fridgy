@@ -1,7 +1,7 @@
 package fyi.goodbye.fridgy.ui.householdList
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
@@ -76,9 +76,9 @@ class HouseholdListViewModel
 
                 // Collect real-time stream of display households with live fridge counts
                 viewModelScope.launch {
-                    Log.d("HouseholdListVM", "Starting to collect display households flow")
+                    Timber.d("Starting to collect display households flow")
                     householdRepository.getDisplayHouseholdsForCurrentUser().collectLatest { displayHouseholds ->
-                        Log.d("HouseholdListVM", "Received ${displayHouseholds.size} display households from flow")
+                        Timber.d("Received ${displayHouseholds.size} display households from flow")
                         _householdsUiState.value = HouseholdUiState.Success(displayHouseholds)
                     }
                 }
@@ -132,3 +132,4 @@ class HouseholdListViewModel
             data class Error(val message: String) : HouseholdUiState
         }
     }
+

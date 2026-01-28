@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.adminPanel
 
 import android.content.Context
-import android.util.Log
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import fyi.goodbye.fridgy.R
@@ -83,13 +82,7 @@ class AdminPanelViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)
-        every { Log.d(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
-        every { Log.w(any<String>(), any<String>()) } returns 0
-
-        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
         mockAdminRepository = mockk(relaxed = true)
 
         every { mockContext.getString(R.string.error_failed_to_load_admin_data, any()) } returns "Failed to load admin data"
@@ -283,3 +276,4 @@ class AdminPanelViewModelTest {
             coVerify(exactly = 2) { mockAdminRepository.getAllProducts() }
         }
 }
+

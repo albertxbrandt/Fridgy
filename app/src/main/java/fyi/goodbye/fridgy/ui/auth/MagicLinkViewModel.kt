@@ -2,7 +2,7 @@ package fyi.goodbye.fridgy.ui.auth
 
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import timber.log.Timber
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -70,7 +70,7 @@ class MagicLinkViewModel
         private val magicLinkHandler: MagicLinkHandler
     ) : ViewModel() {
         companion object {
-            private const val TAG = "MagicLinkViewModel"
+            
             private const val PREFS_NAME = "fridgy_auth"
             private const val KEY_EMAIL_FOR_SIGN_IN = "emailForSignIn"
 
@@ -170,10 +170,10 @@ class MagicLinkViewModel
                     // Save the email locally so we can use it when the user clicks the link
                     saveEmailForSignIn(email)
 
-                    Log.d(TAG, "Magic link sent to: $email via SendGrid")
+                    Timber.d("Magic link sent to: $email via SendGrid")
                     uiState = MagicLinkUiState.EmailSent
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to send magic link via Cloud Function", e)
+                    Timber.e(e, "Failed to send magic link via Cloud Function")
                     uiState = MagicLinkUiState.Error(getErrorMessage(e))
                 } finally {
                     isLoading = false
@@ -190,7 +190,7 @@ class MagicLinkViewModel
             val emailLink = intent?.data?.toString()
 
             if (emailLink == null || !auth.isSignInWithEmailLink(emailLink)) {
-                Log.w(TAG, "Invalid or missing magic link")
+                Timber.w("Invalid or missing magic link")
                 return
             }
 
@@ -223,7 +223,7 @@ class MagicLinkViewModel
                         return@launch
                     }
 
-                    Log.d(TAG, "Successfully signed in with magic link: ${user.uid}")
+                    Timber.d("Successfully signed in with magic link: ${user.uid}")
 
                     // Clear the saved email
                     clearSavedEmail()
@@ -240,7 +240,7 @@ class MagicLinkViewModel
                         _authSuccess.emit(true)
                     }
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to complete magic link sign-in", e)
+                    Timber.e(e, "Failed to complete magic link sign-in")
                     uiState = MagicLinkUiState.Error(getErrorMessage(e))
                 } finally {
                     isLoading = false
@@ -303,10 +303,10 @@ class MagicLinkViewModel
                         username = trimmedUsername
                     )
 
-                    Log.d(TAG, "User profile created for: ${currentUser.uid}")
+                    Timber.d("User profile created for: ${currentUser.uid}")
                     _authSuccess.emit(true)
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to create user profile", e)
+                    Timber.e(e, "Failed to create user profile")
                     uiState = MagicLinkUiState.Error(getErrorMessage(e))
                 } finally {
                     isLoading = false
@@ -404,9 +404,10 @@ class MagicLinkViewModel
                 }
                 else -> {
                     // Unknown exception
-                    Log.w(TAG, "Unexpected exception type: ${exception::class.simpleName}")
+                    Timber.w("Unexpected exception type: ${exception::class.simpleName}")
                     exception.message ?: "An unexpected error occurred. Please try again."
                 }
             }
         }
     }
+

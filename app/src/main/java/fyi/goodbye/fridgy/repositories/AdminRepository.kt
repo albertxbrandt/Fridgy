@@ -1,6 +1,6 @@
 package fyi.goodbye.fridgy.repositories
 
-import android.util.Log
+import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -52,7 +52,7 @@ class AdminRepository(
             val doc = adminsCollection.document(currentUserId).get().await()
             doc.exists()
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error checking admin status: ${e.message}")
+            Timber.e("Error checking admin status: ${e.message}")
             false
         }
     }
@@ -71,7 +71,7 @@ class AdminRepository(
                 null
             }
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error fetching admin info: ${e.message}")
+            Timber.e("Error fetching admin info: ${e.message}")
             null
         }
     }
@@ -106,7 +106,7 @@ class AdminRepository(
                             createdAt = createdAt
                         )
                     } catch (e: Exception) {
-                        Log.e("AdminRepo", "Error parsing user ${doc.id}: ${e.message}")
+                        Timber.e("Error parsing user ${doc.id}: ${e.message}")
                         null
                     }
                 }.associateBy { it.uid }
@@ -126,7 +126,7 @@ class AdminRepository(
                 )
             }
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error fetching users: ${e.message}")
+            Timber.e("Error fetching users: ${e.message}")
             emptyList()
         }
     }
@@ -180,7 +180,7 @@ class AdminRepository(
                             createdAt = createdAt
                         )
                     } catch (e: Exception) {
-                        Log.e("AdminRepo", "Error parsing user ${doc.id}: ${e.message}")
+                        Timber.e("Error parsing user ${doc.id}: ${e.message}")
                         null
                     }
                 }
@@ -215,7 +215,7 @@ class AdminRepository(
                 hasMore = hasMore
             )
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error fetching paginated users: ${e.message}")
+            Timber.e("Error fetching paginated users: ${e.message}")
             PaginatedResult(emptyList(), null, false)
         }
     }
@@ -232,7 +232,7 @@ class AdminRepository(
                     .get()
                     .await()
 
-            Log.d("AdminRepo", "Fetched ${snapshot.documents.size} product documents from Firestore")
+            Timber.d("Fetched ${snapshot.documents.size} product documents from Firestore")
 
             val products =
                 snapshot.documents.mapNotNull { doc ->
@@ -258,15 +258,15 @@ class AdminRepository(
                             lastUpdated = lastUpdated
                         )
                     } catch (e: Exception) {
-                        Log.e("AdminRepo", "Failed to deserialize product ${doc.id}: ${e.message}")
+                        Timber.e("Failed to deserialize product ${doc.id}: ${e.message}")
                         null
                     }
                 }.sortedByDescending { it.lastUpdated }
 
-            Log.d("AdminRepo", "Successfully deserialized ${products.size} products")
+            Timber.d("Successfully deserialized ${products.size} products")
             products
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error fetching products: ${e.message}", e)
+            Timber.e(e, "Error fetching products: ${e.message}")
             emptyList()
         }
     }
@@ -301,7 +301,7 @@ class AdminRepository(
             val productDocuments = snapshot.documents.take(pageSize)
             val lastDocument = if (hasMore) productDocuments.lastOrNull() else null
 
-            Log.d("AdminRepo", "Fetched ${productDocuments.size} products (hasMore: $hasMore)")
+            Timber.d("Fetched ${productDocuments.size} products (hasMore: $hasMore)")
 
             val products =
                 productDocuments.mapNotNull { doc ->
@@ -327,7 +327,7 @@ class AdminRepository(
                             lastUpdated = lastUpdated
                         )
                     } catch (e: Exception) {
-                        Log.e("AdminRepo", "Failed to deserialize product ${doc.id}: ${e.message}")
+                        Timber.e("Failed to deserialize product ${doc.id}: ${e.message}")
                         null
                     }
                 }
@@ -338,7 +338,7 @@ class AdminRepository(
                 hasMore = hasMore
             )
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error fetching paginated products: ${e.message}", e)
+            Timber.e(e, "Error fetching paginated products: ${e.message}")
             PaginatedResult(emptyList(), null, false)
         }
     }
@@ -353,7 +353,7 @@ class AdminRepository(
                 doc.toObject(Fridge::class.java)?.copy(id = doc.id)
             }
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error fetching fridges: ${e.message}")
+            Timber.e("Error fetching fridges: ${e.message}")
             emptyList()
         }
     }
@@ -377,7 +377,7 @@ class AdminRepository(
 
             true
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error deleting user: ${e.message}")
+            Timber.e("Error deleting user: ${e.message}")
             false
         }
     }
@@ -401,7 +401,7 @@ class AdminRepository(
 
             true
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error updating user: ${e.message}")
+            Timber.e("Error updating user: ${e.message}")
             false
         }
     }
@@ -420,12 +420,12 @@ class AdminRepository(
                 imageRef.delete().await()
             } catch (e: Exception) {
                 // Log but don't fail if image doesn't exist
-                Log.w("AdminRepo", "Could not delete product image: ${e.message}")
+                Timber.w("Could not delete product image: ${e.message}")
             }
 
             true
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error deleting product: ${e.message}")
+            Timber.e("Error deleting product: ${e.message}")
             false
         }
     }
@@ -450,8 +450,9 @@ class AdminRepository(
             firestore.collection(FirestoreCollections.PRODUCTS).document(upc).update(updates).await()
             true
         } catch (e: Exception) {
-            Log.e("AdminRepo", "Error updating product: ${e.message}")
+            Timber.e("Error updating product: ${e.message}")
             false
         }
     }
 }
+

@@ -1,6 +1,6 @@
 package fyi.goodbye.fridgy.repositories
 
-import android.util.Log
+import timber.log.Timber
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
@@ -35,7 +35,7 @@ class CategoryRepository(
                     .orderBy(FirestoreFields.ORDER)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
-                            Log.e("CategoryRepo", "Error listening to categories: ${error.message}")
+                            Timber.e( "Error listening to categories: ${error.message}")
                             return@addSnapshotListener
                         }
 
@@ -60,7 +60,7 @@ class CategoryRepository(
                                             createdAt = createdAt
                                         )
                                     } catch (e: Exception) {
-                                        Log.e("CategoryRepo", "Error parsing category ${doc.id}: ${e.message}")
+                                        Timber.e( "Error parsing category ${doc.id}: ${e.message}")
                                         null
                                     }
                                 }
@@ -139,3 +139,5 @@ class CategoryRepository(
         return !result.isEmpty
     }
 }
+
+

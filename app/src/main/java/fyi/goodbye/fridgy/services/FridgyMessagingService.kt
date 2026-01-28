@@ -6,7 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.util.Log
+import timber.log.Timber
 import androidx.core.app.NotificationCompat
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
@@ -38,7 +38,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     companion object {
-        private const val TAG = "FridgyMessagingService"
+        
         private const val NOTIFICATION_ID_COUNTER_START = 1000
     }
 
@@ -59,14 +59,14 @@ class FridgyMessagingService : FirebaseMessagingService() {
      */
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        Log.d(TAG, "New FCM token: $token")
+        Timber.d("New FCM token: $token")
 
         // Save the token to Firestore via repository
         serviceScope.launch {
             try {
                 notificationRepository.refreshFcmToken()
             } catch (e: Exception) {
-                Log.e(TAG, "Error saving new FCM token", e)
+                Timber.e(e, "Error saving new FCM token")
             }
         }
     }
@@ -76,11 +76,11 @@ class FridgyMessagingService : FirebaseMessagingService() {
      */
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         super.onMessageReceived(remoteMessage)
-        Log.d(TAG, "Message received from: ${remoteMessage.from}")
+        Timber.d("Message received from: ${remoteMessage.from}")
 
         // Check if message contains a notification payload
         remoteMessage.notification?.let { notification ->
-            Log.d(TAG, "Notification payload: ${notification.title}")
+            Timber.d("Notification payload: ${notification.title}")
             showNotification(
                 title = notification.title ?: getString(R.string.app_name),
                 body = notification.body ?: "",
@@ -90,7 +90,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
 
         // Check if message contains a data payload
         if (remoteMessage.data.isNotEmpty()) {
-            Log.d(TAG, "Data payload: ${remoteMessage.data}")
+            Timber.d("Data payload: ${remoteMessage.data}")
             handleDataPayload(remoteMessage.data)
         }
     }
@@ -104,7 +104,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
         val fridgeId = data["fridgeId"]
         val itemId = data["itemId"]
 
-        Log.d(TAG, "Handling data: type=$type, fridgeId=$fridgeId, itemId=$itemId")
+        Timber.d("Handling data: type=$type, fridgeId=$fridgeId, itemId=$itemId")
 
         // Show notification with custom data
         val title = data["title"] ?: getString(R.string.app_name)
@@ -175,7 +175,7 @@ class FridgyMessagingService : FirebaseMessagingService() {
 
             val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
-            Log.d(TAG, "Notification channel created")
+            Timber.d("Notification channel created")
         }
     }
 
@@ -186,3 +186,5 @@ class FridgyMessagingService : FirebaseMessagingService() {
         }
     }
 }
+
+

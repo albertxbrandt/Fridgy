@@ -1,7 +1,7 @@
 package fyi.goodbye.fridgy.ui.householdSettings
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -105,7 +105,7 @@ class HouseholdSettingsViewModel
                                 HouseholdSettingsUiState.Error(
                                     e.message ?: context.getString(R.string.error_failed_to_load_fridge)
                                 )
-                            Log.e("HouseholdSettingsVM", "Error loading household: ${e.message}", e)
+                            Timber.e(e, "Error loading household: ${e.message}")
                         }
                     }
                 }
@@ -123,7 +123,7 @@ class HouseholdSettingsViewModel
                     } catch (e: Exception) {
                         // Ignore errors if we're leaving/deleted (permissions revoked)
                         if (!isLeavingOrDeleted) {
-                            Log.e("HouseholdSettingsVM", "Error loading invite codes: ${e.message}")
+                            Timber.e("Error loading invite codes: ${e.message}")
                         }
                     }
                 }
@@ -160,7 +160,7 @@ class HouseholdSettingsViewModel
                     val code = membershipRepository.createInviteCode(householdId, expiresAt)
                     _newInviteCode.value = code
                 } catch (e: Exception) {
-                    Log.e("HouseholdSettingsVM", "Error creating invite code: ${e.message}")
+                    Timber.e("Error creating invite code: ${e.message}")
                     _actionError.value = "Failed to create invite code: ${e.message}"
                 } finally {
                     _isCreatingInvite.value = false
@@ -176,7 +176,7 @@ class HouseholdSettingsViewModel
                 try {
                     membershipRepository.revokeInviteCode(householdId, code)
                 } catch (e: Exception) {
-                    Log.e("HouseholdSettingsVM", "Error revoking invite code: ${e.message}")
+                    Timber.e("Error revoking invite code: ${e.message}")
                     _actionError.value = "Failed to revoke invite code: ${e.message}"
                 }
             }
@@ -195,7 +195,7 @@ class HouseholdSettingsViewModel
                     // Update in background without reload - Firestore listener will update UI
                     membershipRepository.updateMemberRole(householdId, userId, newRole)
                 } catch (e: Exception) {
-                    Log.e("HouseholdSettingsVM", "Error updating member role: ${e.message}")
+                    Timber.e("Error updating member role: ${e.message}")
                     _actionError.value = "Failed to update member role: ${e.message}"
                     // Reload on error to revert optimistic update
                     loadHouseholdDetails()
@@ -211,7 +211,7 @@ class HouseholdSettingsViewModel
                     membershipRepository.removeMember(householdId, userId)
                     loadHouseholdDetails() // Refresh
                 } catch (e: Exception) {
-                    Log.e("HouseholdSettingsVM", "Error removing member: ${e.message}")
+                    Timber.e("Error removing member: ${e.message}")
                     _actionError.value = "Failed to remove member: ${e.message}"
                 }
             }
@@ -233,7 +233,7 @@ class HouseholdSettingsViewModel
             viewModelScope.launch {
                 try {
                     membershipRepository.leaveHousehold(householdId)
-                    Log.d("HouseholdSettingsVM", "Successfully left household")
+                    Timber.d("Successfully left household")
 
                     // Navigate away AFTER successful leave operation
                     onSuccess()
@@ -241,7 +241,7 @@ class HouseholdSettingsViewModel
                     // Show error to user since we haven't navigated yet
                     _actionError.value = e.message ?: "Failed to leave household"
                     _isDeletingOrLeaving.value = false
-                    Log.e("HouseholdSettingsVM", "Error leaving household: ${e.message}")
+                    Timber.e("Error leaving household: ${e.message}")
                 }
             }
         }
@@ -262,7 +262,7 @@ class HouseholdSettingsViewModel
             viewModelScope.launch {
                 try {
                     householdRepository.deleteHousehold(householdId)
-                    Log.d("HouseholdSettingsVM", "Successfully deleted household")
+                    Timber.d("Successfully deleted household")
 
                     // Navigate away AFTER successful deletion
                     onSuccess()
@@ -270,7 +270,7 @@ class HouseholdSettingsViewModel
                     // Show error to user since we haven't navigated yet
                     _actionError.value = e.message ?: "Failed to delete household"
                     _isDeletingOrLeaving.value = false
-                    Log.e("HouseholdSettingsVM", "Error deleting household: ${e.message}")
+                    Timber.e("Error deleting household: ${e.message}")
                 }
             }
         }
@@ -293,3 +293,4 @@ class HouseholdSettingsViewModel
             data class Error(val message: String) : HouseholdSettingsUiState
         }
     }
+

@@ -45,3 +45,4 @@ class CategoryTest {
         assertEquals(0, category.order)
     }
 }
+

@@ -2,7 +2,7 @@ package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.util.Log
+import timber.log.Timber
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -93,7 +93,7 @@ fun BarcodeScannerScreen(
         ) { isGranted ->
             hasCameraPermission = isGranted
             if (!isGranted) {
-                Log.w("BarcodeScannerScreen", "Camera permission denied")
+                Timber.w("Camera permission denied")
             }
         }
 
@@ -252,7 +252,7 @@ fun BarcodeScannerScreen(
                                             if (isScanningActive) {
                                                 // Set flag to false immediately to block further analysis
                                                 isScanningActive = false
-                                                Log.d("Performance", "Barcode successfully captured: $barcodeValue")
+                                                Timber.d("Barcode successfully captured: $barcodeValue")
                                                 onBarcodeScanned(barcodeValue)
                                             }
                                         }
@@ -268,7 +268,7 @@ fun BarcodeScannerScreen(
                                 imageAnalyzer
                             )
                         } catch (exc: Exception) {
-                            Log.e("BarcodeScanner", "Use case binding failed", exc)
+                            Timber.e(exc, "Use case binding failed")
                         }
                     }, ContextCompat.getMainExecutor(ctx))
                     previewView
@@ -325,7 +325,7 @@ private class BarcodeAnalyzer(
                     }
                 }
                 .addOnFailureListener { e ->
-                    Log.e("BarcodeAnalyzer", "Scanning error", e)
+                    Timber.e(e, "Scanning error")
                 }
                 .addOnCompleteListener {
                     // CRITICAL: Close the ImageProxy to allow next frame processing
@@ -342,8 +342,10 @@ private class BarcodeAnalyzer(
 fun PreviewBarcodeScannerScreen() {
     FridgyTheme {
         BarcodeScannerScreen(
-            onBarcodeScanned = { barcode -> Log.d("Preview", "Scanned: $barcode") },
-            onBackClick = { Log.d("Preview", "Back clicked") }
+            onBarcodeScanned = { barcode -> Timber.d("Scanned: $barcode") },
+            onBackClick = { Timber.d("Back clicked") }
         )
     }
 }
+
+

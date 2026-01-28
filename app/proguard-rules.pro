@@ -81,3 +81,15 @@
 -keepclasseswithmembers class * {
     public <init>(android.content.Context, android.util.AttributeSet, int);
 }
+
+# ===== Timber Logging =====
+# Keep Timber classes for debug builds
+-keep class timber.log.Timber { *; }
+-keep class timber.log.Timber$Tree { *; }
+-keep class timber.log.Timber$DebugTree { *; }
+-keepclassmembers class timber.log.Timber$Tree {
+    protected void log(int, java.lang.String, java.lang.String, java.lang.Throwable);
+}
+# Preserve method names for automatic tag generation
+-keepattributes *Annotation*
+-keepattributes SourceFile,LineNumberTable

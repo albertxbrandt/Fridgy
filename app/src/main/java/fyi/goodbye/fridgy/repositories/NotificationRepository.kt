@@ -3,7 +3,7 @@ package fyi.goodbye.fridgy.repositories
 
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import android.util.Log
+import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -35,7 +35,7 @@ class NotificationRepository(
     private val messaging: FirebaseMessaging
 ) {
     companion object {
-        private const val TAG = "NotificationRepository"
+        
         private const val COLLECTION_NOTIFICATIONS = "notifications"
         private const val COLLECTION_FCM_TOKENS = "fcmTokens"
     }
@@ -51,7 +51,7 @@ class NotificationRepository(
                     ?: return Result.failure(Exception("User not authenticated"))
 
             val token = messaging.token.await()
-            Log.d(TAG, "FCM Token retrieved: $token")
+            Timber.d("FCM Token retrieved: $token")
 
             // Save token to Firestore
             val fcmToken =
@@ -65,10 +65,10 @@ class NotificationRepository(
                 .set(fcmToken)
                 .await()
 
-            Log.d(TAG, "FCM Token saved to Firestore")
+            Timber.d("FCM Token saved to Firestore")
             Result.success(token)
         } catch (e: Exception) {
-            Log.e(TAG, "Error refreshing FCM token", e)
+            Timber.e(e, "Error refreshing FCM token")
             Result.failure(e)
         }
     }
@@ -80,10 +80,10 @@ class NotificationRepository(
     suspend fun subscribeToTopic(topic: String): Result<Unit> {
         return try {
             messaging.subscribeToTopic(topic).await()
-            Log.d(TAG, "Subscribed to topic: $topic")
+            Timber.d("Subscribed to topic: $topic")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error subscribing to topic: $topic", e)
+            Timber.e(e, "Error subscribing to topic: $topic")
             Result.failure(e)
         }
     }
@@ -94,10 +94,10 @@ class NotificationRepository(
     suspend fun unsubscribeFromTopic(topic: String): Result<Unit> {
         return try {
             messaging.unsubscribeFromTopic(topic).await()
-            Log.d(TAG, "Unsubscribed from topic: $topic")
+            Timber.d("Unsubscribed from topic: $topic")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error unsubscribing from topic: $topic", e)
+            Timber.e(e, "Error unsubscribing from topic: $topic")
             Result.failure(e)
         }
     }
@@ -121,7 +121,7 @@ class NotificationRepository(
                     .limit(50) // Limit to 50 most recent notifications
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
-                            Log.e(TAG, "Error listening to notifications", error)
+                            Timber.e(error, "Error listening to notifications")
                             close(error)
                             return@addSnapshotListener
                         }
@@ -155,7 +155,7 @@ class NotificationRepository(
                     .whereEqualTo(FirestoreFields.IS_READ, false)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
-                            Log.e(TAG, "Error listening to unread count", error)
+                            Timber.e(error, "Error listening to unread count")
                             close(error)
                             return@addSnapshotListener
                         }
@@ -178,10 +178,10 @@ class NotificationRepository(
                 .update(FirestoreFields.IS_READ, true)
                 .await()
 
-            Log.d(TAG, "Notification marked as read: $notificationId")
+            Timber.d("Notification marked as read: $notificationId")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error marking notification as read", e)
+            Timber.e(e, "Error marking notification as read")
             Result.failure(e)
         }
     }
@@ -208,10 +208,10 @@ class NotificationRepository(
             }
             batch.commit().await()
 
-            Log.d(TAG, "All notifications marked as read")
+            Timber.d("All notifications marked as read")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error marking all notifications as read", e)
+            Timber.e(e, "Error marking all notifications as read")
             Result.failure(e)
         }
     }
@@ -226,10 +226,10 @@ class NotificationRepository(
                 .delete()
                 .await()
 
-            Log.d(TAG, "Notification deleted: $notificationId")
+            Timber.d("Notification deleted: $notificationId")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error deleting notification", e)
+            Timber.e(e, "Error deleting notification")
             Result.failure(e)
         }
     }
@@ -271,10 +271,10 @@ class NotificationRepository(
                 .add(notification)
                 .await()
 
-            Log.d(TAG, "In-app notification sent to user: $userId")
+            Timber.d("In-app notification sent to user: $userId")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "Error sending in-app notification", e)
+            Timber.e(e, "Error sending in-app notification")
             Result.failure(e)
         }
     }
@@ -304,11 +304,12 @@ class NotificationRepository(
                 }
             }
 
-            Log.d(TAG, "Retrieved ${tokens.size} FCM tokens for ${userIds.size} users")
+            Timber.d("Retrieved ${tokens.size} FCM tokens for ${userIds.size} users")
             tokens
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching FCM tokens", e)
+            Timber.e(e, "Error fetching FCM tokens")
             emptyMap()
         }
     }
 }
+

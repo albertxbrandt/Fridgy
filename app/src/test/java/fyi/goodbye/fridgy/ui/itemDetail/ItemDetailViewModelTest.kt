@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.itemDetail
 
 import android.content.Context
-import android.util.Log
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
@@ -83,13 +82,7 @@ class ItemDetailViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)
-        every { Log.d(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>()) } returns 0
-        every { Log.e(any<String>(), any<String>(), any<Throwable>()) } returns 0
-        every { Log.w(any<String>(), any<String>()) } returns 0
-
-        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
         mockFridgeRepository = mockk(relaxed = true)
         mockProductRepository = mockk(relaxed = true)
 
@@ -550,3 +543,4 @@ class ItemDetailViewModelTest {
             assertEquals(0, (state as UiState.Success).data.items.size)
         }
 }
+

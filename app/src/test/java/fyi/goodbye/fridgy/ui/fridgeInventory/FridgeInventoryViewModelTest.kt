@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.content.Context
-import android.util.Log
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
@@ -93,12 +92,7 @@ class FridgeInventoryViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)
-        every { Log.d(any(), any()) } returns 0
-        every { Log.e(any(), any()) } returns 0
-        every { Log.e(any(), any(), any()) } returns 0
-
-        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
         mockFridgeRepository = mockk(relaxed = true)
         mockProductRepository = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
@@ -545,3 +539,4 @@ class FridgeInventoryViewModelTest {
             coVerify { mockFridgeRepository.preloadItemsFromCache(testFridgeId) }
         }
 }
+

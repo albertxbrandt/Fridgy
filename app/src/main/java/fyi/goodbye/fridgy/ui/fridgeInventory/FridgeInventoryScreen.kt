@@ -1,7 +1,7 @@
 package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.content.Context
-import android.util.Log
+import timber.log.Timber
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -116,7 +116,7 @@ fun FridgeInventoryScreen(
         val isSearchScan = savedStateHandle.get<Boolean>("isSearchScan") ?: false
 
         if (scannedUpc != null && targetFridgeId == fridgeId) {
-            Log.d("Performance", "Processing scanned barcode: $scannedUpc")
+            Timber.d("Processing scanned barcode: $scannedUpc")
 
             if (isSearchScan) {
                 // Use barcode as search query
@@ -285,7 +285,7 @@ fun FridgeInventoryScreen(
                                 }
 
                                 SideEffect {
-                                    Log.d("Performance", "Grid rendered in ${System.currentTimeMillis() - startTime}ms")
+                                    Timber.d("Grid rendered in ${System.currentTimeMillis() - startTime}ms")
                                 }
                             }
                         }
@@ -326,3 +326,5 @@ fun FridgeInventoryScreen(
         )
     }
 }
+
+
