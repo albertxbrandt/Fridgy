@@ -57,6 +57,7 @@ fun ConfirmationDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Text(
                 text = title,
@@ -123,8 +124,7 @@ fun ConfirmationDialog(
                 Text(dismissButtonText)
             }
         },
-        shape = MaterialTheme.shapes.extraLarge,
-        containerColor = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.extraLarge
     )
 }
 

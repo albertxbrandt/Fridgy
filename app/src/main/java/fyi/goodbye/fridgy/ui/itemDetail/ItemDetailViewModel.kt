@@ -13,9 +13,11 @@ import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -69,19 +71,46 @@ class ItemDetailViewModel
         private val _pendingItemForEdit = MutableStateFlow<Item?>(null)
         val pendingItemForEdit: StateFlow<Item?> = _pendingItemForEdit.asStateFlow()
 
-        // Store the UPC from the first load to track items after deletion
-        private var trackedUpc: String? = null
+    private val _pendingItemForMove = MutableStateFlow<Item?>(null)
+    val pendingItemForMove: StateFlow<Item?> = _pendingItemForMove.asStateFlow()
 
-        // Job reference to cancel previous collector if loadDetails() is called again
-        private var itemsJob: Job? = null
+    private val _availableFridges = MutableStateFlow<List<fyi.goodbye.fridgy.models.Fridge>>(emptyList())
+    val availableFridges: StateFlow<List<fyi.goodbye.fridgy.models.Fridge>> = _availableFridges.asStateFlow()
 
-        init {
-            loadDetails()
+    // Store the UPC from the first load to track items after deletion
+    private var trackedUpc: String? = null
+
+    // Job reference to cancel previous collector if loadDetails() is called again
+    private var itemsJob: Job? = null
+
+    init {
+        loadDetails()
+        loadAvailableFridges()
+    }
+
+    private fun loadAvailableFridges() {
+        viewModelScope.launch {
+            try {
+                // Get the current fridge to find its household
+                val currentFridge = fridgeRepository.getFridgeById(fridgeId)
+                if (currentFridge != null) {
+                    // Get all fridges in the same household (just the initial value)
+                    fridgeRepository.getFridgesForHousehold(currentFridge.householdId)
+                        .take(1) // Take only the first emission to avoid keeping the coroutine alive
+                        .collect { fridges ->
+                            // Filter out the current fridge
+                            _availableFridges.value = fridges.filter { it.id != fridgeId }
+                        }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load available fridges: ${e.message}")
+            }
         }
+    }
 
-        private fun loadDetails() {
-            // Cancel any existing collection to prevent multiple collectors
-            itemsJob?.cancel()
+    private fun loadDetails() {
+        // Cancel any existing collection to prevent multiple collectors
+        itemsJob?.cancel()
             itemsJob =
                 viewModelScope.launch {
                     _uiState.value = ItemDetailUiState.Loading
@@ -244,12 +273,50 @@ class ItemDetailViewModel
             }
         }
 
-        sealed interface ItemDetailUiState {
-            data object Loading : ItemDetailUiState
-
-            data class Success(val items: List<Item>, val product: Product) : ItemDetailUiState
-
-            data class Error(val message: String) : ItemDetailUiState
+        /**
+         * Shows the move item dialog for selecting target fridge
+         */
+        fun showMoveItemDialog(item: Item) {
+            _pendingItemForMove.value = item
         }
-    }
 
+        /**
+         * Cancels the move item dialog
+         */
+        fun cancelMoveItem() {
+            _pendingItemForMove.value = null
+        }
+
+        /**
+         * Moves an item instance to another fridge
+         * Uses GlobalScope to ensure operation completes even if user navigates away
+         */
+        fun moveItemToFridge(targetFridgeId: String) {
+            val itemToMove = _pendingItemForMove.value
+            _pendingItemForMove.value = null
+
+            if (itemToMove != null) {
+                // Use GlobalScope to ensure move completes even if user navigates away
+                GlobalScope.launch {
+                    try {
+                        fridgeRepository.moveItem(
+                            sourceFridgeId = fridgeId,
+                            targetFridgeId = targetFridgeId,
+                            itemId = itemToMove.id
+                        )
+                        Timber.d("Successfully moved item ${itemToMove.id} to fridge $targetFridgeId")
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to move item: ${e.message}")
+                    }
+                }
+            }
+        }
+
+    sealed interface ItemDetailUiState {
+        data object Loading : ItemDetailUiState
+
+        data class Success(val items: List<Item>, val product: Product) : ItemDetailUiState
+
+        data class Error(val message: String) : ItemDetailUiState
+    }
+}

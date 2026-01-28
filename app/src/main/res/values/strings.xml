@@ -84,6 +84,10 @@
     <string name="last_updated_on">Last updated on</string>
     <string name="loading">Loading…</string>
     <string name="quantity_label">Qty: %1$d</string>
+    <string name="move_item">Move Item</string>
+    <string name="move_item_message">Move this %1$s to another fridge?</string>
+    <string name="select_target_fridge">Select target fridge:</string>
+    <string name="move">Move</string>
 
     <!-- Fridge Settings Screen -->
     <string name="fridge_settings">Fridge Settings</string>

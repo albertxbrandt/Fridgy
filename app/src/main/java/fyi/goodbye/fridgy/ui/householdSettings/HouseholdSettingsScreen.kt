@@ -319,6 +319,7 @@ fun HouseholdSettingsScreen(
                     showNewCodeDialog = false
                     viewModel.clearNewInviteCode()
                 },
+                containerColor = Color.White,
                 title = {
                     Text(
                         stringResource(R.string.invite_code_created),
@@ -410,8 +411,7 @@ fun HouseholdSettingsScreen(
                     Text(stringResource(R.string.cd_copy))
                 }
             },
-            shape = MaterialTheme.shapes.extraLarge,
-            containerColor = MaterialTheme.colorScheme.surface
+            shape = MaterialTheme.shapes.extraLarge
         )
         }
     }
@@ -419,8 +419,7 @@ fun HouseholdSettingsScreen(
     // Delete Confirmation Dialog
     if (showDeleteConfirmDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirmDialog = false },
-            title = {
+            onDismissRequest = { showDeleteConfirmDialog = false },            containerColor = Color.White,            title = {
                 Text(
                     stringResource(R.string.delete_household),
                     style = MaterialTheme.typography.headlineSmall,
@@ -474,8 +473,7 @@ fun HouseholdSettingsScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
-            shape = MaterialTheme.shapes.extraLarge,
-            containerColor = MaterialTheme.colorScheme.surface
+            shape = MaterialTheme.shapes.extraLarge
         )
     }
 
@@ -483,6 +481,7 @@ fun HouseholdSettingsScreen(
     if (showLeaveConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showLeaveConfirmDialog = false },
+            containerColor = Color.White,
             title = {
                 Text(
                     stringResource(R.string.leave_household),
@@ -517,8 +516,7 @@ fun HouseholdSettingsScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
-            shape = MaterialTheme.shapes.extraLarge,
-            containerColor = MaterialTheme.colorScheme.surface
+            shape = MaterialTheme.shapes.extraLarge
         )
     }
 }
@@ -532,6 +530,7 @@ fun CreateInviteCodeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Text(
                 stringResource(R.string.create_invite_code),
@@ -588,8 +587,7 @@ fun CreateInviteCodeDialog(
                 Text(stringResource(R.string.cancel))
             }
         },
-        shape = MaterialTheme.shapes.extraLarge,
-        containerColor = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.extraLarge
     )
 }
 

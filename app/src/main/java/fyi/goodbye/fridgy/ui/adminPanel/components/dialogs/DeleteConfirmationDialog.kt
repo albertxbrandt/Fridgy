@@ -2,6 +2,7 @@ package fyi.goodbye.fridgy.ui.adminPanel.components.dialogs
 
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import fyi.goodbye.fridgy.R
@@ -26,6 +27,7 @@ fun DeleteConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
         title = {
             Text(
                 title,
@@ -56,8 +58,7 @@ fun DeleteConfirmationDialog(
                 Text(stringResource(R.string.cancel))
             }
         },
-        shape = MaterialTheme.shapes.extraLarge,
-        containerColor = MaterialTheme.colorScheme.surface
+        shape = MaterialTheme.shapes.extraLarge
     )
 }
 

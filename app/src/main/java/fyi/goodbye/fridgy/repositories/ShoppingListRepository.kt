@@ -286,15 +286,16 @@ class ShoppingListRepository(
                     repeat(userQuantity) {
                         // Auto-generate ID
                         val newItemRef = itemsCollection.document()
-                        val newItem =
-                            Item(
-                                upc = item.upc,
-                                // No expiration from shopping list
-                                expirationDate = null,
-                                addedBy = currentUserId
-                                // addedAt and lastUpdatedAt set via @ServerTimestamp
-                            )
-                        batch.set(newItemRef, newItem)
+                        // Use HashMap with FieldValue.serverTimestamp() to match security rules
+                        val newItemData = hashMapOf<String, Any?>(
+                            "upc" to item.upc,
+                            "expirationDate" to null,
+                            "addedBy" to currentUserId,
+                            "lastUpdatedBy" to currentUserId,
+                            "addedAt" to FieldValue.serverTimestamp(),
+                            "lastUpdatedAt" to FieldValue.serverTimestamp()
+                        )
+                        batch.set(newItemRef, newItemData)
                     }
 
                     Timber.d("Adding $userQuantity instance(s) of ${item.upc} to fridge $targetFridgeId")

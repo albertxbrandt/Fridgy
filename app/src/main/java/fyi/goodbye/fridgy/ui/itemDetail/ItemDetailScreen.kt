@@ -9,6 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -53,6 +54,8 @@ fun ItemDetailScreen(
     val userNames by viewModel.userNames.collectAsState()
     val pendingItemForDate by viewModel.pendingItemForDate.collectAsState()
     val pendingItemForEdit by viewModel.pendingItemForEdit.collectAsState()
+    val pendingItemForMove by viewModel.pendingItemForMove.collectAsState()
+    val availableFridges by viewModel.availableFridges.collectAsState()
     val dateFormatter = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.getDefault()) }
 
     // Navigate back when all items are deleted
@@ -100,6 +103,22 @@ fun ItemDetailScreen(
                 },
                 onDismiss = {
                     viewModel.cancelDatePicker()
+                }
+            )
+        }
+    }
+
+    // Show move item dialog
+    pendingItemForMove?.let { item ->
+        val currentState = uiState
+        if (currentState is ItemDetailViewModel.ItemDetailUiState.Success) {
+            MoveItemDialog(
+                itemToMove = item,
+                productName = currentState.product.name,
+                availableFridges = availableFridges,
+                onDismiss = { viewModel.cancelMoveItem() },
+                onConfirm = { targetFridgeId ->
+                    viewModel.moveItemToFridge(targetFridgeId)
                 }
             )
         }
@@ -284,11 +303,15 @@ fun ItemDetailScreen(
                                         product = product,
                                         userNames = userNames,
                                         dateFormatter = dateFormatter,
+                                        hasOtherFridges = availableFridges.isNotEmpty(),
                                         onDelete = {
                                             viewModel.deleteItem(item.id)
                                         },
                                         onEditExpiration = {
                                             viewModel.showEditExpirationDialog(item)
+                                        },
+                                        onMove = {
+                                            viewModel.showMoveItemDialog(item)
                                         }
                                     )
                                 }
@@ -307,8 +330,10 @@ fun ItemInstanceCard(
     product: Product,
     userNames: Map<String, String>,
     dateFormatter: SimpleDateFormat,
+    hasOtherFridges: Boolean,
     onDelete: () -> Unit,
-    onEditExpiration: () -> Unit
+    onEditExpiration: () -> Unit,
+    onMove: () -> Unit
 ) {
     Column {
         // Expiration Date
@@ -380,20 +405,41 @@ fun ItemInstanceCard(
                 }
             }
 
-            // Delete button
-            FilledIconButton(
-                onClick = onDelete,
-                colors =
-                    IconButtonDefaults.filledIconButtonColors(
-                        containerColor = Color(0xFFFF3B30)
-                    ),
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete",
-                    modifier = Modifier.size(20.dp)
-                )
+            // Action buttons
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // Move button (only show if other fridges available)
+                if (hasOtherFridges) {
+                    FilledIconButton(
+                        onClick = onMove,
+                        colors =
+                            IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.secondary
+                            ),
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.DriveFileMove,
+                            contentDescription = stringResource(R.string.move_item),
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+
+                // Delete button
+                FilledIconButton(
+                    onClick = onDelete,
+                    colors =
+                        IconButtonDefaults.filledIconButtonColors(
+                            containerColor = Color(0xFFFF3B30)
+                        ),
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete",
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
             }
         }
 
@@ -426,4 +472,104 @@ fun DetailRow(
         Text(text = label, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 14.sp)
         Text(text = value, fontWeight = FontWeight.Medium, fontSize = 14.sp)
     }
+}
+
+@Composable
+fun MoveItemDialog(
+    itemToMove: Item,
+    productName: String,
+    availableFridges: List<fyi.goodbye.fridgy.models.Fridge>,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var selectedFridgeId by remember {
+        androidx.compose.runtime.mutableStateOf(availableFridges.firstOrNull()?.id ?: "")
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        title = {
+            Text(
+                stringResource(R.string.move_item),
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    stringResource(R.string.move_item_message, productName),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        stringResource(R.string.select_target_fridge),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    availableFridges.forEach { fridge ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(
+                                    if (selectedFridgeId == fridge.id)
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    else
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                )
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = selectedFridgeId == fridge.id,
+                                onClick = { selectedFridgeId = fridge.id }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = fridge.name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = fridge.type.replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            fyi.goodbye.fridgy.ui.shared.components.SquaredButton(
+                onClick = {
+                    if (selectedFridgeId.isNotEmpty()) {
+                        onConfirm(selectedFridgeId)
+                    }
+                },
+                enabled = selectedFridgeId.isNotEmpty()
+            ) {
+                Text(stringResource(R.string.move))
+            }
+        },
+        dismissButton = {
+            fyi.goodbye.fridgy.ui.shared.components.SquaredButton(
+                onClick = onDismiss
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
+        }
+    )
 }

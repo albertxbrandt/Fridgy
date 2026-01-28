@@ -527,24 +527,31 @@ class FridgeRepository(
         Timber.d("Adding item instance for UPC: $upc with expiration: $expirationDate")
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
 
-        val newItem =
-            Item(
-                upc = upc,
-                expirationDate = expirationDate,
-                addedBy = currentUser.uid
-                // addedAt and lastUpdatedAt set via @ServerTimestamp
-            )
+        // Use HashMap with FieldValue.serverTimestamp() to match security rules
+        val newItemData = hashMapOf<String, Any?>(
+            "upc" to upc,
+            "expirationDate" to expirationDate,
+            "addedBy" to currentUser.uid,
+            "lastUpdatedBy" to currentUser.uid,
+            "addedAt" to FieldValue.serverTimestamp(),
+            "lastUpdatedAt" to FieldValue.serverTimestamp()
+        )
 
         try {
             val docRef =
                 firestore.collection(FirestoreCollections.FRIDGES)
                     .document(fridgeId)
                     .collection(FirestoreCollections.ITEMS)
-                    .add(newItem)
+                    .add(newItemData)
                     .await()
 
             Timber.d("Added item instance: ${docRef.id} (UPC: $upc)")
-            return newItem.copy(id = docRef.id)
+            return Item(
+                id = docRef.id,
+                upc = upc,
+                expirationDate = expirationDate,
+                addedBy = currentUser.uid
+            )
         } catch (e: Exception) {
             Timber.e(e, "Error adding item to fridge")
             throw e
@@ -607,6 +614,86 @@ class FridgeRepository(
             Timber.d("Deleted item: $itemId")
         } catch (e: Exception) {
             Timber.e(e, "Error deleting item")
+            throw e
+        }
+    }
+
+    /**
+     * Moves an item instance from one fridge to another within the same household.
+     * Verifies permissions before performing the move operation.
+     *
+     * @param sourceFridgeId Source fridge ID
+     * @param targetFridgeId Target fridge ID
+     * @param itemId The unique item instance ID to move
+     * @throws IllegalStateException if user is not logged in, item not found, fridges are in different households, or user lacks permission
+     */
+    suspend fun moveItem(
+        sourceFridgeId: String,
+        targetFridgeId: String,
+        itemId: String
+    ) {
+        val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
+
+        try {
+            // Verify both fridges exist and belong to the same household
+            val sourceFridge = getRawFridgeById(sourceFridgeId)
+                ?: throw IllegalStateException("Source fridge not found")
+            val targetFridge = getRawFridgeById(targetFridgeId)
+                ?: throw IllegalStateException("Target fridge not found")
+
+            if (sourceFridge.householdId != targetFridge.householdId) {
+                throw IllegalStateException("Cannot move items between fridges in different households")
+            }
+
+            // Verify user is a member of the household
+            val household = householdRepository.getHouseholdById(sourceFridge.householdId)
+                ?: throw IllegalStateException("Household not found")
+
+            if (!household.memberRoles.containsKey(currentUser.uid)) {
+                throw IllegalStateException("You don't have permission to move items in this household")
+            }
+
+            // Get the item from source fridge
+            val itemDoc = firestore.collection(FirestoreCollections.FRIDGES)
+                .document(sourceFridgeId)
+                .collection(FirestoreCollections.ITEMS)
+                .document(itemId)
+                .get()
+                .await()
+
+            val item = itemDoc.toObject(Item::class.java)
+                ?: throw IllegalStateException("Item not found")
+
+            // Create new item in target fridge with same data but updated metadata
+            // Use FieldValue.serverTimestamp() to set fresh timestamp values
+            val newItem = hashMapOf<String, Any?>(
+                "upc" to item.upc,
+                "expirationDate" to item.expirationDate,
+                "addedBy" to currentUser.uid,
+                "lastUpdatedBy" to currentUser.uid,
+                "addedAt" to FieldValue.serverTimestamp(),
+                "lastUpdatedAt" to FieldValue.serverTimestamp()
+            )
+
+            // Use batch to ensure atomicity
+            val batch = firestore.batch()
+
+            // Add to target fridge
+            val targetRef = firestore.collection(FirestoreCollections.FRIDGES)
+                .document(targetFridgeId)
+                .collection(FirestoreCollections.ITEMS)
+                .document() // Auto-generate ID
+
+            batch.set(targetRef, newItem)
+
+            // Delete from source fridge
+            batch.delete(itemDoc.reference)
+
+            batch.commit().await()
+
+            Timber.d("Moved item $itemId from $sourceFridgeId to $targetFridgeId")
+        } catch (e: Exception) {
+            Timber.e(e, "Error moving item")
             throw e
         }
     }
@@ -876,14 +963,16 @@ class FridgeRepository(
                     // Create individual item instances for each unit obtained
                     repeat(userQuantity) {
                         val newItemRef = itemsRef.document() // Auto-generate ID
-                        val newItem =
-                            Item(
-                                upc = item.upc,
-                                expirationDate = null,
-                                addedBy = currentUserId
-                                // addedAt and lastUpdatedAt set via @ServerTimestamp
-                            )
-                        batch.set(newItemRef, newItem)
+                        // Use HashMap with FieldValue.serverTimestamp() to match security rules
+                        val newItemData = hashMapOf<String, Any?>(
+                            "upc" to item.upc,
+                            "expirationDate" to null,
+                            "addedBy" to currentUserId,
+                            "lastUpdatedBy" to currentUserId,
+                            "addedAt" to FieldValue.serverTimestamp(),
+                            "lastUpdatedAt" to FieldValue.serverTimestamp()
+                        )
+                        batch.set(newItemRef, newItemData)
                     }
 
                     Timber.d("Adding $userQuantity instance(s) of ${item.upc} to fridge $fridgeId")

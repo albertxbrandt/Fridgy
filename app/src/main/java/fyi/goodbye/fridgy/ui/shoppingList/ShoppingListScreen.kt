@@ -579,6 +579,7 @@ fun ShoppingListScreen(
     if (showDoneShoppingDialog) {
         AlertDialog(
             onDismissRequest = { showDoneShoppingDialog = false },
+            containerColor = Color.White,
             title = {
                 Text(
                     text = stringResource(R.string.done_shopping),
@@ -609,8 +610,7 @@ fun ShoppingListScreen(
                     Text(stringResource(R.string.cancel))
                 }
             },
-            shape = MaterialTheme.shapes.extraLarge,
-            containerColor = MaterialTheme.colorScheme.surface
+            shape = MaterialTheme.shapes.extraLarge
         )
     }
 
