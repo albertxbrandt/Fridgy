@@ -146,8 +146,9 @@ class ItemDetailViewModel
                                     displayItems.find { it.item.upc == upc }?.product
                                         ?: productRepository.getProductInfo(upc)
                                 if (product != null) {
-                                    _uiState.value = ItemDetailUiState.Success(allInstances, product)
+                                    // Load usernames BEFORE setting Success state to avoid "Loading..." flash
                                     loadUserNames(allInstances)
+                                    _uiState.value = ItemDetailUiState.Success(allInstances, product)
                                 } else {
                                     _uiState.value = ItemDetailUiState.Error(context.getString(R.string.error_product_not_found))
                                 }
@@ -165,18 +166,26 @@ class ItemDetailViewModel
                 }
         }
 
-        private fun loadUserNames(items: List<Item>) {
-            viewModelScope.launch {
-                val uids = items.flatMap { listOf(it.addedBy, it.lastUpdatedBy) }.filter { it.isNotEmpty() }.toSet()
-                val names = _userNames.value.toMutableMap()
-                uids.forEach { uid ->
-                    if (!names.containsKey(uid)) {
-                        val userProfile = fridgeRepository.getUserProfileById(uid)
-                        names[uid] = userProfile?.username ?: context.getString(R.string.unknown_user)
-                    }
-                }
-                _userNames.value = names
+        private suspend fun loadUserNames(items: List<Item>) {
+            val uids = items.flatMap { listOf(it.addedBy, it.lastUpdatedBy) }.filter { it.isNotEmpty() }.distinct()
+            if (uids.isEmpty()) return
+
+            // Batch fetch all user profiles at once (uses UserRepository's LRU cache)
+            val userProfiles = fridgeRepository.getUsersByIds(uids)
+            val names = _userNames.value.toMutableMap()
+
+            userProfiles.forEach { (uid, profile) ->
+                names[uid] = profile.username
             }
+
+            // Fill in any missing users with "Unknown User"
+            uids.forEach { uid ->
+                if (!names.containsKey(uid)) {
+                    names[uid] = context.getString(R.string.unknown_user)
+                }
+            }
+
+            _userNames.value = names
         }
 
         /**
