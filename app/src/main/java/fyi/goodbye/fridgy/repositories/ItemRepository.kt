@@ -93,23 +93,37 @@ class ItemRepository(
 
     /**
      * Gets the count of item instances in a fridge.
-     *
-     * This is a simple count operation that returns the total number of item documents
-     * in the fridge's items subcollection.
+     * Uses Firestore cache first to minimize network reads.
      *
      * @param fridgeId Target fridge ID
      * @return Total count of item instances, or 0 if an error occurs
      */
     suspend fun getItemCount(fridgeId: String): Int {
         return try {
-            val snapshot =
-                firestore.collection(FirestoreCollections.FRIDGES)
-                    .document(fridgeId)
-                    .collection(FirestoreCollections.ITEMS)
-                    .get()
-                    .await()
+            // Try cache first for instant response
+            val cacheSnapshot =
+                try {
+                    firestore.collection(FirestoreCollections.FRIDGES)
+                        .document(fridgeId)
+                        .collection(FirestoreCollections.ITEMS)
+                        .get(Source.CACHE)
+                        .await()
+                } catch (e: Exception) {
+                    null
+                }
 
-            snapshot.size()
+            if (cacheSnapshot != null) {
+                cacheSnapshot.size()
+            } else {
+                // Fallback to network if cache unavailable
+                val snapshot =
+                    firestore.collection(FirestoreCollections.FRIDGES)
+                        .document(fridgeId)
+                        .collection(FirestoreCollections.ITEMS)
+                        .get(Source.DEFAULT)
+                        .await()
+                snapshot.size()
+            }
         } catch (e: Exception) {
             // Don't log cancellation exceptions (normal when navigating away)
             if (e !is kotlinx.coroutines.CancellationException) {

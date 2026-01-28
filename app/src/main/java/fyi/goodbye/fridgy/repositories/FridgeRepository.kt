@@ -163,13 +163,38 @@ class FridgeRepository(
 
     /**
      * Fetches a raw Fridge object by ID without user profile resolution.
+     * Uses in-memory cache -> Firestore cache -> network.
      *
      * @param fridgeId The ID of the fridge to fetch.
      * @return The Fridge object, or null if not found or on error.
      */
     suspend fun getRawFridgeById(fridgeId: String): Fridge? {
+        // Check in-memory cache first
+        fridgeCache.find { it.id == fridgeId }?.let { return it }
+
         return try {
-            val doc = firestore.collection(FirestoreCollections.FRIDGES).document(fridgeId).get().await()
+            // Try Firestore cache first
+            val cacheDoc =
+                try {
+                    firestore.collection(FirestoreCollections.FRIDGES)
+                        .document(fridgeId)
+                        .get(Source.CACHE)
+                        .await()
+                } catch (e: Exception) {
+                    null
+                }
+
+            val doc =
+                if (cacheDoc?.exists() == true) {
+                    cacheDoc
+                } else {
+                    // Fallback to network
+                    firestore.collection(FirestoreCollections.FRIDGES)
+                        .document(fridgeId)
+                        .get(Source.DEFAULT)
+                        .await()
+                }
+
             doc.toFridgeCompat()
         } catch (e: Exception) {
             Timber.e("Error fetching raw fridge: ${e.message}")

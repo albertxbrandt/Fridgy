@@ -3,6 +3,7 @@ package fyi.goodbye.fridgy.repositories
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.Source
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.models.DisplayHousehold
@@ -59,6 +60,9 @@ class HouseholdRepository(
     private val notificationRepository: NotificationRepository,
     private val userRepository: UserRepository
 ) {
+    // In-memory cache for households to reduce Firestore reads
+    private val householdCache = mutableMapOf<String, Household>()
+
     // ==================== Household CRUD ====================
 
     /**
@@ -103,19 +107,50 @@ class HouseholdRepository(
 
     /**
      * Gets a single household by ID.
+     * Uses in-memory cache -> Firestore cache -> network for optimal performance.
      */
     suspend fun getHouseholdById(householdId: String): Household? {
+        // Check in-memory cache first
+        householdCache[householdId]?.let { return it }
+
         return try {
-            val doc = firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).get().await()
+            // Try Firestore cache first
+            val cacheDoc =
+                try {
+                    firestore.collection(FirestoreCollections.HOUSEHOLDS)
+                        .document(householdId)
+                        .get(Source.CACHE)
+                        .await()
+                } catch (e: Exception) {
+                    null
+                }
+
+            val doc =
+                if (cacheDoc?.exists() == true) {
+                    cacheDoc
+                } else {
+                    // Fallback to network
+                    firestore.collection(FirestoreCollections.HOUSEHOLDS)
+                        .document(householdId)
+                        .get(Source.DEFAULT)
+                        .await()
+                }
+
             if (!doc.exists()) {
                 Timber.d("Household $householdId does not exist")
                 return null
             }
-            doc.toObject(Household::class.java)?.copy(id = doc.id)
+
+            val household = doc.toObject(Household::class.java)?.copy(id = doc.id)
+            // Cache the result
+            household?.let { householdCache[householdId] = it }
+            household
         } catch (e: Exception) {
             // Silently handle permission errors - user likely no longer has access
             if (e.message?.contains("PERMISSION_DENIED") == true) {
                 Timber.d("Permission denied for household $householdId - user likely removed")
+                // Remove from cache if permission denied
+                householdCache.remove(householdId)
             } else {
                 Timber.e("Error fetching household $householdId: ${e.message}")
             }
@@ -125,6 +160,7 @@ class HouseholdRepository(
 
     /**
      * Gets a Flow of a single household by ID with real-time updates.
+     * Updates the in-memory cache as new data arrives.
      */
     fun getHouseholdFlow(householdId: String): Flow<Household?> =
         callbackFlow {
@@ -138,6 +174,8 @@ class HouseholdRepository(
                             return@addSnapshotListener
                         }
                         val household = snapshot?.toObject(Household::class.java)?.copy(id = snapshot.id)
+                        // Update cache with fresh data
+                        household?.let { householdCache[householdId] = it }
                         trySend(household).isSuccess
                     }
             awaitClose {
@@ -388,6 +426,9 @@ class HouseholdRepository(
 
         // Delete the household document itself
         firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).delete().await()
+
+        // Remove from cache
+        householdCache.remove(householdId)
 
         Timber.d("Successfully deleted household: $householdId")
     }
