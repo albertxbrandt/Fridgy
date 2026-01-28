@@ -439,9 +439,17 @@ class FridgeRepository(
                 firestore.collection(FirestoreCollections.FRIDGES).document(fridgeId).collection(FirestoreCollections.ITEMS)
                     .addSnapshotListener(MetadataChanges.INCLUDE) { snapshot, e ->
                         if (e != null) {
-                            Timber.e(e, "Error fetching items for fridge $fridgeId: ${e.message}")
-                            // Send empty list instead of closing with error to prevent app crash
-                            trySend(emptyList()).isSuccess
+                            // Check if this is a permission error (fridge deleted or access revoked)
+                            val isPermissionError = e.message?.contains("PERMISSION_DENIED") == true
+                            if (isPermissionError) {
+                                // Fridge was likely deleted or access revoked - close the flow silently
+                                Timber.d("Access to fridge $fridgeId revoked or fridge deleted, closing items listener")
+                                close()
+                            } else {
+                                // Log other errors but send empty list to prevent app crash
+                                Timber.e(e, "Error fetching items for fridge $fridgeId: ${e.message}")
+                                trySend(emptyList()).isSuccess
+                            }
                             return@addSnapshotListener
                         }
 
@@ -490,7 +498,10 @@ class FridgeRepository(
                     .await()
             snapshot.size()
         } catch (e: Exception) {
-            Timber.e("Error getting item count for fridge $fridgeId: ${e.message}")
+            // Don't log cancellation exceptions (normal when navigating away)
+            if (e !is kotlinx.coroutines.CancellationException) {
+                Timber.e("Error getting item count for fridge $fridgeId: ${e.message}")
+            }
             0
         }
     }
