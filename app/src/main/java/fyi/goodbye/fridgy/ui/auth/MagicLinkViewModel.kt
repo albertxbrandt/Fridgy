@@ -8,8 +8,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.firebase.FirebaseException
+import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.functions.FirebaseFunctions
+import com.google.firebase.functions.FirebaseFunctionsException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
@@ -170,10 +174,7 @@ class MagicLinkViewModel
                     uiState = MagicLinkUiState.EmailSent
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to send magic link via Cloud Function", e)
-                    uiState =
-                        MagicLinkUiState.Error(
-                            e.message ?: context.getString(R.string.error_sending_magic_link)
-                        )
+                    uiState = MagicLinkUiState.Error(getErrorMessage(e))
                 } finally {
                     isLoading = false
                 }
@@ -240,10 +241,7 @@ class MagicLinkViewModel
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to complete magic link sign-in", e)
-                    uiState =
-                        MagicLinkUiState.Error(
-                            e.message ?: context.getString(R.string.error_auth_failed)
-                        )
+                    uiState = MagicLinkUiState.Error(getErrorMessage(e))
                 } finally {
                     isLoading = false
                 }
@@ -309,10 +307,7 @@ class MagicLinkViewModel
                     _authSuccess.emit(true)
                 } catch (e: Exception) {
                     Log.e(TAG, "Failed to create user profile", e)
-                    uiState =
-                        MagicLinkUiState.Error(
-                            e.message ?: context.getString(R.string.error_creating_profile)
-                        )
+                    uiState = MagicLinkUiState.Error(getErrorMessage(e))
                 } finally {
                     isLoading = false
                 }
@@ -363,5 +358,55 @@ class MagicLinkViewModel
                 .edit()
                 .remove(KEY_EMAIL_FOR_SIGN_IN)
                 .apply()
+        }
+
+        /**
+         * Converts Firebase exceptions into user-friendly error messages.
+         *
+         * @param exception The exception to convert
+         * @return A localized, user-friendly error message
+         */
+        private fun getErrorMessage(exception: Exception): String {
+            return when (exception) {
+                is FirebaseNetworkException -> {
+                    "No internet connection. Please check your network and try again."
+                }
+                is FirebaseFunctionsException -> {
+                    when (exception.code) {
+                        FirebaseFunctionsException.Code.INVALID_ARGUMENT ->
+                            "Invalid email address. Please check and try again."
+                        FirebaseFunctionsException.Code.UNAUTHENTICATED ->
+                            "Authentication failed. Please try again."
+                        FirebaseFunctionsException.Code.DEADLINE_EXCEEDED,
+                        FirebaseFunctionsException.Code.UNAVAILABLE ->
+                            "Service temporarily unavailable. Please try again in a moment."
+                        FirebaseFunctionsException.Code.NOT_FOUND ->
+                            "Service not found. Please contact support."
+                        else -> context.getString(R.string.error_sending_magic_link)
+                    }
+                }
+                is FirebaseAuthException -> {
+                    when (exception.errorCode) {
+                        "ERROR_INVALID_EMAIL" ->
+                            context.getString(R.string.error_invalid_email_format)
+                        "ERROR_USER_DISABLED" ->
+                            "This account has been disabled. Please contact support."
+                        "ERROR_INVALID_ACTION_CODE" ->
+                            "This sign-in link is invalid or has expired. Please request a new one."
+                        "ERROR_EXPIRED_ACTION_CODE" ->
+                            "This sign-in link has expired. Please request a new one."
+                        else -> context.getString(R.string.error_auth_failed)
+                    }
+                }
+                is FirebaseException -> {
+                    // Generic Firebase exception
+                    exception.message ?: "An unexpected error occurred. Please try again."
+                }
+                else -> {
+                    // Unknown exception
+                    Log.w(TAG, "Unexpected exception type: ${exception::class.simpleName}")
+                    exception.message ?: "An unexpected error occurred. Please try again."
+                }
+            }
         }
     }
