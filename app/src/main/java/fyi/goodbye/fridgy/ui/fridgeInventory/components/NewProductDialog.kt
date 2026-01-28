@@ -219,8 +219,7 @@ fun NewProductDialog(
                             value =
                                 when {
                                     showCustomUnitInput -> customUnit
-                                    selectedUnit != null -> selectedUnit!!.displayName
-                                    else -> ""
+                                    else -> selectedUnit?.displayName ?: ""
                                 },
                             onValueChange = {
                                 if (showCustomUnitInput) {
@@ -298,8 +297,7 @@ fun NewProductDialog(
                     val unit =
                         when {
                             showCustomUnitInput && customUnit.isNotBlank() -> customUnit
-                            selectedUnit != null && selectedUnit != SizeUnit.OTHER -> selectedUnit!!.name
-                            else -> null
+                            else -> selectedUnit?.takeIf { it != SizeUnit.OTHER }?.name
                         }
                     onConfirm(productName, productBrand, selectedCategory, capturedImageUri, size, unit)
                 },

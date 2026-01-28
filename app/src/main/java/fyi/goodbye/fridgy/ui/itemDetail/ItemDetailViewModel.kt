@@ -99,9 +99,10 @@ class ItemDetailViewModel
                             }
 
                             // Use stored UPC to find all instances (works even after deletions)
+                            val upc = trackedUpc ?: return@collect
                             val allInstances =
                                 displayItems
-                                    .filter { it.item.upc == trackedUpc }
+                                    .filter { it.item.upc == upc }
                                     .map { it.item }
                                     .sortedWith(
                                         compareBy<Item> { it.expirationDate == null }
@@ -110,8 +111,8 @@ class ItemDetailViewModel
 
                             if (allInstances.isNotEmpty()) {
                                 val product =
-                                    displayItems.find { it.item.upc == trackedUpc }?.product
-                                        ?: productRepository.getProductInfo(trackedUpc!!)
+                                    displayItems.find { it.item.upc == upc }?.product
+                                        ?: productRepository.getProductInfo(upc)
                                 if (product != null) {
                                     _uiState.value = ItemDetailUiState.Success(allInstances, product)
                                     loadUserNames(allInstances)

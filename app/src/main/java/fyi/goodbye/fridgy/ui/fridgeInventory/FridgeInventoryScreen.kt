@@ -295,11 +295,11 @@ fun FridgeInventoryScreen(
         }
     }
 
-    if (pendingUpc != null) {
+    pendingUpc?.let { upc ->
         NewProductDialog(
-            upc = pendingUpc!!,
+            upc = upc,
             onConfirm = { name, brand, category, imageUri, size, unit ->
-                viewModel.createAndAddProduct(pendingUpc!!, name, brand, category, imageUri, size, unit)
+                viewModel.createAndAddProduct(upc, name, brand, category, imageUri, size, unit)
             },
             onDismiss = { viewModel.cancelPendingProduct() }
         )
@@ -307,8 +307,7 @@ fun FridgeInventoryScreen(
 
     // Show expiration date picker for scanned items
     val pendingItemForDate by viewModel.pendingItemForDate.collectAsState()
-    if (pendingItemForDate != null) {
-        val upc = pendingItemForDate!!
+    pendingItemForDate?.let { upc ->
         // Get product info to show name in dialog
         var productName by remember { mutableStateOf("Item") }
         LaunchedEffect(upc) {

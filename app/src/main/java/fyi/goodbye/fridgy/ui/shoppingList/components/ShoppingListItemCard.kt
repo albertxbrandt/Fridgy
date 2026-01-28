@@ -12,7 +12,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
-import com.google.firebase.auth.FirebaseAuth
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shoppingList.ShoppingListViewModel
 import java.text.SimpleDateFormat
@@ -33,17 +32,18 @@ import java.util.Locale
  * - Checkbox for marking items as purchased
  *
  * @param itemWithProduct Combined data containing the shopping list item and associated product details
+ * @param currentUserId The ID of the currently authenticated user (for calculating personal quantities)
  * @param onCheckClick Callback invoked when checkbox is clicked to open pickup dialog
  * @param onDeleteClick Callback invoked when delete button is pressed to remove item from list
  */
 @Composable
 fun ShoppingListItemCard(
     itemWithProduct: ShoppingListViewModel.ShoppingListItemWithProduct,
+    currentUserId: String,
     onCheckClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     val item = itemWithProduct.item
-    val currentUserId = FirebaseAuth.getInstance().currentUser?.uid ?: ""
 
     // Calculate quantities
     val myObtainedQty = item.obtainedBy[currentUserId] ?: 0

@@ -359,9 +359,9 @@ private fun HouseholdListContent(
                         enabled = !isCreatingHousehold
                     )
 
-                    if (createHouseholdError != null) {
+                    createHouseholdError?.let { error ->
                         Text(
-                            text = createHouseholdError!!,
+                            text = error,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )

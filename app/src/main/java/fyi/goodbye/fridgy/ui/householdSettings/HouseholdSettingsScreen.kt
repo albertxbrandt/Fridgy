@@ -81,8 +81,8 @@ fun HouseholdSettingsScreen(
 
     // Show error snackbar
     LaunchedEffect(actionError) {
-        if (actionError != null) {
-            snackbarHostState.showSnackbar(actionError!!)
+        actionError?.let {
+            snackbarHostState.showSnackbar(it)
             viewModel.clearError()
         }
     }
@@ -312,26 +312,27 @@ fun HouseholdSettingsScreen(
     }
 
     // New Code Created Dialog
-    if (showNewCodeDialog && newInviteCode != null) {
-        AlertDialog(
-            onDismissRequest = {
-                showNewCodeDialog = false
-                viewModel.clearNewInviteCode()
-            },
-            title = {
-                Text(
-                    stringResource(R.string.invite_code_created),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-            },
-            text = {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+    newInviteCode?.let { inviteCode ->
+        if (showNewCodeDialog) {
+            AlertDialog(
+                onDismissRequest = {
+                    showNewCodeDialog = false
+                    viewModel.clearNewInviteCode()
+                },
+                title = {
                     Text(
-                        text = newInviteCode!!.code,
+                        stringResource(R.string.invite_code_created),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
+                text = {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = inviteCode.code,
                         style = MaterialTheme.typography.displayMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary,
@@ -339,12 +340,12 @@ fun HouseholdSettingsScreen(
                         textAlign = TextAlign.Center
                     )
                     Spacer(modifier = Modifier.height(16.dp))
-                    if (newInviteCode!!.expiresAt != null) {
+                    if (inviteCode.expiresAt != null) {
                         Text(
                             text =
                                 stringResource(
                                     R.string.invite_code_expires,
-                                    dateFormatter.format(Date(newInviteCode!!.expiresAt!!))
+                                    dateFormatter.format(Date(inviteCode.expiresAt))
                                 ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -373,7 +374,7 @@ fun HouseholdSettingsScreen(
                             context.getString(
                                 R.string.share_invite_message,
                                 householdName,
-                                newInviteCode!!.code
+                                inviteCode.code
                             )
                         val intent =
                             Intent(Intent.ACTION_SEND).apply {
@@ -396,7 +397,7 @@ fun HouseholdSettingsScreen(
             },
             dismissButton = {
                 TextButton(onClick = {
-                    clipboardManager.setText(AnnotatedString(newInviteCode!!.code))
+                    clipboardManager.setText(AnnotatedString(inviteCode.code))
                     showNewCodeDialog = false
                     viewModel.clearNewInviteCode()
                 }) {
@@ -412,6 +413,7 @@ fun HouseholdSettingsScreen(
             shape = MaterialTheme.shapes.extraLarge,
             containerColor = MaterialTheme.colorScheme.surface
         )
+        }
     }
 
     // Delete Confirmation Dialog
@@ -659,7 +661,7 @@ fun InviteCodeItem(
                             text =
                                 stringResource(
                                     R.string.expires_on,
-                                    dateFormatter.format(Date(inviteCode.expiresAt!!))
+                                    dateFormatter.format(Date(inviteCode.expiresAt))
                                 ),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -82,8 +82,7 @@ fun SizeSelectionDialog(
                         value =
                             when {
                                 showCustomUnitInput -> customUnit
-                                selectedUnit != null -> selectedUnit!!.displayName
-                                else -> ""
+                                else -> selectedUnit?.displayName ?: ""
                             },
                         onValueChange = {
                             if (showCustomUnitInput) {
@@ -152,8 +151,7 @@ fun SizeSelectionDialog(
                             val unit =
                                 when {
                                     showCustomUnitInput && customUnit.isNotBlank() -> customUnit
-                                    selectedUnit != null && selectedUnit != SizeUnit.OTHER -> selectedUnit!!.name
-                                    else -> null
+                                    else -> selectedUnit?.takeIf { it != SizeUnit.OTHER }?.name
                                 }
 
                             if (size != null && unit != null) {

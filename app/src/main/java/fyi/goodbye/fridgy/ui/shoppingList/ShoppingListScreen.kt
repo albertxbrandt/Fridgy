@@ -451,6 +451,7 @@ fun ShoppingListScreen(
                                                 }
                                             ShoppingListItemCard(
                                                 itemWithProduct = itemWithProduct,
+                                                currentUserId = viewModel.currentUserId,
                                                 onCheckClick = onCheckClick,
                                                 onDeleteClick = onDeleteClick
                                             )
