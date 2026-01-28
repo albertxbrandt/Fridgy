@@ -74,4 +74,3 @@ class MagicLinkViewModelTest {
             // For now, this ViewModel is documented as requiring integration testing.
         }
 }
-

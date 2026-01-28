@@ -1,12 +1,10 @@
 package fyi.goodbye.fridgy.repositories
 
-
-import fyi.goodbye.fridgy.constants.FirestoreCollections
-import fyi.goodbye.fridgy.constants.FirestoreFields
-import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.Household
 import fyi.goodbye.fridgy.models.HouseholdRole
@@ -23,6 +21,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 
 /**
  * Repository for managing household core operations.
@@ -50,18 +49,16 @@ import kotlinx.coroutines.tasks.await
  * @param firestore The Firestore instance for database operations.
  * @param auth The Auth instance for user identification.
  * @param notificationRepository The NotificationRepository for sending notifications.
+ * @param userRepository The UserRepository for user profile operations.
  * @see FridgeRepository For fridge-level operations
  * @see MembershipRepository For invite codes and member management
  */
 class HouseholdRepository(
     private val firestore: FirebaseFirestore,
     private val auth: FirebaseAuth,
-    private val notificationRepository: NotificationRepository
+    private val notificationRepository: NotificationRepository,
+    private val userRepository: UserRepository
 ) {
-    companion object {
-        
-    }
-
     // ==================== Household CRUD ====================
 
     /**
@@ -377,12 +374,16 @@ class HouseholdRepository(
 
         // Delete shopping list subcollection (paginated)
         deleteCollectionInBatches(
-            firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).collection(FirestoreCollections.SHOPPING_LIST)
+            firestore.collection(
+                FirestoreCollections.HOUSEHOLDS
+            ).document(householdId).collection(FirestoreCollections.SHOPPING_LIST)
         )
 
         // Delete shopping list presence subcollection (paginated)
         deleteCollectionInBatches(
-            firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).collection(FirestoreCollections.SHOPPING_LIST_PRESENCE)
+            firestore.collection(
+                FirestoreCollections.HOUSEHOLDS
+            ).document(householdId).collection(FirestoreCollections.SHOPPING_LIST_PRESENCE)
         )
 
         // Delete the household document itself
@@ -460,35 +461,11 @@ class HouseholdRepository(
 
     /**
      * Fetches multiple user profiles by their IDs.
+     * Delegates to UserRepository for centralized caching and batch fetching.
      * Exposed for use by MembershipRepository and ShoppingListRepository.
      *
      * @param userIds List of user IDs to fetch profiles for
      * @return Map of user ID to UserProfile
      */
-    suspend fun getUsersByIds(userIds: List<String>): Map<String, UserProfile> {
-        if (userIds.isEmpty()) return emptyMap()
-
-        val result = mutableMapOf<String, UserProfile>()
-
-        try {
-            userIds.distinct().chunked(10).forEach { chunk ->
-                val snapshot =
-                    firestore.collection(FirestoreCollections.USER_PROFILES)
-                        .whereIn(com.google.firebase.firestore.FieldPath.documentId(), chunk)
-                        .get()
-                        .await()
-
-                snapshot.documents.forEach { doc ->
-                    doc.toObject(UserProfile::class.java)?.let { profile ->
-                        result[doc.id] = profile.copy(uid = doc.id)
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Timber.e("Error fetching user profiles: ${e.message}")
-        }
-
-        return result
-    }
+    suspend fun getUsersByIds(userIds: List<String>): Map<String, UserProfile> = userRepository.getUsersByIds(userIds)
 }
-

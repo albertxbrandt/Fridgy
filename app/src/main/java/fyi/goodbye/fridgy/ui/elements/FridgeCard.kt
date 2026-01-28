@@ -94,11 +94,18 @@ fun FridgeCard(
                     ) {
                         // Item count
                         Text(
-                            text = stringResource(
-                                R.string.item_count,
-                                fridge.itemCount,
-                                if (fridge.itemCount == 1) stringResource(R.string.item_singular) else stringResource(R.string.item_plural)
-                            ),
+                            text =
+                                stringResource(
+                                    R.string.item_count,
+                                    fridge.itemCount,
+                                    if (fridge.itemCount == 1) {
+                                        stringResource(
+                                            R.string.item_singular
+                                        )
+                                    } else {
+                                        stringResource(R.string.item_plural)
+                                    }
+                                ),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.primary

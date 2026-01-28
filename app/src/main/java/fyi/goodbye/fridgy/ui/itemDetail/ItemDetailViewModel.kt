@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.itemDetail
 
 import android.content.Context
-import timber.log.Timber
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -11,14 +10,16 @@ import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
+import fyi.goodbye.fridgy.repositories.ItemRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -40,7 +41,8 @@ import javax.inject.Inject
  * Success state includes the list of item instances and product information.
  *
  * @param application Application context for string resources.
- * @param fridgeRepository Repository for item operations.
+ * @param fridgeRepository Repository for fridge information.
+ * @param itemRepository Repository for item operations.
  * @param productRepository Repository for product information.
  * @param fridgeId The ID of the fridge containing the items.
  * @param itemId The ID of the initially selected item (used to determine UPC).
@@ -55,6 +57,7 @@ class ItemDetailViewModel
         @ApplicationContext private val context: Context,
         savedStateHandle: SavedStateHandle,
         private val fridgeRepository: FridgeRepository,
+        private val itemRepository: ItemRepository,
         private val productRepository: ProductRepository
     ) : ViewModel() {
         private val fridgeId: String = savedStateHandle.get<String>("fridgeId") ?: ""
@@ -71,51 +74,51 @@ class ItemDetailViewModel
         private val _pendingItemForEdit = MutableStateFlow<Item?>(null)
         val pendingItemForEdit: StateFlow<Item?> = _pendingItemForEdit.asStateFlow()
 
-    private val _pendingItemForMove = MutableStateFlow<Item?>(null)
-    val pendingItemForMove: StateFlow<Item?> = _pendingItemForMove.asStateFlow()
+        private val _pendingItemForMove = MutableStateFlow<Item?>(null)
+        val pendingItemForMove: StateFlow<Item?> = _pendingItemForMove.asStateFlow()
 
-    private val _availableFridges = MutableStateFlow<List<fyi.goodbye.fridgy.models.Fridge>>(emptyList())
-    val availableFridges: StateFlow<List<fyi.goodbye.fridgy.models.Fridge>> = _availableFridges.asStateFlow()
+        private val _availableFridges = MutableStateFlow<List<fyi.goodbye.fridgy.models.Fridge>>(emptyList())
+        val availableFridges: StateFlow<List<fyi.goodbye.fridgy.models.Fridge>> = _availableFridges.asStateFlow()
 
-    // Store the UPC from the first load to track items after deletion
-    private var trackedUpc: String? = null
+        // Store the UPC from the first load to track items after deletion
+        private var trackedUpc: String? = null
 
-    // Job reference to cancel previous collector if loadDetails() is called again
-    private var itemsJob: Job? = null
+        // Job reference to cancel previous collector if loadDetails() is called again
+        private var itemsJob: Job? = null
 
-    init {
-        loadDetails()
-        loadAvailableFridges()
-    }
+        init {
+            loadDetails()
+            loadAvailableFridges()
+        }
 
-    private fun loadAvailableFridges() {
-        viewModelScope.launch {
-            try {
-                // Get the current fridge to find its household
-                val currentFridge = fridgeRepository.getFridgeById(fridgeId)
-                if (currentFridge != null) {
-                    // Get all fridges in the same household (just the initial value)
-                    fridgeRepository.getFridgesForHousehold(currentFridge.householdId)
-                        .take(1) // Take only the first emission to avoid keeping the coroutine alive
-                        .collect { fridges ->
-                            // Filter out the current fridge
-                            _availableFridges.value = fridges.filter { it.id != fridgeId }
-                        }
+        private fun loadAvailableFridges() {
+            viewModelScope.launch {
+                try {
+                    // Get the current fridge to find its household
+                    val currentFridge = fridgeRepository.getFridgeById(fridgeId)
+                    if (currentFridge != null) {
+                        // Get all fridges in the same household (just the initial value)
+                        fridgeRepository.getFridgesForHousehold(currentFridge.householdId)
+                            .take(1) // Take only the first emission to avoid keeping the coroutine alive
+                            .collect { fridges ->
+                                // Filter out the current fridge
+                                _availableFridges.value = fridges.filter { it.id != fridgeId }
+                            }
+                    }
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to load available fridges: ${e.message}")
                 }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to load available fridges: ${e.message}")
             }
         }
-    }
 
-    private fun loadDetails() {
-        // Cancel any existing collection to prevent multiple collectors
-        itemsJob?.cancel()
+        private fun loadDetails() {
+            // Cancel any existing collection to prevent multiple collectors
+            itemsJob?.cancel()
             itemsJob =
                 viewModelScope.launch {
                     _uiState.value = ItemDetailUiState.Loading
                     try {
-                        fridgeRepository.getItemsForFridge(fridgeId).collect { displayItems ->
+                        itemRepository.getItemsForFridge(fridgeId).collect { displayItems ->
                             // On first load, find the clicked item to get its UPC
                             if (trackedUpc == null) {
                                 val clickedItem = displayItems.find { it.item.id == itemId }
@@ -183,7 +186,7 @@ class ItemDetailViewModel
         fun deleteItem(itemIdToDelete: String) {
             viewModelScope.launch {
                 try {
-                    fridgeRepository.deleteItem(fridgeId, itemIdToDelete)
+                    itemRepository.deleteItem(fridgeId, itemIdToDelete)
                 } catch (e: Exception) {
                     Timber.e("Failed to delete item: ${e.message}")
                 }
@@ -212,7 +215,7 @@ class ItemDetailViewModel
         ) {
             viewModelScope.launch {
                 try {
-                    fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate)
+                    itemRepository.addItemToFridge(fridgeId, upc, expirationDate)
                 } catch (e: Exception) {
                     Timber.e("Failed to add new instance: ${e.message}")
                 }
@@ -261,7 +264,7 @@ class ItemDetailViewModel
             if (itemToUpdate != null) {
                 viewModelScope.launch {
                     try {
-                        fridgeRepository.updateItemExpirationDate(
+                        itemRepository.updateItemExpirationDate(
                             fridgeId = fridgeId,
                             itemId = itemToUpdate.id,
                             expirationDate = expirationDate
@@ -299,7 +302,7 @@ class ItemDetailViewModel
                 // Use GlobalScope to ensure move completes even if user navigates away
                 GlobalScope.launch {
                     try {
-                        fridgeRepository.moveItem(
+                        itemRepository.moveItem(
                             sourceFridgeId = fridgeId,
                             targetFridgeId = targetFridgeId,
                             itemId = itemToMove.id
@@ -312,11 +315,11 @@ class ItemDetailViewModel
             }
         }
 
-    sealed interface ItemDetailUiState {
-        data object Loading : ItemDetailUiState
+        sealed interface ItemDetailUiState {
+            data object Loading : ItemDetailUiState
 
-        data class Success(val items: List<Item>, val product: Product) : ItemDetailUiState
+            data class Success(val items: List<Item>, val product: Product) : ItemDetailUiState
 
-        data class Error(val message: String) : ItemDetailUiState
+            data class Error(val message: String) : ItemDetailUiState
+        }
     }
-}

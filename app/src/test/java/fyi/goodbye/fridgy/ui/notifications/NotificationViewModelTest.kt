@@ -68,7 +68,8 @@ class NotificationViewModelTest {
         mockRepository = mockk(relaxed = true)
 
         // Mock Android Log to prevent crashes
-        mockkStatic(android.util.Log::class)    }
+        mockkStatic(android.util.Log::class)
+    }
 
     @After
     fun tearDown() {
@@ -443,4 +444,3 @@ class NotificationViewModelTest {
             }
         }
 }
-

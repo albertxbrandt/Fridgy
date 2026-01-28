@@ -82,7 +82,8 @@ class ItemDetailViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)
+        mockContext = mockk(relaxed = true)
         mockFridgeRepository = mockk(relaxed = true)
         mockProductRepository = mockk(relaxed = true)
 
@@ -543,4 +544,3 @@ class ItemDetailViewModelTest {
             assertEquals(0, (state as UiState.Success).data.items.size)
         }
 }
-

@@ -1,13 +1,10 @@
 package fyi.goodbye.fridgy.repositories
 
-
-import fyi.goodbye.fridgy.constants.FirestoreCollections
-import fyi.goodbye.fridgy.constants.FirestoreFields
-import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.messaging.FirebaseMessaging
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.models.FcmToken
 import fyi.goodbye.fridgy.models.Notification
 import fyi.goodbye.fridgy.models.NotificationType
@@ -16,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 
 /**
  * Repository for managing push notifications and FCM tokens.
@@ -35,7 +33,6 @@ class NotificationRepository(
     private val messaging: FirebaseMessaging
 ) {
     companion object {
-        
         private const val COLLECTION_NOTIFICATIONS = "notifications"
         private const val COLLECTION_FCM_TOKENS = "fcmTokens"
     }
@@ -312,4 +309,3 @@ class NotificationRepository(
         }
     }
 }
-

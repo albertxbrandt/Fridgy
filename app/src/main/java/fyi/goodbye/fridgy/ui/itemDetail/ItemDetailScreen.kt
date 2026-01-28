@@ -270,7 +270,7 @@ fun ItemDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                    text = stringResource(R.string.instances_count, items.size),
+                                        text = stringResource(R.string.instances_count, items.size),
                                         fontSize = 18.sp
                                     )
 
@@ -518,16 +518,18 @@ fun MoveItemDialog(
 
                     availableFridges.forEach { fridge ->
                         Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    if (selectedFridgeId == fridge.id)
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    else
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                )
-                                .padding(16.dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(
+                                        if (selectedFridgeId == fridge.id) {
+                                            MaterialTheme.colorScheme.primaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.surfaceVariant
+                                        }
+                                    )
+                                    .padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             RadioButton(

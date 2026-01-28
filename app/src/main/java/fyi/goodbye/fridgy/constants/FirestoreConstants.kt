@@ -97,7 +97,7 @@ object StoragePaths {
      * Usage: "${StoragePaths.PRODUCTS_DIR}/$upc.jpg"
      */
     const val PRODUCTS_DIR = "products"
-    
+
     /**
      * Gets the full path for a product image.
      * @param upc The product UPC code

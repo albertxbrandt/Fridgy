@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.content.Context
-import timber.log.Timber
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -32,6 +31,7 @@ import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SearchBar
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 /**
  * Screen displaying the inventory of items for a specific fridge.
@@ -326,5 +326,3 @@ fun FridgeInventoryScreen(
         )
     }
 }
-
-

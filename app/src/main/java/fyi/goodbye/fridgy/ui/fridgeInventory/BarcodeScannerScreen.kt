@@ -2,7 +2,6 @@ package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.Manifest
 import android.content.pm.PackageManager
-import timber.log.Timber
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
@@ -58,6 +57,7 @@ import com.google.mlkit.vision.common.InputImage
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.ui.shared.components.SquaredButton
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
+import timber.log.Timber
 import java.util.concurrent.Executors
 
 /**
@@ -347,5 +347,3 @@ fun PreviewBarcodeScannerScreen() {
         )
     }
 }
-
-

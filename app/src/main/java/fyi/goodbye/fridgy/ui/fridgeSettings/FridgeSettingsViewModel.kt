@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.fridgeSettings
 
 import android.content.Context
-import timber.log.Timber
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,6 +16,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -142,4 +142,3 @@ class FridgeSettingsViewModel
             data class Error(val message: String) : FridgeSettingsUiState
         }
     }
-

@@ -1,12 +1,10 @@
 package fyi.goodbye.fridgy.repositories
 
-
-import fyi.goodbye.fridgy.constants.FirestoreCollections
-import fyi.goodbye.fridgy.constants.FirestoreFields
-import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.models.canManageInviteCodes
@@ -16,8 +14,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import kotlin.random.Random
-
 
 /**
  * Repository for managing household membership operations.
@@ -49,7 +47,6 @@ class MembershipRepository(
     private val householdRepository: HouseholdRepository
 ) {
     companion object {
-        
         private const val INVITE_CODE_LENGTH = 6
         private const val INVITE_CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789" // Exclude confusing chars (I, O, 0, 1)
     }
@@ -413,4 +410,3 @@ class MembershipRepository(
         }
     }
 }
-

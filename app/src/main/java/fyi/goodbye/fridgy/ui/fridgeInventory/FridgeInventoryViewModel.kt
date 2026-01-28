@@ -2,7 +2,6 @@ package fyi.goodbye.fridgy.ui.fridgeInventory
 
 import android.content.Context
 import android.net.Uri
-import timber.log.Timber
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +15,7 @@ import fyi.goodbye.fridgy.models.Item
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.ItemRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -52,6 +53,7 @@ class FridgeInventoryViewModel
         @ApplicationContext private val context: Context,
         savedStateHandle: SavedStateHandle,
         private val fridgeRepository: FridgeRepository,
+        private val itemRepository: ItemRepository,
         private val householdRepository: HouseholdRepository,
         private val productRepository: ProductRepository,
         private val firebaseAuth: FirebaseAuth
@@ -128,7 +130,7 @@ class FridgeInventoryViewModel
                                 false
                             } else {
                                 try {
-                                    val household = fridgeRepository.householdRepository.getHouseholdById(householdId)
+                                    val household = householdRepository.getHouseholdById(householdId)
                                     val userRole = household?.getRoleForUser(currentUserId)
                                     userRole == HouseholdRole.OWNER || userRole == HouseholdRole.MANAGER
                                 } catch (e: Exception) {
@@ -227,7 +229,7 @@ class FridgeInventoryViewModel
         init {
             // Preload items from cache for instant display
             viewModelScope.launch {
-                val cachedItems = fridgeRepository.preloadItemsFromCache(fridgeId)
+                val cachedItems = itemRepository.preloadItemsFromCache(fridgeId)
                 if (cachedItems.isNotEmpty()) {
                     // PERFORMANCE FIX: Batch fetch products instead of N individual queries
                     val upcs = cachedItems.map { it.upc }
@@ -272,7 +274,7 @@ class FridgeInventoryViewModel
 
                 try {
                     // Repository now returns DisplayItem (without product info loaded yet)
-                    fridgeRepository.getItemsForFridge(fridgeId)
+                    itemRepository.getItemsForFridge(fridgeId)
                         .distinctUntilChanged() // OPTIMIZATION: Prevent duplicate emissions
                         .collectLatest { displayItems ->
                             // PERFORMANCE FIX: Batch fetch all products instead of N individual queries
@@ -395,7 +397,7 @@ class FridgeInventoryViewModel
 
             // Layer 1: Inject into ViewModel's local state immediately
             optimisticItems.value = optimisticItems.value + InventoryItem(optimisticItem, optimisticProduct, imageUri)
-                 */
+             */
 
                 try {
                     // Layer 2: Push to Repository Cache
@@ -429,7 +431,7 @@ class FridgeInventoryViewModel
             expirationDate: Long? = null
         ) {
             try {
-                fridgeRepository.addItemToFridge(fridgeId, upc, expirationDate)
+                itemRepository.addItemToFridge(fridgeId, upc, expirationDate)
             } catch (e: Exception) {
                 _addItemError.value = context.getString(R.string.error_failed_to_add_item, e.message ?: "")
             }
@@ -468,4 +470,3 @@ class FridgeInventoryViewModel
             data class Error(val message: String) : ItemsUiState
         }
     }
-

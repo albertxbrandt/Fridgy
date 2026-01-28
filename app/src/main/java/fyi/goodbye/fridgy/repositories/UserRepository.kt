@@ -1,14 +1,16 @@
 package fyi.goodbye.fridgy.repositories
 
-import timber.log.Timber
-import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldPath
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
+import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.utils.LruCache
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 
 /**
  * Repository for managing user-related data operations.
@@ -16,10 +18,15 @@ import kotlinx.coroutines.tasks.await
  * Handles:
  * - User authentication (magic link-based, managed externally)
  * - User profile CRUD operations
+ * - User profile fetching with LRU caching
  * - Username availability checks
  *
  * This repository abstracts Firebase Auth and Firestore operations
  * for user management, following the MVVM architecture pattern.
+ *
+ * ## Caching Strategy
+ * User profiles are cached using an LRU cache to minimize Firestore reads.
+ * The cache is shared across all repository instances.
  *
  * Note: Authentication is handled via magic link (email link authentication).
  * This repository provides helper methods for creating user documents after
@@ -33,7 +40,13 @@ class UserRepository(
     private val auth: FirebaseAuth
 ) {
     companion object {
-        
+        private const val USER_PROFILE_CACHE_SIZE = 100
+
+        /**
+         * LRU cache for user profiles, shared across repository instances.
+         * Evicts least recently used profiles when capacity is reached.
+         */
+        private val userProfileCache = LruCache<String, UserProfile>(USER_PROFILE_CACHE_SIZE)
     }
 
     /**
@@ -96,6 +109,101 @@ class UserRepository(
         firestore.collection(FirestoreCollections.USER_PROFILES).document(uid).set(profileMap).await()
 
         Timber.d("Created user documents for UID: $uid")
+    }
+
+    // ========================================
+    // USER PROFILE FETCHING
+    // ========================================
+
+    /**
+     * Fetches a user by ID from the users collection.
+     *
+     * @param userId The user's Firebase UID.
+     * @return User object, or null if not found.
+     */
+    suspend fun getUserById(userId: String): User? {
+        return try {
+            val doc = firestore.collection(FirestoreCollections.USERS).document(userId).get().await()
+            doc.toObject(User::class.java)?.copy(uid = doc.id)
+        } catch (e: Exception) {
+            Timber.e(e, "Error fetching user by ID: $userId")
+            null
+        }
+    }
+
+    /**
+     * Fetches a user's public profile by ID.
+     *
+     * @param userId The user's Firebase UID.
+     * @return UserProfile with public data (username), or null if not found.
+     */
+    suspend fun getUserProfileById(userId: String): UserProfile? {
+        return try {
+            val doc = firestore.collection(FirestoreCollections.USER_PROFILES).document(userId).get().await()
+            doc.toObject(UserProfile::class.java)?.copy(uid = doc.id)
+        } catch (e: Exception) {
+            Timber.e(e, "Error fetching user profile by ID: $userId")
+            null
+        }
+    }
+
+    /**
+     * Fetches multiple users' public profiles by their IDs.
+     * Returns a map of userId to UserProfile for easy lookup.
+     * This queries the userProfiles collection which contains only public data (username).
+     *
+     * Uses LRU cache to minimize network requests. Batches Firestore queries in chunks of 10
+     * due to 'in' query limitations.
+     *
+     * @param userIds List of user Firebase UIDs to fetch.
+     * @return Map of userId to UserProfile, empty map if fetch fails.
+     */
+    suspend fun getUsersByIds(userIds: List<String>): Map<String, UserProfile> {
+        if (userIds.isEmpty()) return emptyMap()
+
+        return try {
+            // OPTIMIZATION: Check cache first, only fetch missing users
+            val result = mutableMapOf<String, UserProfile>()
+            val missingIds = mutableListOf<String>()
+
+            userIds.forEach { userId ->
+                val cached = userProfileCache[userId]
+                if (cached != null) {
+                    result[userId] = cached
+                } else {
+                    missingIds.add(userId)
+                }
+            }
+
+            // Only fetch users not in cache
+            if (missingIds.isNotEmpty()) {
+                // Firestore 'in' queries are limited to 10 items, so batch if needed
+                missingIds.chunked(10).forEach { chunk ->
+                    val snapshot =
+                        firestore.collection(FirestoreCollections.USER_PROFILES)
+                            .whereIn(FieldPath.documentId(), chunk)
+                            .get()
+                            .await()
+
+                    snapshot.documents.forEach { doc ->
+                        doc.toObject(UserProfile::class.java)?.let { profile ->
+                            val profileWithUid = profile.copy(uid = doc.id)
+                            result[doc.id] = profileWithUid
+                            // Cache for future use
+                            userProfileCache[doc.id] = profileWithUid
+                        }
+                    }
+                }
+            }
+
+            Timber.d(
+                "Fetched ${result.size} user profiles (${result.size - missingIds.size} from cache, ${missingIds.size} from network)"
+            )
+            result
+        } catch (e: Exception) {
+            Timber.e(e, "Error fetching user profiles by IDs: ${e.message}")
+            emptyMap()
+        }
     }
 
     /**
@@ -219,4 +327,3 @@ class UserRepository(
         }
     }
 }
-

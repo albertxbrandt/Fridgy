@@ -1,6 +1,5 @@
 package fyi.goodbye.fridgy.repositories
 
-import timber.log.Timber
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
@@ -10,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import java.util.Date
 
 /**
@@ -35,7 +35,7 @@ class CategoryRepository(
                     .orderBy(FirestoreFields.ORDER)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
-                            Timber.e( "Error listening to categories: ${error.message}")
+                            Timber.e("Error listening to categories: ${error.message}")
                             return@addSnapshotListener
                         }
 
@@ -60,7 +60,7 @@ class CategoryRepository(
                                             createdAt = createdAt
                                         )
                                     } catch (e: Exception) {
-                                        Timber.e( "Error parsing category ${doc.id}: ${e.message}")
+                                        Timber.e("Error parsing category ${doc.id}: ${e.message}")
                                         null
                                     }
                                 }
@@ -139,5 +139,3 @@ class CategoryRepository(
         return !result.isEmpty
     }
 }
-
-

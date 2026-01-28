@@ -334,92 +334,94 @@ fun HouseholdSettingsScreen(
                     ) {
                         Text(
                             text = inviteCode.code,
-                        style = MaterialTheme.typography.displayMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                        letterSpacing = 8.sp,
-                        textAlign = TextAlign.Center
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    if (inviteCode.expiresAt != null) {
-                        Text(
-                            text =
-                                stringResource(
-                                    R.string.invite_code_expires,
-                                    dateFormatter.format(Date(inviteCode.expiresAt))
-                                ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary,
+                            letterSpacing = 8.sp,
+                            textAlign = TextAlign.Center
                         )
-                    } else {
-                        Text(
-                            text = stringResource(R.string.invite_code_never_expires),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            },
-            confirmButton = {
-                val state = uiState
-                val householdName =
-                    if (state is HouseholdSettingsViewModel.HouseholdSettingsUiState.Success) {
-                        state.household.name
-                    } else {
-                        ""
-                    }
-
-                FilledTonalButton(
-                    onClick = {
-                        val shareText =
-                            context.getString(
-                                R.string.share_invite_message,
-                                householdName,
-                                inviteCode.code
+                        Spacer(modifier = Modifier.height(16.dp))
+                        if (inviteCode.expiresAt != null) {
+                            Text(
+                                text =
+                                    stringResource(
+                                        R.string.invite_code_expires,
+                                        dateFormatter.format(Date(inviteCode.expiresAt))
+                                    ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
-                        val intent =
-                            Intent(Intent.ACTION_SEND).apply {
-                                type = "text/plain"
-                                putExtra(Intent.EXTRA_TEXT, shareText)
-                            }
-                        context.startActivity(
-                            Intent.createChooser(intent, context.getString(R.string.share_invite_code_chooser))
-                        )
+                        } else {
+                            Text(
+                                text = stringResource(R.string.invite_code_never_expires),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                ) {
-                    Icon(
-                        Icons.Default.Share,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.share_invite_code))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    clipboardManager.setText(AnnotatedString(inviteCode.code))
-                    showNewCodeDialog = false
-                    viewModel.clearNewInviteCode()
-                }) {
-                    Icon(
-                        Icons.Default.ContentCopy,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(stringResource(R.string.cd_copy))
-                }
-            },
-            shape = MaterialTheme.shapes.extraLarge
-        )
+                },
+                confirmButton = {
+                    val state = uiState
+                    val householdName =
+                        if (state is HouseholdSettingsViewModel.HouseholdSettingsUiState.Success) {
+                            state.household.name
+                        } else {
+                            ""
+                        }
+
+                    FilledTonalButton(
+                        onClick = {
+                            val shareText =
+                                context.getString(
+                                    R.string.share_invite_message,
+                                    householdName,
+                                    inviteCode.code
+                                )
+                            val intent =
+                                Intent(Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(Intent.EXTRA_TEXT, shareText)
+                                }
+                            context.startActivity(
+                                Intent.createChooser(intent, context.getString(R.string.share_invite_code_chooser))
+                            )
+                        }
+                    ) {
+                        Icon(
+                            Icons.Default.Share,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.share_invite_code))
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        clipboardManager.setText(AnnotatedString(inviteCode.code))
+                        showNewCodeDialog = false
+                        viewModel.clearNewInviteCode()
+                    }) {
+                        Icon(
+                            Icons.Default.ContentCopy,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(stringResource(R.string.cd_copy))
+                    }
+                },
+                shape = MaterialTheme.shapes.extraLarge
+            )
         }
     }
 
     // Delete Confirmation Dialog
     if (showDeleteConfirmDialog) {
         AlertDialog(
-            onDismissRequest = { showDeleteConfirmDialog = false },            containerColor = Color.White,            title = {
+            onDismissRequest = { showDeleteConfirmDialog = false },
+            containerColor = Color.White,
+            title = {
                 Text(
                     stringResource(R.string.delete_household),
                     style = MaterialTheme.typography.headlineSmall,

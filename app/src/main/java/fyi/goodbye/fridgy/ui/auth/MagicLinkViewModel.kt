@@ -2,7 +2,6 @@ package fyi.goodbye.fridgy.ui.auth
 
 import android.content.Context
 import android.content.Intent
-import timber.log.Timber
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -23,6 +22,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -70,7 +70,6 @@ class MagicLinkViewModel
         private val magicLinkHandler: MagicLinkHandler
     ) : ViewModel() {
         companion object {
-            
             private const val PREFS_NAME = "fridgy_auth"
             private const val KEY_EMAIL_FOR_SIGN_IN = "emailForSignIn"
 
@@ -410,4 +409,3 @@ class MagicLinkViewModel
             }
         }
     }
-

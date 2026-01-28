@@ -1,24 +1,20 @@
 package fyi.goodbye.fridgy.repositories
 
-
-import fyi.goodbye.fridgy.constants.FirestoreCollections
-import fyi.goodbye.fridgy.constants.FirestoreFields
-import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
-import fyi.goodbye.fridgy.models.Item
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.models.NotificationType
 import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.models.UserProfile
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import kotlin.random.Random
 
 /**
@@ -63,7 +59,6 @@ class ShoppingListRepository(
     private val householdRepository: HouseholdRepository
 ) {
     companion object {
-        
         private const val PRESENCE_TIMEOUT_MS = 30_000L // 30 seconds for active presence
         private const val RECENT_VIEWER_TIMEOUT_MS = 30 * 60 * 1000L // 30 minutes for notifications
     }
@@ -287,14 +282,15 @@ class ShoppingListRepository(
                         // Auto-generate ID
                         val newItemRef = itemsCollection.document()
                         // Use HashMap with FieldValue.serverTimestamp() to match security rules
-                        val newItemData = hashMapOf<String, Any?>(
-                            "upc" to item.upc,
-                            "expirationDate" to null,
-                            "addedBy" to currentUserId,
-                            "lastUpdatedBy" to currentUserId,
-                            "addedAt" to FieldValue.serverTimestamp(),
-                            "lastUpdatedAt" to FieldValue.serverTimestamp()
-                        )
+                        val newItemData =
+                            hashMapOf<String, Any?>(
+                                "upc" to item.upc,
+                                "expirationDate" to null,
+                                "addedBy" to currentUserId,
+                                "lastUpdatedBy" to currentUserId,
+                                "addedAt" to FieldValue.serverTimestamp(),
+                                "lastUpdatedAt" to FieldValue.serverTimestamp()
+                            )
                         batch.set(newItemRef, newItemData)
                     }
 
@@ -615,7 +611,8 @@ class ShoppingListRepository(
                     }
 
                     // Batch fetch all user profiles in a coroutine (thread-safe)
-                    CoroutineScope(Dispatchers.IO).launch {
+                    // Using launch within callbackFlow's coroutine scope
+                    launch {
                         try {
                             val userIds = activeUserData.map { it.first }
                             val profiles = getUsersByIds(userIds)
@@ -647,5 +644,3 @@ class ShoppingListRepository(
         return householdRepository.getUsersByIds(userIds)
     }
 }
-
-

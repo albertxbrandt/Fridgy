@@ -67,7 +67,8 @@ class FridgeListViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)
+        mockContext = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
         mockUser = mockk(relaxed = true)
         mockFridgeRepository = mockk(relaxed = true)
@@ -396,4 +397,3 @@ class FridgeListViewModelTest {
     // Real-time fridge list updates with Flow collection and user resolution
     // require integration testing with Firebase emulator
 }
-

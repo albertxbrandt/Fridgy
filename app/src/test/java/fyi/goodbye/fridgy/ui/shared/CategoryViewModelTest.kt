@@ -130,4 +130,3 @@ class CategoryViewModelTest {
             coVerify { mockRepository.deleteCategory("cat-id") }
         }
 }
-

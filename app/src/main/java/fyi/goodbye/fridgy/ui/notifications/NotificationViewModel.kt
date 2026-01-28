@@ -1,7 +1,6 @@
 package fyi.goodbye.fridgy.ui.notifications
 
 import android.content.Context
-import timber.log.Timber
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,6 +16,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 /**
@@ -37,7 +37,6 @@ class NotificationViewModel
         private val repository: NotificationRepository
     ) : ViewModel() {
         companion object {
-            
         }
 
         /**
@@ -162,4 +161,3 @@ class NotificationViewModel
             _operationState.value = OperationState.Idle
         }
     }
-

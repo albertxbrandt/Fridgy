@@ -92,7 +92,8 @@ class FridgeInventoryViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)
+        mockContext = mockk(relaxed = true)
         mockFridgeRepository = mockk(relaxed = true)
         mockProductRepository = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
@@ -539,4 +540,3 @@ class FridgeInventoryViewModelTest {
             coVerify { mockFridgeRepository.preloadItemsFromCache(testFridgeId) }
         }
 }
-

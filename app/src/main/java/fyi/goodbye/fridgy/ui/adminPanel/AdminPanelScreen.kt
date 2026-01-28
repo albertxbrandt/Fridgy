@@ -1,6 +1,5 @@
 package fyi.goodbye.fridgy.ui.adminPanel
 
-import timber.log.Timber
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -23,6 +22,7 @@ import fyi.goodbye.fridgy.ui.shared.UiState
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.theme.FridgyTheme
+import timber.log.Timber
 
 /**
  * Admin panel screen that displays system-wide statistics and data.
@@ -388,5 +388,3 @@ fun AdminPanelScreenErrorPreview() {
         )
     }
 }
-
-

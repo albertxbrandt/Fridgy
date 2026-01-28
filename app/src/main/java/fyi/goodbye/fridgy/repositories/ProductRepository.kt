@@ -1,23 +1,22 @@
 package fyi.goodbye.fridgy.repositories
 
-
-import fyi.goodbye.fridgy.constants.FirestoreCollections
-import fyi.goodbye.fridgy.constants.FirestoreFields
-import fyi.goodbye.fridgy.constants.StoragePaths
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
-import timber.log.Timber
 import androidx.exifinterface.media.ExifInterface
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.Source
 import com.google.firebase.storage.FirebaseStorage
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
+import fyi.goodbye.fridgy.constants.StoragePaths
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.utils.LruCache
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
 

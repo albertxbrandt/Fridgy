@@ -76,7 +76,8 @@ class HouseholdListViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)
+        mockContext = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
         mockUser = mockk(relaxed = true)
         mockHouseholdRepository = mockk(relaxed = true)
@@ -386,4 +387,3 @@ class HouseholdListViewModelTest {
     // Real-time household list updates with Flow collection require integration testing
     // with Firebase emulator to test the live data stream functionality
 }
-

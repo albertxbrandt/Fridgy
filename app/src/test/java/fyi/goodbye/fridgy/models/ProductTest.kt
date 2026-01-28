@@ -99,4 +99,3 @@ class ProductTest {
         assertEquals("", product.imageUrl)
     }
 }
-

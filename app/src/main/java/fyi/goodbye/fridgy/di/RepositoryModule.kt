@@ -14,6 +14,7 @@ import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.repositories.CategoryRepository
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.ItemRepository
 import fyi.goodbye.fridgy.repositories.MembershipRepository
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
@@ -44,11 +45,12 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object RepositoryModule {
     /**
-     * Provides the fridge repository for fridge and item operations.
+     * Provides the fridge repository for fridge CRUD operations.
      *
      * @param firestore The Firestore instance for database operations.
      * @param auth The Auth instance for user identification.
      * @param householdRepository The HouseholdRepository for permission checks.
+     * @param userRepository The UserRepository for user profile operations.
      * @return A singleton [FridgeRepository] instance.
      */
     @Provides
@@ -56,8 +58,27 @@ object RepositoryModule {
     fun provideFridgeRepository(
         firestore: FirebaseFirestore,
         auth: FirebaseAuth,
+        householdRepository: HouseholdRepository,
+        userRepository: UserRepository
+    ): FridgeRepository = FridgeRepository(firestore, auth, householdRepository, userRepository)
+
+    /**
+     * Provides the item repository for item instance operations.
+     *
+     * @param firestore The Firestore instance for database operations.
+     * @param auth The Auth instance for user identification.
+     * @param fridgeRepository The FridgeRepository for fridge lookups.
+     * @param householdRepository The HouseholdRepository for permission checks.
+     * @return A singleton [ItemRepository] instance.
+     */
+    @Provides
+    @Singleton
+    fun provideItemRepository(
+        firestore: FirebaseFirestore,
+        auth: FirebaseAuth,
+        fridgeRepository: FridgeRepository,
         householdRepository: HouseholdRepository
-    ): FridgeRepository = FridgeRepository(firestore, auth, householdRepository)
+    ): ItemRepository = ItemRepository(firestore, auth, fridgeRepository, householdRepository)
 
     /**
      * Provides the household repository for household management.
@@ -65,6 +86,7 @@ object RepositoryModule {
      * @param firestore The Firestore instance for database operations.
      * @param auth The Auth instance for user identification.
      * @param notificationRepository The NotificationRepository for sending notifications.
+     * @param userRepository The UserRepository for user profile operations.
      * @return A singleton [HouseholdRepository] instance.
      */
     @Provides
@@ -72,8 +94,9 @@ object RepositoryModule {
     fun provideHouseholdRepository(
         firestore: FirebaseFirestore,
         auth: FirebaseAuth,
-        notificationRepository: NotificationRepository
-    ): HouseholdRepository = HouseholdRepository(firestore, auth, notificationRepository)
+        notificationRepository: NotificationRepository,
+        userRepository: UserRepository
+    ): HouseholdRepository = HouseholdRepository(firestore, auth, notificationRepository, userRepository)
 
     /**
      * Provides the product repository for barcode/product operations.

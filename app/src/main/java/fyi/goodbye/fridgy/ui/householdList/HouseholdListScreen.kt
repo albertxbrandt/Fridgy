@@ -559,5 +559,3 @@ private fun HouseholdListPreviewError() {
         )
     }
 }
-
-

@@ -77,7 +77,8 @@ class HouseholdSettingsViewModelTest {
     @Before
     fun setup() {
         Dispatchers.setMain(testDispatcher)
-        mockkStatic(Log::class)        mockContext = mockk(relaxed = true)
+        mockkStatic(Log::class)
+        mockContext = mockk(relaxed = true)
         mockHouseholdRepository = mockk(relaxed = true)
         mockMembershipRepository = mockk(relaxed = true)
         mockAuth = mockk(relaxed = true)
@@ -402,4 +403,3 @@ class HouseholdSettingsViewModelTest {
     // NOTE: Tests for getInviteCodesFlow collection removed
     // Real-time invite code updates require integration testing with Firebase emulator
 }
-

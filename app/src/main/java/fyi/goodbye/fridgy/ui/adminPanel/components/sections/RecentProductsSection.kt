@@ -1,6 +1,5 @@
 package fyi.goodbye.fridgy.ui.adminPanel.components.sections
 
-import timber.log.Timber
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -15,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.ui.adminPanel.components.items.ProductListItem
+import timber.log.Timber
 
 /**
  * Section displaying recent products in the admin panel.
@@ -81,5 +81,3 @@ fun RecentProductsSectionPreview() {
         onDeleteProduct = {}
     )
 }
-
-

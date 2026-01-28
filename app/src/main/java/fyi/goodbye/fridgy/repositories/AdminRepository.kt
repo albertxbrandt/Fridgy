@@ -1,6 +1,5 @@
 package fyi.goodbye.fridgy.repositories
 
-import timber.log.Timber
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -15,6 +14,7 @@ import fyi.goodbye.fridgy.models.Product
 import fyi.goodbye.fridgy.models.User
 import fyi.goodbye.fridgy.models.UserProfile
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 
 /**
  * Represents a paginated result set.
@@ -455,4 +455,3 @@ class AdminRepository(
         }
     }
 }
-

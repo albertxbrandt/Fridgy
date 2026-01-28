@@ -12,6 +12,8 @@ import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.repositories.FridgeRepository
+import fyi.goodbye.fridgy.repositories.HouseholdRepository
+import fyi.goodbye.fridgy.repositories.ItemRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -39,6 +41,8 @@ class FridgeListViewModel
         savedStateHandle: SavedStateHandle,
         private val auth: FirebaseAuth,
         private val fridgeRepository: FridgeRepository,
+        private val itemRepository: ItemRepository,
+        private val householdRepository: HouseholdRepository,
         private val adminRepository: AdminRepository
     ) : ViewModel() {
         /** The household ID this fridge list belongs to. */
@@ -88,7 +92,7 @@ class FridgeListViewModel
 
                 // Listen for real-time role updates in this household
                 viewModelScope.launch {
-                    fridgeRepository.householdRepository.getHouseholdFlow(householdId).collectLatest { household ->
+                    householdRepository.getHouseholdFlow(householdId).collectLatest { household ->
                         _userRole.value = household?.getRoleForUser(currentUserId)
                     }
                 }
@@ -99,7 +103,7 @@ class FridgeListViewModel
                         // Fetch item counts for each fridge
                         val displayFridges =
                             fridges.map { fridge ->
-                                val itemCount = fridgeRepository.getItemCount(fridge.id)
+                                val itemCount = itemRepository.getItemCount(fridge.id)
                                 DisplayFridge(
                                     id = fridge.id,
                                     name = fridge.name,

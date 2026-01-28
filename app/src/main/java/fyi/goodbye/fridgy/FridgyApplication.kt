@@ -24,7 +24,7 @@ import timber.log.Timber
 class FridgyApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        
+
         // Initialize Timber for debug builds
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
