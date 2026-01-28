@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.ui.fridgeSettings.SettingsItem
 import fyi.goodbye.fridgy.ui.fridgeSettings.SettingsSection
@@ -130,8 +131,8 @@ fun HouseholdSettingsScreen(
                 val isOwner = household.createdByUid == viewModel.currentUserId
                 val currentUserRole = viewModel.currentUserId?.let { household.getRoleForUser(it) }
                 val isManager =
-                    currentUserRole == fyi.goodbye.fridgy.models.HouseholdRole.OWNER ||
-                        currentUserRole == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
+                    currentUserRole == HouseholdRole.OWNER ||
+                        currentUserRole == HouseholdRole.MANAGER
 
                 Column(
                     modifier =
@@ -171,7 +172,7 @@ fun HouseholdSettingsScreen(
                                 .forEach { member ->
                                     val memberRole = household.getRoleForUser(member.uid)
                                     // Can only remove members with MEMBER role (not managers or owner)
-                                    val canRemoveThisMember = isManager && memberRole == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER
+                                    val canRemoveThisMember = isManager && memberRole == HouseholdRole.MEMBER
                                     MemberCard(
                                         name = member.username,
                                         role = memberRole,
@@ -708,10 +709,10 @@ fun InviteCodeItem(
 @Composable
 fun MemberCard(
     name: String,
-    role: fyi.goodbye.fridgy.models.HouseholdRole,
+    role: HouseholdRole,
     isOwner: Boolean,
     canRemove: Boolean,
-    onRoleChange: (fyi.goodbye.fridgy.models.HouseholdRole) -> Unit,
+    onRoleChange: (HouseholdRole) -> Unit,
     onRemove: () -> Unit
 ) {
     // Show swipe-to-delete if current user has permission to remove this member
@@ -779,9 +780,9 @@ fun MemberCard(
 @Composable
 fun MemberCardContent(
     name: String,
-    role: fyi.goodbye.fridgy.models.HouseholdRole,
+    role: HouseholdRole,
     isOwner: Boolean,
-    onRoleChange: (fyi.goodbye.fridgy.models.HouseholdRole) -> Unit
+    onRoleChange: (HouseholdRole) -> Unit
 ) {
     Row(
         modifier =
@@ -802,9 +803,9 @@ fun MemberCardContent(
                 Text(
                     text = "Manager",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (role == HouseholdRole.MANAGER) FontWeight.Bold else FontWeight.Normal,
                     color =
-                        if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) {
+                        if (role == HouseholdRole.MANAGER) {
                             MaterialTheme.colorScheme.onPrimary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -813,14 +814,14 @@ fun MemberCardContent(
                         Modifier
                             .background(
                                 color =
-                                    if (role == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) {
+                                    if (role == HouseholdRole.MANAGER) {
                                         MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
                                     } else {
                                         Color.Transparent
                                     },
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            .clickable { onRoleChange(fyi.goodbye.fridgy.models.HouseholdRole.MANAGER) }
+                            .clickable { onRoleChange(HouseholdRole.MANAGER) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
 
@@ -834,9 +835,9 @@ fun MemberCardContent(
                 Text(
                     text = "Member",
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) FontWeight.Bold else FontWeight.Normal,
+                    fontWeight = if (role == HouseholdRole.MEMBER) FontWeight.Bold else FontWeight.Normal,
                     color =
-                        if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) {
+                        if (role == HouseholdRole.MEMBER) {
                             MaterialTheme.colorScheme.onPrimary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -845,14 +846,14 @@ fun MemberCardContent(
                         Modifier
                             .background(
                                 color =
-                                    if (role == fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) {
+                                    if (role == HouseholdRole.MEMBER) {
                                         MaterialTheme.colorScheme.primary.copy(alpha = 0.85f)
                                     } else {
                                         Color.Transparent
                                     },
                                 shape = RoundedCornerShape(12.dp)
                             )
-                            .clickable { onRoleChange(fyi.goodbye.fridgy.models.HouseholdRole.MEMBER) }
+                            .clickable { onRoleChange(HouseholdRole.MEMBER) }
                             .padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
@@ -861,9 +862,9 @@ fun MemberCardContent(
             Text(
                 text =
                     when (role) {
-                        fyi.goodbye.fridgy.models.HouseholdRole.OWNER -> "Owner"
-                        fyi.goodbye.fridgy.models.HouseholdRole.MANAGER -> "Manager"
-                        fyi.goodbye.fridgy.models.HouseholdRole.MEMBER -> "Member"
+                        HouseholdRole.OWNER -> "Owner"
+                        HouseholdRole.MANAGER -> "Manager"
+                        HouseholdRole.MEMBER -> "Member"
                     },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,

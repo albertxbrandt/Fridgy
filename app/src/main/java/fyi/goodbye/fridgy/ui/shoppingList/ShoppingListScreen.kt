@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.ui.fridgeInventory.components.NewProductDialog
 import fyi.goodbye.fridgy.ui.shared.components.SearchBar
 import fyi.goodbye.fridgy.ui.shoppingList.components.AddItemFromSearchDialog
@@ -144,7 +145,7 @@ fun ShoppingListScreen(
                     val manualItem =
                         ShoppingListViewModel.ShoppingListItemWithProduct(
                             item =
-                                fyi.goodbye.fridgy.models.ShoppingListItem(
+                                ShoppingListItem(
                                     upc = manualItemUpc,
                                     // addedAt will be set by server when saved
                                     addedBy = "",

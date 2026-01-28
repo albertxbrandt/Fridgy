@@ -88,8 +88,8 @@ class FridgeSettingsViewModel
                             try {
                                 val household = householdRepository.getHouseholdById(householdId)
                                 val userRole = household?.getRoleForUser(currentUserId)
-                                _canManageFridge.value = userRole == fyi.goodbye.fridgy.models.HouseholdRole.OWNER ||
-                                    userRole == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
+                                _canManageFridge.value = userRole == HouseholdRole.OWNER ||
+                                    userRole == HouseholdRole.MANAGER
                             } catch (e: Exception) {
                                 Log.e("FridgeSettingsVM", "Error checking fridge management permission: ${e.message}")
                                 _canManageFridge.value = false

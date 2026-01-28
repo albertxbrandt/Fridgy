@@ -14,12 +14,16 @@ import kotlinx.coroutines.tasks.await
  * Repository for managing user-related data operations.
  *
  * Handles:
- * - User authentication (signup, login, logout)
+ * - User authentication (magic link-based, managed externally)
  * - User profile CRUD operations
  * - Username availability checks
  *
  * This repository abstracts Firebase Auth and Firestore operations
  * for user management, following the MVVM architecture pattern.
+ *
+ * Note: Authentication is handled via magic link (email link authentication).
+ * This repository provides helper methods for creating user documents after
+ * successful authentication.
  *
  * @param firestore The Firestore instance for database operations.
  * @param auth The Auth instance for authentication.
@@ -61,21 +65,6 @@ class UserRepository(
     }
 
     /**
-     * Creates a new user account with email and password.
-     *
-     * @param email The user's email address.
-     * @param password The user's password.
-     * @return The AuthResult from Firebase Auth.
-     * @throws Exception If account creation fails.
-     */
-    suspend fun createAuthAccount(
-        email: String,
-        password: String
-    ): AuthResult {
-        return auth.createUserWithEmailAndPassword(email, password).await()
-    }
-
-    /**
      * Creates the user's Firestore documents after successful authentication.
      * Creates both the private 'users' document and public 'userProfiles' document.
      *
@@ -93,7 +82,7 @@ class UserRepository(
         val userMap =
             hashMapOf(
                 FirestoreFields.EMAIL to email,
-                FirestoreFields.CREATED_AT to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                FirestoreFields.CREATED_AT to FieldValue.serverTimestamp()
             )
 
         // Create public profile data (username only)
@@ -107,45 +96,6 @@ class UserRepository(
         firestore.collection(FirestoreCollections.USER_PROFILES).document(uid).set(profileMap).await()
 
         Log.d(TAG, "Created user documents for UID: $uid")
-    }
-
-    /**
-     * Signs up a new user with email, password, and username.
-     * This is a convenience method that combines account creation and document creation.
-     *
-     * @param email The user's email address.
-     * @param password The user's password.
-     * @param username The user's chosen username (should be validated and checked for availability first).
-     * @return The user's UID if successful.
-     * @throws Exception If signup fails at any step.
-     */
-    suspend fun signUp(
-        email: String,
-        password: String,
-        username: String
-    ): String {
-        val authResult = createAuthAccount(email, password)
-        val uid =
-            authResult.user?.uid
-                ?: throw IllegalStateException("User created but UID is null")
-
-        createUserDocuments(uid, email, username)
-        return uid
-    }
-
-    /**
-     * Signs in an existing user with email and password.
-     *
-     * @param email The user's email address.
-     * @param password The user's password.
-     * @return The AuthResult from Firebase Auth.
-     * @throws Exception If sign in fails.
-     */
-    suspend fun signIn(
-        email: String,
-        password: String
-    ): AuthResult {
-        return auth.signInWithEmailAndPassword(email, password).await()
     }
 
     /**

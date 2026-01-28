@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import fyi.goodbye.fridgy.models.SizeUnit
 import fyi.goodbye.fridgy.ui.fridgeInventory.InventoryItem
 
 /**
@@ -77,7 +78,7 @@ fun InventoryItemCardMinimal(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-                        val sizeUnitText = fyi.goodbye.fridgy.models.SizeUnit.formatSizeUnit(product.size, product.unit)
+                        val sizeUnitText = SizeUnit.formatSizeUnit(product.size, product.unit)
                         if (sizeUnitText != null) {
                             Text(
                                 text = sizeUnitText,

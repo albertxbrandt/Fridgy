@@ -30,6 +30,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.models.Item
+import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.SizeUnit
 import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
@@ -219,7 +222,7 @@ fun ItemDetailScreen(
                         // Product size/unit
                         if (product.size != null && product.unit != null) {
                             val sizeUnitText =
-                                fyi.goodbye.fridgy.models.SizeUnit.formatSizeUnit(
+                                SizeUnit.formatSizeUnit(
                                     product.size,
                                     product.unit
                                 )
@@ -301,8 +304,8 @@ fun ItemDetailScreen(
 
 @Composable
 fun ItemInstanceCard(
-    item: fyi.goodbye.fridgy.models.Item,
-    product: fyi.goodbye.fridgy.models.Product,
+    item: Item,
+    product: Product,
     userNames: Map<String, String>,
     dateFormatter: SimpleDateFormat,
     onDelete: () -> Unit,
@@ -340,8 +343,8 @@ fun ItemInstanceCard(
 
                 if (item.expirationDate != null) {
                     val expirationDateFormatter = remember { SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()) }
-                    val isExpired = fyi.goodbye.fridgy.models.Item.isExpired(item.expirationDate)
-                    val isExpiringSoon = fyi.goodbye.fridgy.models.Item.isExpiringSoon(item.expirationDate)
+                    val isExpired = Item.isExpired(item.expirationDate)
+                    val isExpiringSoon = Item.isExpiringSoon(item.expirationDate)
 
                     Text(
                         text = expirationDateFormatter.format(Date(item.expirationDate)),

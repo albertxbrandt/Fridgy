@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.ui.elements.FridgeCard
 import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState
@@ -68,8 +69,8 @@ fun FridgeListScreen(
     // Check if user can manage fridges (owner or manager)
     val canManageFridges =
         userRole?.let {
-            it == fyi.goodbye.fridgy.models.HouseholdRole.OWNER ||
-                it == fyi.goodbye.fridgy.models.HouseholdRole.MANAGER
+            it == HouseholdRole.OWNER ||
+                it == HouseholdRole.MANAGER
         } ?: false
 
     Scaffold(

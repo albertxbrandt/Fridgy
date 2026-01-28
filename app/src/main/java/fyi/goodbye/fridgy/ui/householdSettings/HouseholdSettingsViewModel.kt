@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayHousehold
+import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.models.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.MembershipRepository
@@ -187,7 +188,7 @@ class HouseholdSettingsViewModel
          */
         fun updateMemberRole(
             userId: String,
-            newRole: fyi.goodbye.fridgy.models.HouseholdRole
+            newRole: HouseholdRole
         ) {
             viewModelScope.launch {
                 try {

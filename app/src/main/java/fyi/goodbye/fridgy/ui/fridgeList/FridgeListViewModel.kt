@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.models.HouseholdRole
 import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,10 +54,10 @@ class FridgeListViewModel
         /** Indicates if the current user has admin privileges. */
         val isAdmin: StateFlow<Boolean> = _isAdmin.asStateFlow()
 
-        private val _userRole = MutableStateFlow<fyi.goodbye.fridgy.models.HouseholdRole?>(null)
+        private val _userRole = MutableStateFlow<HouseholdRole?>(null)
 
         /** The current user's role in this household. */
-        val userRole: StateFlow<fyi.goodbye.fridgy.models.HouseholdRole?> = _userRole.asStateFlow()
+        val userRole: StateFlow<HouseholdRole?> = _userRole.asStateFlow()
 
         private val _isCreatingFridge = MutableStateFlow(false)
 

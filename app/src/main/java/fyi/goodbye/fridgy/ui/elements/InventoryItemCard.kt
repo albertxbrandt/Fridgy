@@ -17,6 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
+import fyi.goodbye.fridgy.models.SizeUnit
 import fyi.goodbye.fridgy.ui.fridgeInventory.InventoryItem
 
 /**
@@ -132,7 +133,7 @@ fun InventoryItemCard(
                 )
                 // Show size/unit if available from product
                 if (product.size != null && product.unit != null) {
-                    val sizeUnitText = fyi.goodbye.fridgy.models.SizeUnit.formatSizeUnit(product.size, product.unit)
+                    val sizeUnitText = SizeUnit.formatSizeUnit(product.size, product.unit)
                     if (sizeUnitText != null) {
                         Text(
                             text = sizeUnitText,

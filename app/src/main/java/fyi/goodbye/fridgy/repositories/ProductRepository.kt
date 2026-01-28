@@ -40,6 +40,8 @@ class ProductRepository(
     private val productsCollection = firestore.collection(FirestoreCollections.PRODUCTS)
 
     companion object {
+        private const val TAG = "ProductRepository"
+
         /** Maximum number of products to cache. */
         private const val PRODUCT_CACHE_SIZE = 200
 
@@ -73,7 +75,7 @@ class ProductRepository(
             inputStream?.close()
 
             if (originalBitmap == null) {
-                Log.e("ProductRepo", "Failed to decode bitmap from URI")
+                Log.e(TAG, "Failed to decode bitmap from URI")
                 return null
             }
 
@@ -111,10 +113,10 @@ class ProductRepository(
             }
             outputStream.close()
 
-            Log.d("ProductRepo", "Image compressed: ${compressedBytes.size / 1024}KB (${scaledWidth}x$scaledHeight)")
+            Log.d(TAG, "Image compressed: ${compressedBytes.size / 1024}KB (${scaledWidth}x$scaledHeight)")
             compressedBytes
         } catch (e: Exception) {
-            Log.e("ProductRepo", "Image compression failed: ${e.message}")
+            Log.e(TAG, "Image compression failed: ${e.message}")
             null
         }
     }
@@ -134,7 +136,7 @@ class ProductRepository(
             inputStream.close()
             orientation
         } catch (e: Exception) {
-            Log.e("ProductRepo", "Failed to read EXIF orientation: ${e.message}")
+            Log.e(TAG, "Failed to read EXIF orientation: ${e.message}")
             ExifInterface.ORIENTATION_NORMAL
         }
     }
@@ -167,10 +169,10 @@ class ProductRepository(
 
         return try {
             val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
-            Log.d("ProductRepo", "Applied EXIF rotation: $orientation")
+            Log.d(TAG, "Applied EXIF rotation: $orientation")
             rotated
         } catch (e: Exception) {
-            Log.e("ProductRepo", "Failed to rotate bitmap: ${e.message}")
+            Log.e(TAG, "Failed to rotate bitmap: ${e.message}")
             bitmap
         }
     }
@@ -228,7 +230,7 @@ class ProductRepository(
                 null
             }
         } catch (e: Exception) {
-            Log.e("ProductRepo", "Error fetching product $upc: ${e.message}")
+            Log.e(TAG, "Error fetching product $upc: ${e.message}")
             null
         }
     }
@@ -246,7 +248,7 @@ class ProductRepository(
             // If not found on server, retry with DEFAULT source (includes cache)
             // This helps with Firestore's eventual consistency
             if (!doc.exists()) {
-                Log.d("ProductRepo", "Product $upc not found on server, trying default source")
+                Log.d(TAG, "Product $upc not found on server, trying default source")
                 doc = productsCollection.document(upc).get(Source.DEFAULT).await()
             }
 
@@ -263,7 +265,7 @@ class ProductRepository(
                 null
             }
         } catch (e: Exception) {
-            Log.e("ProductRepo", "Error fetching fresh product $upc: ${e.message}")
+            Log.e(TAG, "Error fetching fresh product $upc: ${e.message}")
             // Fall back to cached version on network error
             productCache[upc]
         }
@@ -322,12 +324,12 @@ class ProductRepository(
                     }
                 }
             } catch (e: Exception) {
-                Log.e("ProductRepo", "Error batch fetching products: ${e.message}")
+                Log.e(TAG, "Error batch fetching products: ${e.message}")
             }
         }
 
         Log.d(
-            "ProductRepo",
+            TAG,
             "Batch fetched ${result.size} products (${result.size - missingUpcs.size} from cache, ${missingUpcs.size} from network)"
         )
         return result
@@ -374,12 +376,12 @@ class ProductRepository(
                     // Create updated product with Storage URL
                     productToSave = productWithTokens.copy(imageUrl = finalImageUrl)
                     productCache[product.upc] = productToSave
-                    Log.d("ProductRepo", "Compressed product image uploaded: ${product.upc}")
+                    Log.d(TAG, "Compressed product image uploaded: ${product.upc}")
                 } else {
-                    Log.e("ProductRepo", "Image compression returned null, skipping upload")
+                    Log.e(TAG, "Image compression returned null, skipping upload")
                 }
             } catch (e: Exception) {
-                Log.e("ProductRepo", "Image upload failed for ${product.upc}: ${e.message}")
+                Log.e(TAG, "Image upload failed for ${product.upc}: ${e.message}")
                 // Continue with empty imageUrl on upload failure
             }
         }
@@ -387,9 +389,9 @@ class ProductRepository(
         // 2. Save metadata to Firestore with proper Storage URL (or empty string)
         try {
             productsCollection.document(product.upc).set(productToSave).await()
-            Log.d("ProductRepo", "Product metadata saved with ${searchTokens.size} search tokens: ${product.upc}")
+            Log.d(TAG, "Product metadata saved with ${searchTokens.size} search tokens: ${product.upc}")
         } catch (e: Exception) {
-            Log.e("ProductRepo", "Failed to save product metadata: ${e.message}")
+            Log.e(TAG, "Failed to save product metadata: ${e.message}")
         }
 
         return productCache[product.upc] ?: productToSave
@@ -440,7 +442,7 @@ class ProductRepository(
 
             // If we found results with tokens, return them
             if (tokenResults.isNotEmpty()) {
-                Log.d("ProductRepo", "Search found ${tokenResults.size} products via searchTokens")
+                Log.d(TAG, "Search found ${tokenResults.size} products via searchTokens")
                 return tokenResults
             }
 
@@ -463,13 +465,13 @@ class ProductRepository(
                     .sortedByDescending { it.lastUpdated } // Sort by recency
 
             if (prefixResults.isNotEmpty()) {
-                Log.d("ProductRepo", "Search found ${prefixResults.size} products via prefix matching")
+                Log.d(TAG, "Search found ${prefixResults.size} products via prefix matching")
                 return prefixResults
             }
 
             // Approach 3: Fallback - query recent 100 products, filter client-side
             // This is safe because we're limiting the query size
-            Log.d("ProductRepo", "Falling back to recent products search")
+            Log.d(TAG, "Falling back to recent products search")
             val recentResults =
                 productsCollection
                     .orderBy(FirestoreFields.LAST_UPDATED, Query.Direction.DESCENDING)
@@ -487,10 +489,10 @@ class ProductRepository(
                     }
                     .take(20)
 
-            Log.d("ProductRepo", "Search completed: ${recentResults.size} results")
+            Log.d(TAG, "Search completed: ${recentResults.size} results")
             recentResults
         } catch (e: Exception) {
-            Log.e("ProductRepo", "Search failed: ${e.message}")
+            Log.e(TAG, "Search failed: ${e.message}")
             emptyList()
         }
     }

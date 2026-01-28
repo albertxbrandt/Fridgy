@@ -115,37 +115,6 @@ class UserRepositoryIntegrationTest {
         }
 
     @Test
-    fun signUp_createsAuthAccountAndDocuments() =
-        runBlocking {
-            val userId = repository.signUp("signup@example.com", "password123", "signupuser")
-
-            assertNotNull(userId)
-
-            // Verify Firestore documents were created
-            val userDoc = firestore.collection("users").document(userId).get().await()
-            assertTrue(userDoc.exists())
-
-            val profileDoc = firestore.collection("userProfiles").document(userId).get().await()
-            assertTrue(profileDoc.exists())
-            assertEquals("signupuser", profileDoc.getString("username"))
-        }
-
-    @Test
-    fun signIn_authenticatesExistingUser() =
-        runBlocking {
-            // Create user first
-            repository.signUp("signin@example.com", "password123", "signinuser")
-            FirebaseTestUtils.signOut()
-
-            // Sign in
-            val result = repository.signIn("signin@example.com", "password123")
-
-            assertNotNull(result)
-            assertNotNull(result.user)
-            assertEquals("signin@example.com", result.user?.email)
-        }
-
-    @Test
     fun getUserProfile_returnsProfileForExistingUser() =
         runBlocking {
             val userId = FirebaseTestUtils.createTestUser("profile@example.com", "password123")
