@@ -1,5 +1,8 @@
 package fyi.goodbye.fridgy.repositories
 
+
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.tasks.await
 import kotlin.random.Random
+
 
 /**
  * Repository for managing household membership operations.
@@ -84,8 +88,8 @@ class MembershipRepository(
         val updatedRoles = household.memberRoles.toMutableMap()
         updatedRoles[userId] = newRole.name
 
-        firestore.collection("households").document(householdId)
-            .update("memberRoles", updatedRoles)
+        firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+            .update(FirestoreFields.MEMBER_ROLES, updatedRoles)
             .await()
     }
 
@@ -120,15 +124,15 @@ class MembershipRepository(
         }
 
         val batch = firestore.batch()
-        val householdRef = firestore.collection("households").document(householdId)
+        val householdRef = firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
 
         // Remove from members list
-        batch.update(householdRef, "members", FieldValue.arrayRemove(userId))
+        batch.update(householdRef, FirestoreFields.MEMBERS, FieldValue.arrayRemove(userId))
 
         // Remove from roles map
         val updatedRoles = household.memberRoles.toMutableMap()
         updatedRoles.remove(userId)
-        batch.update(householdRef, "memberRoles", updatedRoles)
+        batch.update(householdRef, FirestoreFields.MEMBER_ROLES, updatedRoles)
 
         batch.commit().await()
     }
@@ -166,8 +170,8 @@ class MembershipRepository(
 
         // Attempt to remove user from household regardless of fetch result
         try {
-            firestore.collection("households").document(householdId)
-                .update("members", FieldValue.arrayRemove(currentUserId))
+            firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+                .update(FirestoreFields.MEMBERS, FieldValue.arrayRemove(currentUserId))
                 .await()
             Log.d(TAG, "Successfully removed user from household $householdId")
         } catch (e: Exception) {
@@ -214,7 +218,7 @@ class MembershipRepository(
         var attempts = 0
         do {
             code = generateInviteCode()
-            val existing = firestore.collection("inviteCodes").document(code).get().await()
+            val existing = firestore.collection(FirestoreCollections.INVITE_CODES).document(code).get().await()
             attempts++
             if (attempts > 10) throw IllegalStateException("Failed to generate unique code")
         } while (existing.exists())
@@ -231,7 +235,7 @@ class MembershipRepository(
             )
 
         Log.d(TAG, "Creating invite code: $code for household: $householdId, isActive: true")
-        firestore.collection("inviteCodes").document(code).set(inviteCode).await()
+        firestore.collection(FirestoreCollections.INVITE_CODES).document(code).set(inviteCode).await()
         Log.d(TAG, "Invite code created successfully")
         return inviteCode
     }
@@ -242,9 +246,9 @@ class MembershipRepository(
     suspend fun getInviteCodesForHousehold(householdId: String): List<InviteCode> {
         return try {
             val snapshot =
-                firestore.collection("inviteCodes")
-                    .whereEqualTo("householdId", householdId)
-                    .whereEqualTo("active", true)
+                firestore.collection(FirestoreCollections.INVITE_CODES)
+                    .whereEqualTo(FirestoreFields.HOUSEHOLD_ID, householdId)
+                    .whereEqualTo(FirestoreFields.ACTIVE, true)
                     .get()
                     .await()
 
@@ -265,9 +269,9 @@ class MembershipRepository(
         callbackFlow {
             Log.d(TAG, "Starting invite codes listener for household: $householdId")
             val listener =
-                firestore.collection("inviteCodes")
-                    .whereEqualTo("householdId", householdId)
-                    .whereEqualTo("active", true)
+                firestore.collection(FirestoreCollections.INVITE_CODES)
+                    .whereEqualTo(FirestoreFields.HOUSEHOLD_ID, householdId)
+                    .whereEqualTo(FirestoreFields.ACTIVE, true)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
                             Log.e(TAG, "Error loading invite codes: ${e.message}", e)
@@ -305,8 +309,8 @@ class MembershipRepository(
             throw IllegalStateException("You don't have permission to revoke invite codes")
         }
 
-        firestore.collection("inviteCodes").document(code)
-            .update("active", false)
+        firestore.collection(FirestoreCollections.INVITE_CODES).document(code)
+            .update(FirestoreFields.ACTIVE, false)
             .await()
     }
 
@@ -320,7 +324,7 @@ class MembershipRepository(
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
         val upperCode = code.uppercase().trim()
 
-        val codeDoc = firestore.collection("inviteCodes").document(upperCode).get().await()
+        val codeDoc = firestore.collection(FirestoreCollections.INVITE_CODES).document(upperCode).get().await()
         if (!codeDoc.exists()) {
             throw IllegalStateException("Invalid invite code")
         }
@@ -343,24 +347,24 @@ class MembershipRepository(
         // Add user to household with MEMBER role using batch write
         val batch = firestore.batch()
 
-        val householdRef = firestore.collection("households").document(inviteCode.householdId)
+        val householdRef = firestore.collection(FirestoreCollections.HOUSEHOLDS).document(inviteCode.householdId)
 
         // Add to members array
-        batch.update(householdRef, "members", FieldValue.arrayUnion(currentUser.uid))
+        batch.update(householdRef, FirestoreFields.MEMBERS, FieldValue.arrayUnion(currentUser.uid))
 
         // Add role to memberRoles map
         batch.update(
             householdRef,
-            "memberRoles.${currentUser.uid}",
+            "${FirestoreFields.MEMBER_ROLES}.${currentUser.uid}",
             HouseholdRole.MEMBER.name
         )
 
-        val codeRef = firestore.collection("inviteCodes").document(upperCode)
+        val codeRef = firestore.collection(FirestoreCollections.INVITE_CODES).document(upperCode)
         batch.update(
             codeRef,
             mapOf(
-                "usedBy" to currentUser.uid,
-                "usedAt" to System.currentTimeMillis()
+                FirestoreFields.USED_BY to currentUser.uid,
+                FirestoreFields.USED_AT to System.currentTimeMillis()
             )
         )
 
@@ -393,7 +397,7 @@ class MembershipRepository(
         val upperCode = code.uppercase().trim()
 
         return try {
-            val codeDoc = firestore.collection("inviteCodes").document(upperCode).get().await()
+            val codeDoc = firestore.collection(FirestoreCollections.INVITE_CODES).document(upperCode).get().await()
             if (!codeDoc.exists()) return null
 
             val inviteCode =

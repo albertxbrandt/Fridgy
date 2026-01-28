@@ -1,10 +1,14 @@
 package fyi.goodbye.fridgy.repositories
 
+
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.models.Item
+import fyi.goodbye.fridgy.models.NotificationType
 import fyi.goodbye.fridgy.models.ShoppingListItem
 import fyi.goodbye.fridgy.models.UserProfile
 import kotlinx.coroutines.CoroutineScope
@@ -74,8 +78,8 @@ class ShoppingListRepository(
     fun getShoppingListItems(householdId: String): Flow<List<ShoppingListItem>> =
         callbackFlow {
             val colRef =
-                firestore.collection("households").document(householdId)
-                    .collection("shoppingList")
+                firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+                    .collection(FirestoreCollections.SHOPPING_LIST)
 
             val listener =
                 colRef.addSnapshotListener { snapshot, e ->
@@ -128,8 +132,8 @@ class ShoppingListRepository(
             )
 
         // Add item to shopping list (addedAt and lastUpdatedAt set via @ServerTimestamp)
-        firestore.collection("households").document(householdId)
-            .collection("shoppingList").document(upc)
+        firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+            .collection(FirestoreCollections.SHOPPING_LIST).document(upc)
             .set(item)
             .await()
 
@@ -140,8 +144,8 @@ class ShoppingListRepository(
             } else {
                 // Fetch product name from products collection
                 try {
-                    val product = firestore.collection("products").document(upc).get().await()
-                    product.getString("name") ?: upc
+                    val product = firestore.collection(FirestoreCollections.PRODUCTS).document(upc).get().await()
+                    product.getString(FirestoreFields.NAME) ?: upc
                 } catch (e: Exception) {
                     Log.w(TAG, "Could not fetch product name for UPC: $upc", e)
                     upc
@@ -162,8 +166,8 @@ class ShoppingListRepository(
         householdId: String,
         upc: String
     ) {
-        firestore.collection("households").document(householdId)
-            .collection("shoppingList").document(upc)
+        firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+            .collection(FirestoreCollections.SHOPPING_LIST).document(upc)
             .delete()
             .await()
     }
@@ -192,13 +196,13 @@ class ShoppingListRepository(
                 ?: throw IllegalStateException("User not logged in.")
 
         val itemRef =
-            firestore.collection("households").document(householdId)
-                .collection("shoppingList").document(upc)
+            firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+                .collection(FirestoreCollections.SHOPPING_LIST).document(upc)
 
         firestore.runTransaction { transaction ->
             val snapshot = transaction.get(itemRef)
-            val currentObtainedBy = snapshot.get("obtainedBy") as? Map<String, Long> ?: emptyMap()
-            val currentTargetFridgeId = snapshot.get("targetFridgeId") as? Map<String, String> ?: emptyMap()
+            val currentObtainedBy = snapshot.get(FirestoreFields.OBTAINED_BY) as? Map<String, Long> ?: emptyMap()
+            val currentTargetFridgeId = snapshot.get(FirestoreFields.TARGET_FRIDGE_ID) as? Map<String, String> ?: emptyMap()
 
             // Update obtained quantity map
             val updatedObtainedBy = currentObtainedBy.toMutableMap()
@@ -222,12 +226,12 @@ class ShoppingListRepository(
             transaction.update(
                 itemRef,
                 mapOf(
-                    "obtainedBy" to updatedObtainedBy,
-                    "targetFridgeId" to updatedTargetFridgeId,
-                    "obtainedQuantity" to newTotal,
-                    "checked" to checked,
-                    "lastUpdatedBy" to currentUserId,
-                    "lastUpdatedAt" to FieldValue.serverTimestamp()
+                    FirestoreFields.OBTAINED_BY to updatedObtainedBy,
+                    FirestoreFields.TARGET_FRIDGE_ID to updatedTargetFridgeId,
+                    FirestoreFields.OBTAINED_QUANTITY to newTotal,
+                    FirestoreFields.CHECKED to checked,
+                    FirestoreFields.LAST_UPDATED_BY to currentUserId,
+                    FirestoreFields.LAST_UPDATED_AT to FieldValue.serverTimestamp()
                 )
             )
         }.await()
@@ -255,8 +259,8 @@ class ShoppingListRepository(
                 ?: throw IllegalStateException("User not logged in.")
 
         val shoppingListRef =
-            firestore.collection("households").document(householdId)
-                .collection("shoppingList")
+            firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+                .collection(FirestoreCollections.SHOPPING_LIST)
 
         try {
             val snapshot = shoppingListRef.get().await()
@@ -275,9 +279,9 @@ class ShoppingListRepository(
                     // Create individual item instances for each unit obtained
                     // Items are now stored as individual instances, not aggregated by UPC
                     val itemsCollection =
-                        firestore.collection("fridges")
+                        firestore.collection(FirestoreCollections.FRIDGES)
                             .document(targetFridgeId)
-                            .collection("items")
+                            .collection(FirestoreCollections.ITEMS)
 
                     repeat(userQuantity) {
                         // Auto-generate ID
@@ -311,13 +315,13 @@ class ShoppingListRepository(
                         batch.update(
                             shoppingItemRef,
                             mapOf(
-                                "quantity" to remainingQuantityNeeded,
-                                "obtainedBy" to remainingObtainedBy,
-                                "targetFridgeId" to remainingTargetFridgeId,
-                                "obtainedQuantity" to newTotalObtained,
-                                "checked" to false,
-                                "lastUpdatedBy" to currentUserId,
-                                "lastUpdatedAt" to FieldValue.serverTimestamp()
+                                FirestoreFields.QUANTITY to remainingQuantityNeeded,
+                                FirestoreFields.OBTAINED_BY to remainingObtainedBy,
+                                FirestoreFields.TARGET_FRIDGE_ID to remainingTargetFridgeId,
+                                FirestoreFields.OBTAINED_QUANTITY to newTotalObtained,
+                                FirestoreFields.CHECKED to false,
+                                FirestoreFields.LAST_UPDATED_BY to currentUserId,
+                                FirestoreFields.LAST_UPDATED_AT to FieldValue.serverTimestamp()
                             )
                         )
                     }
@@ -375,7 +379,7 @@ class ShoppingListRepository(
                     userId = viewer.userId,
                     title = "New item added to shopping list",
                     body = "$itemName was just added",
-                    type = fyi.goodbye.fridgy.models.NotificationType.ITEM_ADDED,
+                    type = NotificationType.ITEM_ADDED,
                     relatedFridgeId = null,
                     relatedItemId = itemName
                 )
@@ -405,8 +409,8 @@ class ShoppingListRepository(
             Log.d(TAG, "Looking for presence within last ${RECENT_VIEWER_TIMEOUT_MS / 60000} minutes")
 
             val presenceSnapshot =
-                firestore.collection("households").document(householdId)
-                    .collection("shoppingListPresence")
+                firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+                    .collection(FirestoreCollections.SHOPPING_LIST_PRESENCE)
                     .get()
                     .await()
 
@@ -414,8 +418,8 @@ class ShoppingListRepository(
 
             val recentUserData =
                 presenceSnapshot.documents.mapNotNull { doc ->
-                    val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
-                    val userId = doc.getString("userId")
+                    val lastSeen = doc.getTimestamp(FirestoreFields.LAST_SEEN)?.toDate()?.time ?: 0
+                    val userId = doc.getString(FirestoreFields.USER_ID)
 
                     val minutesAgo = if (lastSeen > 0) (currentTime - lastSeen) / 60000 else -1
                     Log.d(TAG, "Presence doc: userId=$userId, lastSeen=$lastSeen (${minutesAgo}min ago)")
@@ -462,13 +466,13 @@ class ShoppingListRepository(
     suspend fun setShoppingListPresence(householdId: String) {
         val currentUserId = auth.currentUser?.uid ?: return
         val presenceRef =
-            firestore.collection("households").document(householdId)
-                .collection("shoppingListPresence").document(currentUserId)
+            firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+                .collection(FirestoreCollections.SHOPPING_LIST_PRESENCE).document(currentUserId)
 
         presenceRef.set(
             mapOf(
-                "userId" to currentUserId,
-                "lastSeen" to FieldValue.serverTimestamp()
+                FirestoreFields.USER_ID to currentUserId,
+                FirestoreFields.LAST_SEEN to FieldValue.serverTimestamp()
             )
         ).await()
 
@@ -494,8 +498,8 @@ class ShoppingListRepository(
             val oneDayAgo = System.currentTimeMillis() - (24 * 60 * 60 * 1000L)
 
             val stalePresence =
-                firestore.collection("households").document(householdId)
-                    .collection("shoppingListPresence")
+                firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+                    .collection(FirestoreCollections.SHOPPING_LIST_PRESENCE)
                     .get()
                     .await()
 
@@ -503,8 +507,8 @@ class ShoppingListRepository(
             var deleteCount = 0
 
             stalePresence.documents.forEach { doc ->
-                val userId = doc.getString("userId")
-                val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
+                val userId = doc.getString(FirestoreFields.USER_ID)
+                val lastSeen = doc.getTimestamp(FirestoreFields.LAST_SEEN)?.toDate()?.time ?: 0
 
                 // Skip if:
                 // 1. This is the excluded user (current user)
@@ -546,8 +550,8 @@ class ShoppingListRepository(
      */
     suspend fun removeShoppingListPresence(householdId: String) {
         val currentUserId = auth.currentUser?.uid ?: return
-        firestore.collection("households").document(householdId)
-            .collection("shoppingListPresence").document(currentUserId)
+        firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+            .collection(FirestoreCollections.SHOPPING_LIST_PRESENCE).document(currentUserId)
             .delete()
             .await()
     }
@@ -578,8 +582,8 @@ class ShoppingListRepository(
     fun getShoppingListPresence(householdId: String): Flow<List<ActiveViewer>> =
         callbackFlow {
             val presenceRef =
-                firestore.collection("households").document(householdId)
-                    .collection("shoppingListPresence")
+                firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+                    .collection(FirestoreCollections.SHOPPING_LIST_PRESENCE)
 
             val listener =
                 presenceRef.addSnapshotListener { snapshot, e ->
@@ -594,8 +598,8 @@ class ShoppingListRepository(
                     // Collect active user IDs and their timestamps first (no async here)
                     val activeUserData =
                         snapshot?.documents?.mapNotNull { doc ->
-                            val lastSeen = doc.getTimestamp("lastSeen")?.toDate()?.time ?: 0
-                            val userId = doc.getString("userId")
+                            val lastSeen = doc.getTimestamp(FirestoreFields.LAST_SEEN)?.toDate()?.time ?: 0
+                            val userId = doc.getString(FirestoreFields.USER_ID)
                             // Consider active if seen within last 30 seconds
                             if (userId != null && (currentTime - lastSeen) < PRESENCE_TIMEOUT_MS) {
                                 userId to lastSeen

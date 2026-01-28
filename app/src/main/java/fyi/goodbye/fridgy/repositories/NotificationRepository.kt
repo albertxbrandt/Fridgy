@@ -1,5 +1,8 @@
 package fyi.goodbye.fridgy.repositories
 
+
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -113,8 +116,8 @@ class NotificationRepository(
 
             val listenerRegistration =
                 firestore.collection(COLLECTION_NOTIFICATIONS)
-                    .whereEqualTo("userId", userId)
-                    .orderBy("createdAt", Query.Direction.DESCENDING)
+                    .whereEqualTo(FirestoreFields.USER_ID, userId)
+                    .orderBy(FirestoreFields.CREATED_AT, Query.Direction.DESCENDING)
                     .limit(50) // Limit to 50 most recent notifications
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
@@ -148,8 +151,8 @@ class NotificationRepository(
 
             val listenerRegistration =
                 firestore.collection(COLLECTION_NOTIFICATIONS)
-                    .whereEqualTo("userId", userId)
-                    .whereEqualTo("isRead", false)
+                    .whereEqualTo(FirestoreFields.USER_ID, userId)
+                    .whereEqualTo(FirestoreFields.IS_READ, false)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.e(TAG, "Error listening to unread count", error)
@@ -172,7 +175,7 @@ class NotificationRepository(
         return try {
             firestore.collection(COLLECTION_NOTIFICATIONS)
                 .document(notificationId)
-                .update("isRead", true)
+                .update(FirestoreFields.IS_READ, true)
                 .await()
 
             Log.d(TAG, "Notification marked as read: $notificationId")
@@ -194,14 +197,14 @@ class NotificationRepository(
 
             val unreadNotifications =
                 firestore.collection(COLLECTION_NOTIFICATIONS)
-                    .whereEqualTo("userId", userId)
-                    .whereEqualTo("isRead", false)
+                    .whereEqualTo(FirestoreFields.USER_ID, userId)
+                    .whereEqualTo(FirestoreFields.IS_READ, false)
                     .get()
                     .await()
 
             val batch = firestore.batch()
             unreadNotifications.documents.forEach { doc ->
-                batch.update(doc.reference, "isRead", true)
+                batch.update(doc.reference, FirestoreFields.IS_READ, true)
             }
             batch.commit().await()
 
@@ -290,7 +293,7 @@ class NotificationRepository(
             userIds.chunked(10).forEach { batch ->
                 val snapshot =
                     firestore.collection(COLLECTION_FCM_TOKENS)
-                        .whereIn("userId", batch)
+                        .whereIn(FirestoreFields.USER_ID, batch)
                         .get()
                         .await()
 

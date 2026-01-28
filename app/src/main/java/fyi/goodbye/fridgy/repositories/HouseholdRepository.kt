@@ -1,7 +1,11 @@
 package fyi.goodbye.fridgy.repositories
 
+
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import android.util.Log
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.models.DisplayHousehold
 import fyi.goodbye.fridgy.models.Household
@@ -77,8 +81,8 @@ class HouseholdRepository(
             Log.d(TAG, "Starting households listener for user: $currentUserId")
 
             val listener =
-                firestore.collection("households")
-                    .whereArrayContains("members", currentUserId)
+                firestore.collection(FirestoreCollections.HOUSEHOLDS)
+                    .whereArrayContains(FirestoreFields.MEMBERS, currentUserId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
                             Log.e(TAG, "Error fetching households: ${e.message}")
@@ -105,7 +109,7 @@ class HouseholdRepository(
      */
     suspend fun getHouseholdById(householdId: String): Household? {
         return try {
-            val doc = firestore.collection("households").document(householdId).get().await()
+            val doc = firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).get().await()
             if (!doc.exists()) {
                 Log.d(TAG, "Household $householdId does not exist")
                 return null
@@ -128,7 +132,7 @@ class HouseholdRepository(
     fun getHouseholdFlow(householdId: String): Flow<Household?> =
         callbackFlow {
             val listener =
-                firestore.collection("households")
+                firestore.collection(FirestoreCollections.HOUSEHOLDS)
                     .document(householdId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
@@ -159,8 +163,8 @@ class HouseholdRepository(
         // Count fridges in this household
         val fridgeCount =
             try {
-                firestore.collection("fridges")
-                    .whereEqualTo("householdId", householdId)
+                firestore.collection(FirestoreCollections.FRIDGES)
+                    .whereEqualTo(FirestoreFields.HOUSEHOLD_ID, householdId)
                     .get()
                     .await()
                     .size()
@@ -262,8 +266,8 @@ class HouseholdRepository(
                 }
 
             val listener =
-                firestore.collection("households")
-                    .whereArrayContains("members", currentUserId)
+                firestore.collection(FirestoreCollections.HOUSEHOLDS)
+                    .whereArrayContains(FirestoreFields.MEMBERS, currentUserId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
                             Log.e(TAG, "Error in households listener: ${e.message}")
@@ -288,8 +292,8 @@ class HouseholdRepository(
     private fun getFridgeCountFlow(householdId: String): Flow<Int> =
         callbackFlow {
             val listener =
-                firestore.collection("fridges")
-                    .whereEqualTo("householdId", householdId)
+                firestore.collection(FirestoreCollections.FRIDGES)
+                    .whereEqualTo(FirestoreFields.HOUSEHOLD_ID, householdId)
                     .addSnapshotListener { snapshot, e ->
                         if (e != null) {
                             // Handle permission errors gracefully (user might not have access yet)
@@ -322,7 +326,7 @@ class HouseholdRepository(
     suspend fun createHousehold(name: String): Household {
         val currentUser = auth.currentUser ?: throw IllegalStateException("User not logged in.")
 
-        val docRef = firestore.collection("households").document()
+        val docRef = firestore.collection(FirestoreCollections.HOUSEHOLDS).document()
         val household =
             Household(
                 id = docRef.id,
@@ -344,8 +348,8 @@ class HouseholdRepository(
         householdId: String,
         newName: String
     ) {
-        firestore.collection("households").document(householdId)
-            .update("name", newName)
+        firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId)
+            .update(FirestoreFields.NAME, newName)
             .await()
     }
 
@@ -374,16 +378,16 @@ class HouseholdRepository(
 
         // Delete shopping list subcollection (paginated)
         deleteCollectionInBatches(
-            firestore.collection("households").document(householdId).collection("shoppingList")
+            firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).collection(FirestoreCollections.SHOPPING_LIST)
         )
 
         // Delete shopping list presence subcollection (paginated)
         deleteCollectionInBatches(
-            firestore.collection("households").document(householdId).collection("shoppingListPresence")
+            firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).collection(FirestoreCollections.SHOPPING_LIST_PRESENCE)
         )
 
         // Delete the household document itself
-        firestore.collection("households").document(householdId).delete().await()
+        firestore.collection(FirestoreCollections.HOUSEHOLDS).document(householdId).delete().await()
 
         Log.d(TAG, "Successfully deleted household: $householdId")
     }
@@ -398,8 +402,8 @@ class HouseholdRepository(
 
         while (hasMore) {
             val fridgesSnapshot =
-                firestore.collection("fridges")
-                    .whereEqualTo("householdId", householdId)
+                firestore.collection(FirestoreCollections.FRIDGES)
+                    .whereEqualTo(FirestoreFields.HOUSEHOLD_ID, householdId)
                     .limit(batchSize.toLong())
                     .get()
                     .await()
@@ -412,7 +416,7 @@ class HouseholdRepository(
             // For each fridge, delete its items subcollection first, then the fridge itself
             for (fridgeDoc in fridgesSnapshot.documents) {
                 // Delete items subcollection for this fridge
-                deleteCollectionInBatches(fridgeDoc.reference.collection("items"))
+                deleteCollectionInBatches(fridgeDoc.reference.collection(FirestoreCollections.ITEMS))
 
                 // Delete the fridge document
                 fridgeDoc.reference.delete().await()
@@ -429,7 +433,7 @@ class HouseholdRepository(
      *
      * @param collection The collection reference to delete
      */
-    private suspend fun deleteCollectionInBatches(collection: com.google.firebase.firestore.CollectionReference) {
+    private suspend fun deleteCollectionInBatches(collection: CollectionReference) {
         val batchSize = 200 // Documents per batch
         var hasMore = true
 
@@ -470,7 +474,7 @@ class HouseholdRepository(
         try {
             userIds.distinct().chunked(10).forEach { chunk ->
                 val snapshot =
-                    firestore.collection("userProfiles")
+                    firestore.collection(FirestoreCollections.USER_PROFILES)
                         .whereIn(com.google.firebase.firestore.FieldPath.documentId(), chunk)
                         .get()
                         .await()

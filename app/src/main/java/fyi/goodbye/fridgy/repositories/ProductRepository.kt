@@ -1,5 +1,9 @@
 package fyi.goodbye.fridgy.repositories
 
+
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
+import fyi.goodbye.fridgy.constants.StoragePaths
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -33,7 +37,7 @@ class ProductRepository(
     private val firestore: FirebaseFirestore,
     private val storage: FirebaseStorage
 ) {
-    private val productsCollection = firestore.collection("products")
+    private val productsCollection = firestore.collection(FirestoreCollections.PRODUCTS)
 
     companion object {
         /** Maximum number of products to cache. */
@@ -357,7 +361,7 @@ class ProductRepository(
         // 1. Upload Image to Firebase Storage FIRST if provided
         if (imageUri != null) {
             try {
-                val storageRef = storage.reference.child("products/${product.upc}.jpg")
+                val storageRef = storage.reference.child(StoragePaths.productImage(product.upc))
 
                 // Compress image before upload
                 val compressedBytes = compressImage(imageUri)
@@ -424,8 +428,8 @@ class ProductRepository(
             // This requires a composite index: searchTokens (ARRAY) + lastUpdated (DESCENDING)
             val tokenResults =
                 productsCollection
-                    .whereArrayContains("searchTokens", queryLower)
-                    .orderBy("lastUpdated", Query.Direction.DESCENDING)
+                    .whereArrayContains(FirestoreFields.SEARCH_TOKENS, queryLower)
+                    .orderBy(FirestoreFields.LAST_UPDATED, Query.Direction.DESCENDING)
                     .limit(20)
                     .get()
                     .await()
@@ -446,7 +450,7 @@ class ProductRepository(
             // Example: "choc" matches "Chocolate Milk" but not "Dark Chocolate"
             val prefixResults =
                 productsCollection
-                    .orderBy("name")
+                    .orderBy(FirestoreFields.NAME)
                     .startAt(queryLower)
                     .endAt(queryLower + "\uf8ff") // Unicode high character for range end
                     .limit(20)
@@ -468,7 +472,7 @@ class ProductRepository(
             Log.d("ProductRepo", "Falling back to recent products search")
             val recentResults =
                 productsCollection
-                    .orderBy("lastUpdated", Query.Direction.DESCENDING)
+                    .orderBy(FirestoreFields.LAST_UPDATED, Query.Direction.DESCENDING)
                     .limit(100)
                     .get()
                     .await()

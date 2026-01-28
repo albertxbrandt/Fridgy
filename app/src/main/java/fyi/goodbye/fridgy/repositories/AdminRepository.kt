@@ -5,6 +5,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
+import fyi.goodbye.fridgy.constants.StoragePaths
 import fyi.goodbye.fridgy.models.Admin
 import fyi.goodbye.fridgy.models.AdminUserDisplay
 import fyi.goodbye.fridgy.models.Fridge
@@ -37,7 +40,7 @@ class AdminRepository(
     private val auth: FirebaseAuth,
     private val storage: FirebaseStorage
 ) {
-    private val adminsCollection = firestore.collection("admins")
+    private val adminsCollection = firestore.collection(FirestoreCollections.ADMINS)
 
     /**
      * Checks if the current user is an admin.
@@ -81,14 +84,14 @@ class AdminRepository(
      */
     suspend fun getAllUsers(): List<AdminUserDisplay> {
         return try {
-            val usersSnapshot = firestore.collection("users").get().await()
-            val profilesSnapshot = firestore.collection("userProfiles").get().await()
+            val usersSnapshot = firestore.collection(FirestoreCollections.USERS).get().await()
+            val profilesSnapshot = firestore.collection(FirestoreCollections.USER_PROFILES).get().await()
 
             // Create maps for easy lookup, manually parsing to handle Long/Date migration
             val users =
                 usersSnapshot.documents.mapNotNull { doc ->
                     try {
-                        val createdAtValue = doc.get("createdAt")
+                        val createdAtValue = doc.get(FirestoreFields.CREATED_AT)
                         val createdAt: java.util.Date? =
                             when (createdAtValue) {
                                 is Long -> java.util.Date(createdAtValue)
@@ -99,7 +102,7 @@ class AdminRepository(
 
                         User(
                             uid = doc.id,
-                            email = doc.getString("email") ?: "",
+                            email = doc.getString(FirestoreFields.EMAIL) ?: "",
                             createdAt = createdAt
                         )
                     } catch (e: Exception) {
@@ -143,8 +146,8 @@ class AdminRepository(
         return try {
             // Build query with pagination
             var usersQuery =
-                firestore.collection("users")
-                    .orderBy("createdAt")
+                firestore.collection(FirestoreCollections.USERS)
+                    .orderBy(FirestoreFields.CREATED_AT)
                     .limit(pageSize.toLong() + 1) // Fetch one extra to check if there are more
 
             if (startAfter != null) {
@@ -162,7 +165,7 @@ class AdminRepository(
             val users =
                 userDocuments.mapNotNull { doc ->
                     try {
-                        val createdAtValue = doc.get("createdAt")
+                        val createdAtValue = doc.get(FirestoreFields.CREATED_AT)
                         val createdAt: java.util.Date? =
                             when (createdAtValue) {
                                 is Long -> java.util.Date(createdAtValue)
@@ -173,7 +176,7 @@ class AdminRepository(
 
                         User(
                             uid = doc.id,
-                            email = doc.getString("email") ?: "",
+                            email = doc.getString(FirestoreFields.EMAIL) ?: "",
                             createdAt = createdAt
                         )
                     } catch (e: Exception) {
@@ -185,7 +188,7 @@ class AdminRepository(
             // Batch fetch profiles for these users
             val userIds = users.map { it.uid }
             val profilesSnapshot =
-                firestore.collection("userProfiles")
+                firestore.collection(FirestoreCollections.USER_PROFILES)
                     .whereIn(com.google.firebase.firestore.FieldPath.documentId(), userIds)
                     .get()
                     .await()
@@ -225,7 +228,7 @@ class AdminRepository(
     suspend fun getAllProducts(): List<Product> {
         return try {
             val snapshot =
-                firestore.collection("products")
+                firestore.collection(FirestoreCollections.PRODUCTS)
                     .get()
                     .await()
 
@@ -234,7 +237,7 @@ class AdminRepository(
             val products =
                 snapshot.documents.mapNotNull { doc ->
                     try {
-                        val lastUpdatedValue = doc.get("lastUpdated")
+                        val lastUpdatedValue = doc.get(FirestoreFields.LAST_UPDATED)
                         val lastUpdated: java.util.Date? =
                             when (lastUpdatedValue) {
                                 is Long -> java.util.Date(lastUpdatedValue)
@@ -245,13 +248,13 @@ class AdminRepository(
 
                         Product(
                             upc = doc.id,
-                            name = doc.getString("name") ?: "",
-                            brand = doc.getString("brand") ?: "",
-                            category = doc.getString("category") ?: "Other",
-                            imageUrl = doc.getString("imageUrl"),
-                            size = doc.getDouble("size"),
-                            unit = doc.getString("unit"),
-                            searchTokens = (doc.get("searchTokens") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                            name = doc.getString(FirestoreFields.NAME) ?: "",
+                            brand = doc.getString(FirestoreFields.BRAND) ?: "",
+                            category = doc.getString(FirestoreFields.CATEGORY) ?: "Other",
+                            imageUrl = doc.getString(FirestoreFields.IMAGE_URL),
+                            size = doc.getDouble(FirestoreFields.SIZE),
+                            unit = doc.getString(FirestoreFields.UNIT),
+                            searchTokens = (doc.get(FirestoreFields.SEARCH_TOKENS) as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                             lastUpdated = lastUpdated
                         )
                     } catch (e: Exception) {
@@ -283,8 +286,8 @@ class AdminRepository(
         return try {
             // Build query with pagination (ordered by lastUpdated descending)
             var query =
-                firestore.collection("products")
-                    .orderBy("lastUpdated", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                firestore.collection(FirestoreCollections.PRODUCTS)
+                    .orderBy(FirestoreFields.LAST_UPDATED, com.google.firebase.firestore.Query.Direction.DESCENDING)
                     .limit(pageSize.toLong() + 1) // Fetch one extra to check if there are more
 
             if (startAfter != null) {
@@ -303,7 +306,7 @@ class AdminRepository(
             val products =
                 productDocuments.mapNotNull { doc ->
                     try {
-                        val lastUpdatedValue = doc.get("lastUpdated")
+                        val lastUpdatedValue = doc.get(FirestoreFields.LAST_UPDATED)
                         val lastUpdated: java.util.Date? =
                             when (lastUpdatedValue) {
                                 is Long -> java.util.Date(lastUpdatedValue)
@@ -314,13 +317,13 @@ class AdminRepository(
 
                         Product(
                             upc = doc.id,
-                            name = doc.getString("name") ?: "",
-                            brand = doc.getString("brand") ?: "",
-                            category = doc.getString("category") ?: "Other",
-                            imageUrl = doc.getString("imageUrl"),
-                            size = doc.getDouble("size"),
-                            unit = doc.getString("unit"),
-                            searchTokens = (doc.get("searchTokens") as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
+                            name = doc.getString(FirestoreFields.NAME) ?: "",
+                            brand = doc.getString(FirestoreFields.BRAND) ?: "",
+                            category = doc.getString(FirestoreFields.CATEGORY) ?: "Other",
+                            imageUrl = doc.getString(FirestoreFields.IMAGE_URL),
+                            size = doc.getDouble(FirestoreFields.SIZE),
+                            unit = doc.getString(FirestoreFields.UNIT),
+                            searchTokens = (doc.get(FirestoreFields.SEARCH_TOKENS) as? List<*>)?.mapNotNull { it as? String } ?: emptyList(),
                             lastUpdated = lastUpdated
                         )
                     } catch (e: Exception) {
@@ -345,7 +348,7 @@ class AdminRepository(
      */
     suspend fun getAllFridges(): List<Fridge> {
         return try {
-            val snapshot = firestore.collection("fridges").get().await()
+            val snapshot = firestore.collection(FirestoreCollections.FRIDGES).get().await()
             snapshot.documents.mapNotNull { doc ->
                 doc.toObject(Fridge::class.java)?.copy(id = doc.id)
             }
@@ -362,10 +365,10 @@ class AdminRepository(
     suspend fun deleteUser(userId: String): Boolean {
         return try {
             // Delete user document (private data)
-            firestore.collection("users").document(userId).delete().await()
+            firestore.collection(FirestoreCollections.USERS).document(userId).delete().await()
 
             // Delete user profile (public data)
-            firestore.collection("userProfiles").document(userId).delete().await()
+            firestore.collection(FirestoreCollections.USER_PROFILES).document(userId).delete().await()
 
             // Note: In a production app, you'd also want to:
             // - Delete user's Firebase Auth account
@@ -389,12 +392,12 @@ class AdminRepository(
     ): Boolean {
         return try {
             // Update private data (email)
-            val userUpdates = mapOf("email" to email)
-            firestore.collection("users").document(userId).update(userUpdates).await()
+            val userUpdates = mapOf(FirestoreFields.EMAIL to email)
+            firestore.collection(FirestoreCollections.USERS).document(userId).update(userUpdates).await()
 
             // Update public data (username)
-            val profileUpdates = mapOf("username" to username)
-            firestore.collection("userProfiles").document(userId).update(profileUpdates).await()
+            val profileUpdates = mapOf(FirestoreFields.USERNAME to username)
+            firestore.collection(FirestoreCollections.USER_PROFILES).document(userId).update(profileUpdates).await()
 
             true
         } catch (e: Exception) {
@@ -409,11 +412,11 @@ class AdminRepository(
     suspend fun deleteProduct(upc: String): Boolean {
         return try {
             // Delete product document from Firestore
-            firestore.collection("products").document(upc).delete().await()
+            firestore.collection(FirestoreCollections.PRODUCTS).document(upc).delete().await()
 
             // Delete product image from Storage
             try {
-                val imageRef = storage.reference.child("products/$upc.jpg")
+                val imageRef = storage.reference.child(StoragePaths.productImage(upc))
                 imageRef.delete().await()
             } catch (e: Exception) {
                 // Log but don't fail if image doesn't exist
@@ -439,12 +442,12 @@ class AdminRepository(
         return try {
             val updates =
                 mapOf(
-                    "name" to name,
-                    "brand" to brand,
-                    "category" to category,
-                    "lastUpdated" to System.currentTimeMillis()
+                    FirestoreFields.NAME to name,
+                    FirestoreFields.BRAND to brand,
+                    FirestoreFields.CATEGORY to category,
+                    FirestoreFields.LAST_UPDATED to System.currentTimeMillis()
                 )
-            firestore.collection("products").document(upc).update(updates).await()
+            firestore.collection(FirestoreCollections.PRODUCTS).document(upc).update(updates).await()
             true
         } catch (e: Exception) {
             Log.e("AdminRepo", "Error updating product: ${e.message}")

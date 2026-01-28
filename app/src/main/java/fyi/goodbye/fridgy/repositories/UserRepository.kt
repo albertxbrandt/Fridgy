@@ -3,7 +3,10 @@ package fyi.goodbye.fridgy.repositories
 import android.util.Log
 import com.google.firebase.auth.AuthResult
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.models.UserProfile
 import kotlinx.coroutines.tasks.await
 
@@ -27,8 +30,6 @@ class UserRepository(
 ) {
     companion object {
         private const val TAG = "UserRepository"
-        private const val COLLECTION_USERS = "users"
-        private const val COLLECTION_USER_PROFILES = "userProfiles"
     }
 
     /**
@@ -47,8 +48,8 @@ class UserRepository(
     suspend fun isUsernameTaken(username: String): Boolean {
         return try {
             val existingProfiles =
-                firestore.collection(COLLECTION_USER_PROFILES)
-                    .whereEqualTo("username", username)
+                firestore.collection(FirestoreCollections.USER_PROFILES)
+                    .whereEqualTo(FirestoreFields.USERNAME, username)
                     .get()
                     .await()
             !existingProfiles.isEmpty
@@ -91,19 +92,19 @@ class UserRepository(
         // Create private user data (email, createdAt)
         val userMap =
             hashMapOf(
-                "email" to email,
-                "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                FirestoreFields.EMAIL to email,
+                FirestoreFields.CREATED_AT to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
 
         // Create public profile data (username only)
         val profileMap =
             hashMapOf(
-                "username" to username
+                FirestoreFields.USERNAME to username
             )
 
         // Write both documents
-        firestore.collection(COLLECTION_USERS).document(uid).set(userMap).await()
-        firestore.collection(COLLECTION_USER_PROFILES).document(uid).set(profileMap).await()
+        firestore.collection(FirestoreCollections.USERS).document(uid).set(userMap).await()
+        firestore.collection(FirestoreCollections.USER_PROFILES).document(uid).set(profileMap).await()
 
         Log.d(TAG, "Created user documents for UID: $uid")
     }
@@ -164,7 +165,7 @@ class UserRepository(
     suspend fun getUserProfile(userId: String): UserProfile? {
         return try {
             val doc =
-                firestore.collection(COLLECTION_USER_PROFILES)
+                firestore.collection(FirestoreCollections.USER_PROFILES)
                     .document(userId)
                     .get()
                     .await()
@@ -188,21 +189,21 @@ class UserRepository(
                 ?: throw IllegalStateException("No authenticated user")
 
         // Update public profile
-        firestore.collection(COLLECTION_USER_PROFILES)
+        firestore.collection(FirestoreCollections.USER_PROFILES)
             .document(userId)
-            .update("username", newUsername)
+            .update(FirestoreFields.USERNAME, newUsername)
             .await()
 
         // Update username in all fridges where user is a member
         val fridgesQuery =
-            firestore.collection("fridges")
-                .whereNotEqualTo("members.$userId", null)
+            firestore.collection(FirestoreCollections.FRIDGES)
+                .whereNotEqualTo("${FirestoreFields.MEMBERS}.$userId", null)
                 .get()
                 .await()
 
         val batch = firestore.batch()
         for (doc in fridgesQuery.documents) {
-            batch.update(doc.reference, "members.$userId", newUsername)
+            batch.update(doc.reference, "${FirestoreFields.MEMBERS}.$userId", newUsername)
         }
         batch.commit().await()
 
@@ -227,24 +228,24 @@ class UserRepository(
         try {
             // 1. Remove user from all fridges
             val fridgesQuery =
-                firestore.collection("fridges")
-                    .whereNotEqualTo("members.$userId", null)
+                firestore.collection(FirestoreCollections.FRIDGES)
+                    .whereNotEqualTo("${FirestoreFields.MEMBERS}.$userId", null)
                     .get()
                     .await()
 
             val batch = firestore.batch()
             for (doc in fridgesQuery.documents) {
                 // Remove from members map
-                batch.update(doc.reference, "members.$userId", com.google.firebase.firestore.FieldValue.delete())
+                batch.update(doc.reference, "${FirestoreFields.MEMBERS}.$userId", FieldValue.delete())
                 // Remove from pendingInvites if present
-                batch.update(doc.reference, "pendingInvites.$userId", com.google.firebase.firestore.FieldValue.delete())
+                batch.update(doc.reference, "${FirestoreFields.PENDING_INVITES}.$userId", FieldValue.delete())
             }
             batch.commit().await()
 
             // 2. Delete FCM tokens
             val tokensQuery =
-                firestore.collection("fcmTokens")
-                    .whereEqualTo("userId", userId)
+                firestore.collection(FirestoreCollections.FCM_TOKENS)
+                    .whereEqualTo(FirestoreFields.USER_ID, userId)
                     .get()
                     .await()
 
@@ -255,8 +256,8 @@ class UserRepository(
             tokenBatch.commit().await()
 
             // 3. Delete user documents
-            firestore.collection(COLLECTION_USERS).document(userId).delete().await()
-            firestore.collection(COLLECTION_USER_PROFILES).document(userId).delete().await()
+            firestore.collection(FirestoreCollections.USERS).document(userId).delete().await()
+            firestore.collection(FirestoreCollections.USER_PROFILES).document(userId).delete().await()
 
             // 4. Delete Firebase Auth account (must be last)
             auth.currentUser?.delete()?.await()

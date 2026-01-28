@@ -2,6 +2,8 @@ package fyi.goodbye.fridgy.repositories
 
 import android.util.Log
 import com.google.firebase.firestore.FirebaseFirestore
+import fyi.goodbye.fridgy.constants.FirestoreCollections
+import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.models.Category
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -20,7 +22,7 @@ import java.util.Date
 class CategoryRepository(
     private val firestore: FirebaseFirestore
 ) {
-    private val categoriesCollection = firestore.collection("categories")
+    private val categoriesCollection = firestore.collection(FirestoreCollections.CATEGORIES)
 
     /**
      * Returns a real-time Flow of all categories, ordered by their sort order.
@@ -30,7 +32,7 @@ class CategoryRepository(
         callbackFlow {
             val listener =
                 categoriesCollection
-                    .orderBy("order")
+                    .orderBy(FirestoreFields.ORDER)
                     .addSnapshotListener { snapshot, error ->
                         if (error != null) {
                             Log.e("CategoryRepo", "Error listening to categories: ${error.message}")
@@ -42,7 +44,7 @@ class CategoryRepository(
                                 snapshot.documents.mapNotNull { doc ->
                                     try {
                                         // Get the raw createdAt value
-                                        val createdAtValue = doc.get("createdAt")
+                                        val createdAtValue = doc.get(FirestoreFields.CREATED_AT)
                                         val createdAt: Date? =
                                             when (createdAtValue) {
                                                 is Long -> Date(createdAtValue)
@@ -53,8 +55,8 @@ class CategoryRepository(
 
                                         Category(
                                             id = doc.id,
-                                            name = doc.getString("name") ?: "",
-                                            order = doc.getLong("order")?.toInt() ?: Category.DEFAULT_ORDER,
+                                            name = doc.getString(FirestoreFields.NAME) ?: "",
+                                            order = doc.getLong(FirestoreFields.ORDER)?.toInt() ?: Category.DEFAULT_ORDER,
                                             createdAt = createdAt
                                         )
                                     } catch (e: Exception) {
@@ -82,9 +84,9 @@ class CategoryRepository(
     ): String {
         val category =
             hashMapOf(
-                "name" to name,
-                "order" to order,
-                "createdAt" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                FirestoreFields.NAME to name,
+                FirestoreFields.ORDER to order,
+                FirestoreFields.CREATED_AT to com.google.firebase.firestore.FieldValue.serverTimestamp()
             )
         val docRef = categoriesCollection.add(category).await()
         return docRef.id
@@ -104,8 +106,8 @@ class CategoryRepository(
     ) {
         categoriesCollection.document(categoryId).update(
             mapOf(
-                "name" to name,
-                "order" to order
+                FirestoreFields.NAME to name,
+                FirestoreFields.ORDER to order
             )
         ).await()
     }
@@ -131,7 +133,7 @@ class CategoryRepository(
     suspend fun categoryExists(name: String): Boolean {
         val result =
             categoriesCollection
-                .whereEqualTo("name", name)
+                .whereEqualTo(FirestoreFields.NAME, name)
                 .get()
                 .await()
         return !result.isEmpty
