@@ -1,9 +1,12 @@
 package fyi.goodbye.fridgy.ui.notifications
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.Notification
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,6 +33,7 @@ import javax.inject.Inject
 class NotificationViewModel
     @Inject
     constructor(
+        @ApplicationContext private val context: Context,
         private val repository: NotificationRepository
     ) : ViewModel() {
         companion object {
@@ -58,8 +62,10 @@ class NotificationViewModel
                 .catch { error ->
                     Log.e(TAG, "Error loading notifications", error)
                     emit(
-                        NotificationUiState.Error(error.message ?: "Failed to load notifications")
-                    ) // TODO: Pass context for string resources
+                        NotificationUiState.Error(
+                            error.message ?: context.getString(R.string.failed_to_load_notifications)
+                        )
+                    )
                 }
                 .stateIn(
                     scope = viewModelScope,

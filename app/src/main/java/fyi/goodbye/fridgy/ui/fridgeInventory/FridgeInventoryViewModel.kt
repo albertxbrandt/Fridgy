@@ -387,13 +387,9 @@ class FridgeInventoryViewModel
                         lastUpdated = null
                     )
 
-                // TODO: Optimistic updates need rework for instance-based items
-
-                /*
-                For now, disable optimistic updates and rely on Firestore snapshot
-
-            val optimisticItem =
-                Item(
+            /*
+            Note: Optimistic updates are disabled for instance-based items.
+            We rely on Firestore snapshot listeners for real-time updates.
                     upc = upc,
                     addedAt = System.currentTimeMillis()
                 )

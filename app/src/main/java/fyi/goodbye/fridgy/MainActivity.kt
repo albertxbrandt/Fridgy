@@ -508,7 +508,6 @@ class MainActivity : ComponentActivity() {
                                 householdId = householdId,
                                 onBackClick = { navController.popBackStack() },
                                 onScanClick = { currentHouseholdId ->
-                                    // TODO: barcode scanner needs to be updated to work with householdId
                                     navController.navigate("barcodeScanner/$currentHouseholdId") {
                                         launchSingleTop = true
                                     }
