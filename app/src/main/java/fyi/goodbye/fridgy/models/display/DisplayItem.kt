@@ -1,6 +1,8 @@
-package fyi.goodbye.fridgy.models
+package fyi.goodbye.fridgy.models.display
 
 import android.os.Parcelable
+import fyi.goodbye.fridgy.models.entities.Item
+import fyi.goodbye.fridgy.models.entities.Product
 import kotlinx.parcelize.Parcelize
 
 /**

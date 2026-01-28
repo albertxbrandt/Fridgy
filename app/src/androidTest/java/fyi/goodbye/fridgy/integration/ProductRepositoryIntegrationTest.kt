@@ -6,7 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.FirebaseTestUtils
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.entities.Product
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.test.runTest

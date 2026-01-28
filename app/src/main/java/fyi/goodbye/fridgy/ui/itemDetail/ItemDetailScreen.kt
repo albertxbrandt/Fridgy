@@ -31,9 +31,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Item
-import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.models.SizeUnit
+import fyi.goodbye.fridgy.models.entities.Fridge
+import fyi.goodbye.fridgy.models.entities.Item
+import fyi.goodbye.fridgy.models.entities.Product
+import fyi.goodbye.fridgy.models.entities.SizeUnit
 import fyi.goodbye.fridgy.ui.elements.ExpirationDateDialog
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState
 import fyi.goodbye.fridgy.ui.shared.components.SimpleErrorState
@@ -478,7 +479,7 @@ fun DetailRow(
 fun MoveItemDialog(
     itemToMove: Item,
     productName: String,
-    availableFridges: List<fyi.goodbye.fridgy.models.Fridge>,
+    availableFridges: List<Fridge>,
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit
 ) {

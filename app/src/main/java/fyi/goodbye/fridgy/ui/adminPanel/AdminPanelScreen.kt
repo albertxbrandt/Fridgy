@@ -11,9 +11,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.AdminUserDisplay
-import fyi.goodbye.fridgy.models.Category
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.display.AdminUserDisplay
+import fyi.goodbye.fridgy.models.entities.Category
+import fyi.goodbye.fridgy.models.entities.Product
 import fyi.goodbye.fridgy.ui.adminPanel.components.AdminSuccessContent
 import fyi.goodbye.fridgy.ui.adminPanel.components.UnauthorizedAccessContent
 import fyi.goodbye.fridgy.ui.adminPanel.components.dialogs.*

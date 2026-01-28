@@ -17,7 +17,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.SizeUnit
+import fyi.goodbye.fridgy.models.entities.SizeUnit
 import fyi.goodbye.fridgy.ui.fridgeInventory.InventoryItem
 
 /**

@@ -7,9 +7,9 @@ import com.google.firebase.firestore.MetadataChanges
 import com.google.firebase.firestore.Source
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import fyi.goodbye.fridgy.models.DisplayItem
-import fyi.goodbye.fridgy.models.Item
-import fyi.goodbye.fridgy.models.ShoppingListItem
+import fyi.goodbye.fridgy.models.display.DisplayItem
+import fyi.goodbye.fridgy.models.entities.Item
+import fyi.goodbye.fridgy.models.entities.ShoppingListItem
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

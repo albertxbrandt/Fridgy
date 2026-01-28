@@ -7,9 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import fyi.goodbye.fridgy.models.DisplayFridge
-import fyi.goodbye.fridgy.models.Fridge
-import fyi.goodbye.fridgy.models.HouseholdRole
+import fyi.goodbye.fridgy.models.display.DisplayFridge
+import fyi.goodbye.fridgy.models.entities.Fridge
+import fyi.goodbye.fridgy.models.entities.HouseholdRole
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import kotlinx.coroutines.flow.MutableStateFlow

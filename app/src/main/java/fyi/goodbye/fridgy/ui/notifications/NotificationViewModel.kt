@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Notification
+import fyi.goodbye.fridgy.models.entities.Notification
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

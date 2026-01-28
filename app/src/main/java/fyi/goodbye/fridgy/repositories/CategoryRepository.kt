@@ -3,7 +3,7 @@ package fyi.goodbye.fridgy.repositories
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import fyi.goodbye.fridgy.models.Category
+import fyi.goodbye.fridgy.models.entities.Category
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

@@ -5,10 +5,10 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayItem
-import fyi.goodbye.fridgy.models.Item
-import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.models.display.DisplayItem
+import fyi.goodbye.fridgy.models.entities.Item
+import fyi.goodbye.fridgy.models.entities.Product
+import fyi.goodbye.fridgy.models.entities.UserProfile
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import fyi.goodbye.fridgy.ui.shared.UiState

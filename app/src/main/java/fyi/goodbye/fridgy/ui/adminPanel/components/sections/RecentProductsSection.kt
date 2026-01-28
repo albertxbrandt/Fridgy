@@ -12,7 +12,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.entities.Product
 import fyi.goodbye.fridgy.ui.adminPanel.components.items.ProductListItem
 import timber.log.Timber
 

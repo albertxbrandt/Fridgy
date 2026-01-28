@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.InviteCode
+import fyi.goodbye.fridgy.models.entities.InviteCode
 import fyi.goodbye.fridgy.repositories.MembershipRepository
 import fyi.goodbye.fridgy.ui.shared.UiState
 import io.mockk.clearAllMocks

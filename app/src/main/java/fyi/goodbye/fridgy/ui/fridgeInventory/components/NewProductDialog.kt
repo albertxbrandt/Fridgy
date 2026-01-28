@@ -50,7 +50,7 @@ import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.SizeUnit
+import fyi.goodbye.fridgy.models.entities.SizeUnit
 import fyi.goodbye.fridgy.ui.shared.CategoryViewModel
 import java.io.File
 

@@ -28,8 +28,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.HouseholdRole
-import fyi.goodbye.fridgy.models.InviteCode
+import fyi.goodbye.fridgy.models.entities.HouseholdRole
+import fyi.goodbye.fridgy.models.entities.InviteCode
 import fyi.goodbye.fridgy.ui.fridgeSettings.SettingsItem
 import fyi.goodbye.fridgy.ui.fridgeSettings.SettingsSection
 import fyi.goodbye.fridgy.ui.shared.components.LoadingState

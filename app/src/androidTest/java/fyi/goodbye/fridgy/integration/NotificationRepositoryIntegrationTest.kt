@@ -6,8 +6,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
 import com.google.firebase.messaging.FirebaseMessaging
 import fyi.goodbye.fridgy.FirebaseTestUtils
-import fyi.goodbye.fridgy.models.Notification
-import fyi.goodbye.fridgy.models.NotificationType
+import fyi.goodbye.fridgy.models.entities.Notification
+import fyi.goodbye.fridgy.models.entities.NotificationType
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first

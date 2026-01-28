@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.models
+package fyi.goodbye.fridgy.models.display
 
 import java.util.Date
 

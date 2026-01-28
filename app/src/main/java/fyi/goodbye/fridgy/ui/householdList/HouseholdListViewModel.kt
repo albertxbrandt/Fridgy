@@ -7,7 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayHousehold
+import fyi.goodbye.fridgy.models.display.DisplayHousehold
 import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.UserRepository

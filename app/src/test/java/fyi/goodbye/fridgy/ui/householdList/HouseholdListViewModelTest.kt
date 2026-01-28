@@ -6,8 +6,8 @@ import app.cash.turbine.test
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayHousehold
-import fyi.goodbye.fridgy.models.Household
+import fyi.goodbye.fridgy.models.display.DisplayHousehold
+import fyi.goodbye.fridgy.models.entities.Household
 import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.UserRepository

@@ -5,10 +5,10 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import fyi.goodbye.fridgy.models.HouseholdRole
-import fyi.goodbye.fridgy.models.InviteCode
-import fyi.goodbye.fridgy.models.canManageInviteCodes
-import fyi.goodbye.fridgy.models.canModifyUser
+import fyi.goodbye.fridgy.models.entities.HouseholdRole
+import fyi.goodbye.fridgy.models.entities.InviteCode
+import fyi.goodbye.fridgy.models.entities.canManageInviteCodes
+import fyi.goodbye.fridgy.models.entities.canModifyUser
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

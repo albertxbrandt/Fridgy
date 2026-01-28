@@ -5,9 +5,9 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.messaging.FirebaseMessaging
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import fyi.goodbye.fridgy.models.FcmToken
-import fyi.goodbye.fridgy.models.Notification
-import fyi.goodbye.fridgy.models.NotificationType
+import fyi.goodbye.fridgy.models.entities.FcmToken
+import fyi.goodbye.fridgy.models.entities.Notification
+import fyi.goodbye.fridgy.models.entities.NotificationType
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.models
+package fyi.goodbye.fridgy.models.entities
 
 import android.os.Parcelable
 import com.google.firebase.firestore.DocumentId

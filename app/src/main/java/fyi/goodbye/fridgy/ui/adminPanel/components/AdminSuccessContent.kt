@@ -8,9 +8,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import fyi.goodbye.fridgy.models.AdminUserDisplay
-import fyi.goodbye.fridgy.models.Category
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.display.AdminUserDisplay
+import fyi.goodbye.fridgy.models.entities.Category
+import fyi.goodbye.fridgy.models.entities.Product
 import fyi.goodbye.fridgy.ui.adminPanel.components.sections.*
 import fyi.goodbye.fridgy.ui.shared.UiState
 

@@ -6,8 +6,8 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import fyi.goodbye.fridgy.models.User
-import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.models.entities.User
+import fyi.goodbye.fridgy.models.entities.UserProfile
 import fyi.goodbye.fridgy.utils.LruCache
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber

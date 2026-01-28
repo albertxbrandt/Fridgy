@@ -5,9 +5,10 @@ import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import fyi.goodbye.fridgy.models.NotificationType
-import fyi.goodbye.fridgy.models.ShoppingListItem
-import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.models.display.ActiveViewer
+import fyi.goodbye.fridgy.models.entities.NotificationType
+import fyi.goodbye.fridgy.models.entities.ShoppingListItem
+import fyi.goodbye.fridgy.models.entities.UserProfile
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -284,12 +285,12 @@ class ShoppingListRepository(
                         // Use HashMap with FieldValue.serverTimestamp() to match security rules
                         val newItemData =
                             hashMapOf<String, Any?>(
-                                "upc" to item.upc,
-                                "expirationDate" to null,
-                                "addedBy" to currentUserId,
-                                "lastUpdatedBy" to currentUserId,
-                                "addedAt" to FieldValue.serverTimestamp(),
-                                "lastUpdatedAt" to FieldValue.serverTimestamp()
+                                FirestoreFields.UPC to item.upc,
+                                FirestoreFields.EXPIRATION_DATE to null,
+                                FirestoreFields.ADDED_BY to currentUserId,
+                                FirestoreFields.LAST_UPDATED_BY to currentUserId,
+                                FirestoreFields.ADDED_AT to FieldValue.serverTimestamp(),
+                                FirestoreFields.LAST_UPDATED_AT to FieldValue.serverTimestamp()
                             )
                         batch.set(newItemRef, newItemData)
                     }
@@ -552,19 +553,6 @@ class ShoppingListRepository(
             .delete()
             .await()
     }
-
-    /**
-     * Data class representing an active viewer of the shopping list.
-     *
-     * @property userId The user's Firebase Auth UID
-     * @property username The user's display username
-     * @property lastSeenTimestamp The timestamp (milliseconds) when user last viewed the list
-     */
-    data class ActiveViewer(
-        val userId: String,
-        val username: String,
-        val lastSeenTimestamp: Long
-    )
 
     /**
      * Returns a Flow of active viewers for the shopping list.

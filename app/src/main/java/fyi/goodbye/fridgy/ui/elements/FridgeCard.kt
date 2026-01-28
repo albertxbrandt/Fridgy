@@ -22,7 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayFridge
+import fyi.goodbye.fridgy.models.display.DisplayFridge
 import fyi.goodbye.fridgy.ui.theme.FridgeTypeColors
 import java.text.SimpleDateFormat
 import java.util.Locale

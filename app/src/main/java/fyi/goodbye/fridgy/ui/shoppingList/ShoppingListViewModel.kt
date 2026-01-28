@@ -7,9 +7,10 @@ import androidx.lifecycle.viewModelScope
 import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import fyi.goodbye.fridgy.models.Fridge
-import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.models.ShoppingListItem
+import fyi.goodbye.fridgy.models.display.ActiveViewer
+import fyi.goodbye.fridgy.models.entities.Fridge
+import fyi.goodbye.fridgy.models.entities.Product
+import fyi.goodbye.fridgy.models.entities.ShoppingListItem
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
@@ -102,8 +103,8 @@ class ShoppingListViewModel
         private val _searchResults = MutableStateFlow<List<Product>>(emptyList())
         val searchResults: StateFlow<List<Product>> = _searchResults.asStateFlow()
 
-        private val _activeViewers = MutableStateFlow<List<ShoppingListRepository.ActiveViewer>>(emptyList())
-        val activeViewers: StateFlow<List<ShoppingListRepository.ActiveViewer>> = _activeViewers.asStateFlow()
+        private val _activeViewers = MutableStateFlow<List<ActiveViewer>>(emptyList())
+        val activeViewers: StateFlow<List<ActiveViewer>> = _activeViewers.asStateFlow()
 
         private val _availableFridges = MutableStateFlow<List<Fridge>>(emptyList())
         val availableFridges: StateFlow<List<Fridge>> = _availableFridges.asStateFlow()

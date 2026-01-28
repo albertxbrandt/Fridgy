@@ -8,9 +8,9 @@ import com.google.firebase.auth.FirebaseAuth
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayHousehold
-import fyi.goodbye.fridgy.models.HouseholdRole
-import fyi.goodbye.fridgy.models.InviteCode
+import fyi.goodbye.fridgy.models.display.DisplayHousehold
+import fyi.goodbye.fridgy.models.entities.HouseholdRole
+import fyi.goodbye.fridgy.models.entities.InviteCode
 import fyi.goodbye.fridgy.repositories.HouseholdRepository
 import fyi.goodbye.fridgy.repositories.MembershipRepository
 import kotlinx.coroutines.Job

@@ -3,7 +3,7 @@ package fyi.goodbye.fridgy.ui.shared
 import android.app.Application
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
-import fyi.goodbye.fridgy.models.Category
+import fyi.goodbye.fridgy.models.entities.Category
 import fyi.goodbye.fridgy.repositories.CategoryRepository
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers

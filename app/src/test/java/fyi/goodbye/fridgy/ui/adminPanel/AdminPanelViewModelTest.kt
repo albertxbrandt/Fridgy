@@ -4,9 +4,9 @@ import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.AdminUserDisplay
-import fyi.goodbye.fridgy.models.Fridge
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.display.AdminUserDisplay
+import fyi.goodbye.fridgy.models.entities.Fridge
+import fyi.goodbye.fridgy.models.entities.Product
 import fyi.goodbye.fridgy.repositories.AdminRepository
 import fyi.goodbye.fridgy.ui.shared.UiState
 import io.mockk.clearAllMocks

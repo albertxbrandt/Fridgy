@@ -12,7 +12,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.SizeUnit
+import fyi.goodbye.fridgy.models.entities.SizeUnit
 
 /**
  * Dialog for selecting size and unit for an item.

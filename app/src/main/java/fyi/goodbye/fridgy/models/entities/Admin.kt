@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.models
+package fyi.goodbye.fridgy.models.entities
 
 import com.google.firebase.firestore.DocumentId
 

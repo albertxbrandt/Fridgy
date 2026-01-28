@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Category
+import fyi.goodbye.fridgy.models.entities.Category
 import fyi.goodbye.fridgy.repositories.CategoryRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

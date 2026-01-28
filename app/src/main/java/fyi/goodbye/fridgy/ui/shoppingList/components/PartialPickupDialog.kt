@@ -14,7 +14,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Fridge
+import fyi.goodbye.fridgy.models.entities.Fridge
 
 /**
  * Dialog for marking partial pickup of a shopping list item.

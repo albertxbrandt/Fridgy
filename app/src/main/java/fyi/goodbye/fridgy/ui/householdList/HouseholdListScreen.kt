@@ -29,8 +29,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayHousehold
-import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.models.display.DisplayHousehold
+import fyi.goodbye.fridgy.models.entities.UserProfile
 import fyi.goodbye.fridgy.ui.elements.HouseholdCard
 import fyi.goodbye.fridgy.ui.shared.components.CollapsibleSidebar
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState

@@ -6,9 +6,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.AdminUserDisplay
-import fyi.goodbye.fridgy.models.Fridge
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.display.AdminUserDisplay
+import fyi.goodbye.fridgy.models.entities.Fridge
+import fyi.goodbye.fridgy.models.entities.Product
 import fyi.goodbye.fridgy.repositories.AdminRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

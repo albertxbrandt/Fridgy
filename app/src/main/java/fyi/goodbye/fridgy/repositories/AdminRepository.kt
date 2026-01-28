@@ -1,5 +1,6 @@
 package fyi.goodbye.fridgy.repositories
 
+import com.google.firebase.Timestamp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FirebaseFirestore
@@ -7,26 +8,16 @@ import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.constants.StoragePaths
-import fyi.goodbye.fridgy.models.Admin
-import fyi.goodbye.fridgy.models.AdminUserDisplay
-import fyi.goodbye.fridgy.models.Fridge
-import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.models.User
-import fyi.goodbye.fridgy.models.UserProfile
+import fyi.goodbye.fridgy.models.entities.Admin
+import fyi.goodbye.fridgy.models.display.AdminUserDisplay
+import fyi.goodbye.fridgy.models.entities.Fridge
+import fyi.goodbye.fridgy.models.display.PaginatedResult
+import fyi.goodbye.fridgy.models.entities.Product
+import fyi.goodbye.fridgy.models.entities.User
+import fyi.goodbye.fridgy.models.entities.UserProfile
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
-
-/**
- * Represents a paginated result set.
- * @property items The list of items in this page
- * @property lastDocument The last document in this page, used as cursor for next page
- * @property hasMore Whether there are more items available
- */
-data class PaginatedResult<T>(
-    val items: List<T>,
-    val lastDocument: DocumentSnapshot?,
-    val hasMore: Boolean
-)
+import java.util.Date
 
 /**
  * Repository for managing admin user privileges.
@@ -92,11 +83,11 @@ class AdminRepository(
                 usersSnapshot.documents.mapNotNull { doc ->
                     try {
                         val createdAtValue = doc.get(FirestoreFields.CREATED_AT)
-                        val createdAt: java.util.Date? =
+                        val createdAt: Date? =
                             when (createdAtValue) {
-                                is Long -> java.util.Date(createdAtValue)
-                                is java.util.Date -> createdAtValue
-                                is com.google.firebase.Timestamp -> createdAtValue.toDate()
+                                is Long -> Date(createdAtValue)
+                                is Date -> createdAtValue
+                                is Timestamp -> createdAtValue.toDate()
                                 else -> null
                             }
 
@@ -238,11 +229,11 @@ class AdminRepository(
                 snapshot.documents.mapNotNull { doc ->
                     try {
                         val lastUpdatedValue = doc.get(FirestoreFields.LAST_UPDATED)
-                        val lastUpdated: java.util.Date? =
+                        val lastUpdated: Date? =
                             when (lastUpdatedValue) {
-                                is Long -> java.util.Date(lastUpdatedValue)
-                                is java.util.Date -> lastUpdatedValue
-                                is com.google.firebase.Timestamp -> lastUpdatedValue.toDate()
+                                is Long -> Date(lastUpdatedValue)
+                                is Date -> lastUpdatedValue
+                                is Timestamp -> lastUpdatedValue.toDate()
                                 else -> null
                             }
 
@@ -307,11 +298,11 @@ class AdminRepository(
                 productDocuments.mapNotNull { doc ->
                     try {
                         val lastUpdatedValue = doc.get(FirestoreFields.LAST_UPDATED)
-                        val lastUpdated: java.util.Date? =
+                        val lastUpdated: Date? =
                             when (lastUpdatedValue) {
-                                is Long -> java.util.Date(lastUpdatedValue)
-                                is java.util.Date -> lastUpdatedValue
-                                is com.google.firebase.Timestamp -> lastUpdatedValue.toDate()
+                                is Long -> Date(lastUpdatedValue)
+                                is Date -> lastUpdatedValue
+                                is Timestamp -> lastUpdatedValue.toDate()
                                 else -> null
                             }
 

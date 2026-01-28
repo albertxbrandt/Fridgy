@@ -49,7 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Notification
+import fyi.goodbye.fridgy.models.entities.Notification
 import fyi.goodbye.fridgy.ui.theme.FridgyPrimary
 import fyi.goodbye.fridgy.ui.theme.FridgyWhite
 import java.text.SimpleDateFormat

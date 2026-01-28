@@ -20,8 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayFridge
-import fyi.goodbye.fridgy.models.HouseholdRole
+import fyi.goodbye.fridgy.models.display.DisplayFridge
+import fyi.goodbye.fridgy.models.entities.HouseholdRole
 import fyi.goodbye.fridgy.ui.elements.FridgeCard
 import fyi.goodbye.fridgy.ui.shared.components.EmptyState
 import fyi.goodbye.fridgy.ui.shared.components.ErrorState

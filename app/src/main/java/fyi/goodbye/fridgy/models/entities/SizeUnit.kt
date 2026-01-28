@@ -1,4 +1,4 @@
-package fyi.goodbye.fridgy.models
+package fyi.goodbye.fridgy.models.entities
 
 /**
  * Standard units of measurement for items.

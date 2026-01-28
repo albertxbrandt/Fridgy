@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Category
+import fyi.goodbye.fridgy.models.entities.Category
 
 /**
  * A list item component for displaying category information in the admin panel.

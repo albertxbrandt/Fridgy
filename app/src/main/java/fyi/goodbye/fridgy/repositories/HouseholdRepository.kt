@@ -6,11 +6,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Source
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
-import fyi.goodbye.fridgy.models.DisplayHousehold
-import fyi.goodbye.fridgy.models.Household
-import fyi.goodbye.fridgy.models.HouseholdRole
-import fyi.goodbye.fridgy.models.UserProfile
-import fyi.goodbye.fridgy.models.canDeleteHousehold
+import fyi.goodbye.fridgy.models.display.DisplayHousehold
+import fyi.goodbye.fridgy.models.entities.Household
+import fyi.goodbye.fridgy.models.entities.HouseholdRole
+import fyi.goodbye.fridgy.models.entities.UserProfile
+import fyi.goodbye.fridgy.models.entities.canDeleteHousehold
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow

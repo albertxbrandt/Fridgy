@@ -1,7 +1,10 @@
-package fyi.goodbye.fridgy.models
+package fyi.goodbye.fridgy.models.display
 
 import android.os.Parcelable
+import fyi.goodbye.fridgy.models.entities.HouseholdRole
+import fyi.goodbye.fridgy.models.entities.UserProfile
 import kotlinx.parcelize.Parcelize
+import kotlinx.parcelize.RawValue
 import java.util.Date
 
 /**
@@ -25,7 +28,7 @@ data class DisplayHousehold(
     val name: String = "",
     val createdByUid: String = "",
     val ownerDisplayName: String = "Unknown",
-    val memberUsers: List<UserProfile> = listOf(),
+    val memberUsers: @RawValue List<UserProfile> = listOf(),
     val memberRoles: Map<String, String> = mapOf(),
     val fridgeCount: Int = 0,
     val createdAt: Date? = null

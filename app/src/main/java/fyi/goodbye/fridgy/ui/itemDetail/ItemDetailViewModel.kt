@@ -7,8 +7,9 @@ import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Item
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.entities.Fridge
+import fyi.goodbye.fridgy.models.entities.Item
+import fyi.goodbye.fridgy.models.entities.Product
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.ItemRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
@@ -77,8 +78,8 @@ class ItemDetailViewModel
         private val _pendingItemForMove = MutableStateFlow<Item?>(null)
         val pendingItemForMove: StateFlow<Item?> = _pendingItemForMove.asStateFlow()
 
-        private val _availableFridges = MutableStateFlow<List<fyi.goodbye.fridgy.models.Fridge>>(emptyList())
-        val availableFridges: StateFlow<List<fyi.goodbye.fridgy.models.Fridge>> = _availableFridges.asStateFlow()
+        private val _availableFridges = MutableStateFlow<List<Fridge>>(emptyList())
+        val availableFridges: StateFlow<List<Fridge>> = _availableFridges.asStateFlow()
 
         // Store the UPC from the first load to track items after deletion
         private var trackedUpc: String? = null

@@ -2,8 +2,8 @@ package fyi.goodbye.fridgy.ui.notifications
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
-import fyi.goodbye.fridgy.models.Notification
-import fyi.goodbye.fridgy.models.NotificationType
+import fyi.goodbye.fridgy.models.entities.Notification
+import fyi.goodbye.fridgy.models.entities.NotificationType
 import fyi.goodbye.fridgy.repositories.NotificationRepository
 import fyi.goodbye.fridgy.ui.shared.UiState
 import io.mockk.clearAllMocks

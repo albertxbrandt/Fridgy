@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.entities.Product
 
 /**
  * A list item component for displaying product information in the admin panel.

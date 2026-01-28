@@ -13,7 +13,7 @@ import com.google.firebase.storage.FirebaseStorage
 import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.constants.StoragePaths
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.entities.Product
 import fyi.goodbye.fridgy.utils.LruCache
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber

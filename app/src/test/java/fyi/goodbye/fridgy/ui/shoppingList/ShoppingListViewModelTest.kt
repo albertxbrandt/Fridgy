@@ -6,9 +6,9 @@ import androidx.lifecycle.SavedStateHandle
 import app.cash.turbine.test
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
-import fyi.goodbye.fridgy.models.Fridge
-import fyi.goodbye.fridgy.models.Product
-import fyi.goodbye.fridgy.models.ShoppingListItem
+import fyi.goodbye.fridgy.models.entities.Fridge
+import fyi.goodbye.fridgy.models.entities.Product
+import fyi.goodbye.fridgy.models.entities.ShoppingListItem
 import fyi.goodbye.fridgy.repositories.FridgeRepository
 import fyi.goodbye.fridgy.repositories.ProductRepository
 import fyi.goodbye.fridgy.repositories.ShoppingListRepository

@@ -11,7 +11,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.Product
+import fyi.goodbye.fridgy.models.entities.Product
 
 /**
  * Modern card displaying a product search result from the global products database.

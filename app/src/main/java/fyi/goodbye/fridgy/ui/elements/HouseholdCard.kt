@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import fyi.goodbye.fridgy.R
-import fyi.goodbye.fridgy.models.DisplayHousehold
+import fyi.goodbye.fridgy.models.display.DisplayHousehold
 import java.text.SimpleDateFormat
 import java.util.Locale
 
