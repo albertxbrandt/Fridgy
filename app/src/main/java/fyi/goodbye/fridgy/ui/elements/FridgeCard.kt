@@ -17,9 +17,11 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import fyi.goodbye.fridgy.R
 import fyi.goodbye.fridgy.models.DisplayFridge
 import fyi.goodbye.fridgy.ui.theme.FridgeTypeColors
 import java.text.SimpleDateFormat
@@ -92,7 +94,11 @@ fun FridgeCard(
                     ) {
                         // Item count
                         Text(
-                            text = "${fridge.itemCount} ${if (fridge.itemCount == 1) "item" else "items"}",
+                            text = stringResource(
+                                R.string.item_count,
+                                fridge.itemCount,
+                                if (fridge.itemCount == 1) stringResource(R.string.item_singular) else stringResource(R.string.item_plural)
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.primary

@@ -419,4 +419,14 @@
     <string name="delete_account_warning">Once you delete your account, there is no going back. This will remove you from all fridges and delete all your data.</string>
     <string name="delete_account_confirm_title">Delete Account?</string>
     <string name="delete_account_confirm_message">This action is permanent and cannot be undone. All your data including fridges, items, and profile will be permanently deleted.</string>
+
+    <!-- Additional UI Strings -->
+    <string name="size_label">Size</string>
+    <string name="unit_label">Unit</string>
+    <string name="owner_label">Owner: %1$s</string>
+    <string name="individual_item">Individual item</string>
+    <string name="set_date">Set Date</string>
+    <string name="item_count">%1$d %2$s</string>
+    <string name="item_singular">item</string>
+    <string name="item_plural">items</string>
 </resources>

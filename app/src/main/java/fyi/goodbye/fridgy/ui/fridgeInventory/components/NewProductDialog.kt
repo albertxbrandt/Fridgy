@@ -202,7 +202,7 @@ fun NewProductDialog(
                     OutlinedTextField(
                         value = sizeText,
                         onValueChange = { sizeText = it },
-                        label = { Text("Size") },
+                        label = { Text(stringResource(R.string.size_label)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                         shape = MaterialTheme.shapes.medium,
@@ -227,7 +227,7 @@ fun NewProductDialog(
                                 }
                             },
                             readOnly = !showCustomUnitInput,
-                            label = { Text("Unit") },
+                            label = { Text(stringResource(R.string.unit_label)) },
                             trailingIcon = {
                                 if (!showCustomUnitInput) {
                                     ExposedDropdownMenuDefaults.TrailingIcon(expanded = showUnitDropdown)

@@ -4,7 +4,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import fyi.goodbye.fridgy.R
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -83,16 +85,16 @@ fun ExpirationDateDialog(
                     } ?: onDateSelected(null)
                 }
             ) {
-                Text("Set Date")
+                Text(stringResource(R.string.set_date))
             }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onDismiss) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
                 TextButton(onClick = { onDateSelected(null) }) {
-                    Text("Skip")
+                    Text(stringResource(R.string.skip))
                 }
             }
         }

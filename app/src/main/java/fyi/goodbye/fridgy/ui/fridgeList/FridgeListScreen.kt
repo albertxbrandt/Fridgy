@@ -257,8 +257,8 @@ fun FridgeListScreen(
                     OutlinedTextField(
                         value = newFridgeLocation,
                         onValueChange = { newFridgeLocation = it },
-                        label = { Text("Location (Optional)") },
-                        placeholder = { Text("e.g., Kitchen, Garage") },
+                        label = { Text(stringResource(R.string.location_optional)) },
+                        placeholder = { Text(stringResource(R.string.location_hint)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.medium

@@ -144,7 +144,7 @@ fun InventoryItemCard(
                     }
                 } else {
                     Text(
-                        text = "Individual item",
+                        text = stringResource(R.string.individual_item),
                         style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
                         color = Color.White.copy(alpha = 0.9f)

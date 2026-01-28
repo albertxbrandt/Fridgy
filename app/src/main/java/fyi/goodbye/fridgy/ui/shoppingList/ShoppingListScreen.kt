@@ -381,7 +381,7 @@ fun ShoppingListScreen(
                                             modifier = Modifier.padding(vertical = 8.dp)
                                         ) {
                                             Text(
-                                                text = "Can't find what you're looking for?",
+                                                text = stringResource(R.string.cant_find_product),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f)
                                             )

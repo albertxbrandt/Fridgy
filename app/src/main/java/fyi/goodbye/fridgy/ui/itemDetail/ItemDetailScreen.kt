@@ -251,8 +251,7 @@ fun ItemDetailScreen(
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = "Instances (${items.size})",
-                                        fontWeight = FontWeight.Bold,
+                                    text = stringResource(R.string.instances_count, items.size),
                                         fontSize = 18.sp
                                     )
 
@@ -266,7 +265,7 @@ fun ItemDetailScreen(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Add")
+                                        Text(stringResource(R.string.add))
                                     }
                                 }
 
@@ -324,7 +323,7 @@ fun ItemInstanceCard(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = "Expiration Date",
+                        text = stringResource(R.string.expiration_date),
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -360,20 +359,20 @@ fun ItemInstanceCard(
 
                     if (isExpired) {
                         Text(
-                            text = "Expired",
+                            text = stringResource(R.string.expired),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.error
                         )
                     } else if (isExpiringSoon) {
                         Text(
-                            text = "Expiring soon",
+                            text = stringResource(R.string.expiring_soon),
                             fontSize = 12.sp,
                             color = Color(0xFFFFA726)
                         )
                     }
                 } else {
                     Text(
-                        text = "No expiration",
+                        text = stringResource(R.string.no_expiration),
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
