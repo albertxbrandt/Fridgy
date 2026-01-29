@@ -5,15 +5,16 @@ package fyi.goodbye.fridgy.constants
  * Single source of truth to prevent typos and enable refactoring.
  */
 object FirestoreCollections {
-    const val USERS = "users"
-    const val USER_PROFILES = "userProfiles"
-    const val PRODUCTS = "products"
-    const val FRIDGES = "fridges"
-    const val HOUSEHOLDS = "households"
     const val ADMINS = "admins"
-    const val INVITE_CODES = "inviteCodes"
     const val CATEGORIES = "categories"
     const val FCM_TOKENS = "fcmTokens"
+    const val FRIDGES = "fridges"
+    const val HOUSEHOLDS = "households"
+    const val INVITE_CODES = "inviteCodes"
+    const val NOTIFICATIONS = "notifications"
+    const val PRODUCTS = "products"
+    const val USERS = "users"
+    const val USER_PROFILES = "userProfiles"
 
     // Subcollections
     const val ITEMS = "items"
@@ -29,62 +30,77 @@ object FirestoreFields {
     // Common fields
     const val CREATED_AT = "createdAt"
     const val CREATED_BY = "createdBy"
-    const val LAST_UPDATED = "lastUpdated"
-    const val LAST_UPDATED_BY = "lastUpdatedBy"
-    const val LAST_SEEN = "lastSeen"
-    const val NAME = "name"
     const val EMAIL = "email"
-    const val ORDER = "order"
-    const val IS_READ = "isRead"
+    const val LAST_SEEN = "lastSeen"
+    const val LAST_UPDATED = "lastUpdated"
+    const val LAST_UPDATED_AT = "lastUpdatedAt"
+    const val LAST_UPDATED_BY = "lastUpdatedBy"
+    const val NAME = "name"
+    const val TYPE = "type"
 
     // User fields
-    const val USERNAME = "username"
     const val UID = "uid"
     const val USER_ID = "userId"
+    const val USERNAME = "username"
+
+    // Admin fields
+    const val GRANTED_AT = "grantedAt"
+    const val GRANTED_BY = "grantedBy"
+
+    // Category fields
+    const val ORDER = "order"
+
+    // FCM Token fields
+    const val TOKEN = "token"
+    const val UPDATED_AT = "updatedAt"
 
     // Product fields
-    const val UPC = "upc"
     const val BRAND = "brand"
     const val CATEGORY = "category"
     const val IMAGE_URL = "imageUrl"
+    const val SEARCH_TOKENS = "searchTokens"
     const val SIZE = "size"
     const val UNIT = "unit"
-    const val SEARCH_TOKENS = "searchTokens"
+    const val UPC = "upc"
 
     // Household fields
-    const val MEMBERS = "members"
     const val MEMBER_ROLES = "memberRoles"
-    const val PENDING_INVITES = "pendingInvites"
+    const val MEMBERS = "members"
 
     // Fridge fields
     const val HOUSEHOLD_ID = "householdId"
-    const val TYPE = "type"
+    const val LOCATION = "location"
 
     // Item fields
     const val ADDED_AT = "addedAt"
     const val ADDED_BY = "addedBy"
-    const val QUANTITY = "quantity"
     const val EXPIRATION_DATE = "expirationDate"
 
     // Shopping list fields
+    const val CHECKED = "checked"
+    const val CUSTOM_NAME = "customName"
     const val OBTAINED = "obtained"
     const val OBTAINED_BY = "obtainedBy"
     const val OBTAINED_QUANTITY = "obtainedQuantity"
-    const val CHECKED = "checked"
-    const val SHOPPING_LIST = "shoppingList"
-    const val CUSTOM_NAME = "customName"
+    const val QUANTITY = "quantity"
+    const val STORE = "store"
     const val TARGET_FRIDGE_ID = "targetFridgeId"
-    const val LAST_UPDATED_AT = "lastUpdatedAt"
 
     // Invite code fields
-    const val CODE = "code"
-    const val USED_BY = "usedBy"
-    const val USED_AT = "usedAt"
-    const val EXPIRES_AT = "expiresAt"
-    const val MAX_USES = "maxUses"
-    const val CURRENT_USES = "currentUses"
-    const val REVOKED = "revoked"
     const val ACTIVE = "active"
+    const val EXPIRED = "expired"
+    const val EXPIRES_AT = "expiresAt"
+    const val HOUSEHOLD_NAME = "householdName"
+    const val USED_AT = "usedAt"
+    const val USED_BY = "usedBy"
+    const val VALID = "valid"
+
+    // Notification fields
+    const val BODY = "body"
+    const val IS_READ = "read"  // Note: Kotlin property 'isRead' serializes to 'read' in Firestore
+    const val RELATED_FRIDGE_ID = "relatedFridgeId"
+    const val RELATED_ITEM_ID = "relatedItemId"
+    const val TITLE = "title"
 }
 
 /**

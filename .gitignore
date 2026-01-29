@@ -26,6 +26,8 @@ replay_pid*
 
 # Internal Development Notes
 .dev-notes/
+mkdocs.yml
+.venv
 
 # Node.js dependencies
 node_modules/

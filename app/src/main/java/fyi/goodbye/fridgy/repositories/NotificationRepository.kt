@@ -4,6 +4,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import com.google.firebase.messaging.FirebaseMessaging
+import fyi.goodbye.fridgy.constants.FirestoreCollections
 import fyi.goodbye.fridgy.constants.FirestoreFields
 import fyi.goodbye.fridgy.models.entities.FcmToken
 import fyi.goodbye.fridgy.models.entities.Notification
@@ -32,11 +33,6 @@ class NotificationRepository(
     private val auth: FirebaseAuth,
     private val messaging: FirebaseMessaging
 ) {
-    companion object {
-        private const val COLLECTION_NOTIFICATIONS = "notifications"
-        private const val COLLECTION_FCM_TOKENS = "fcmTokens"
-    }
-
     /**
      * Get the current FCM token and save it to Firestore for the authenticated user.
      * Call this when user logs in or app starts.
@@ -57,7 +53,7 @@ class NotificationRepository(
                     token = token
                 )
 
-            firestore.collection(COLLECTION_FCM_TOKENS)
+            firestore.collection(FirestoreCollections.FCM_TOKENS)
                 .document(userId)
                 .set(fcmToken)
                 .await()
@@ -112,7 +108,7 @@ class NotificationRepository(
             }
 
             val listenerRegistration =
-                firestore.collection(COLLECTION_NOTIFICATIONS)
+                firestore.collection(FirestoreCollections.NOTIFICATIONS)
                     .whereEqualTo(FirestoreFields.USER_ID, userId)
                     .orderBy(FirestoreFields.CREATED_AT, Query.Direction.DESCENDING)
                     .limit(50) // Limit to 50 most recent notifications
@@ -147,7 +143,7 @@ class NotificationRepository(
             }
 
             val listenerRegistration =
-                firestore.collection(COLLECTION_NOTIFICATIONS)
+                firestore.collection(FirestoreCollections.NOTIFICATIONS)
                     .whereEqualTo(FirestoreFields.USER_ID, userId)
                     .whereEqualTo(FirestoreFields.IS_READ, false)
                     .addSnapshotListener { snapshot, error ->
@@ -170,7 +166,7 @@ class NotificationRepository(
      */
     suspend fun markAsRead(notificationId: String): Result<Unit> {
         return try {
-            firestore.collection(COLLECTION_NOTIFICATIONS)
+            firestore.collection(FirestoreCollections.NOTIFICATIONS)
                 .document(notificationId)
                 .update(FirestoreFields.IS_READ, true)
                 .await()
@@ -193,7 +189,7 @@ class NotificationRepository(
                     ?: return Result.failure(Exception("User not authenticated"))
 
             val unreadNotifications =
-                firestore.collection(COLLECTION_NOTIFICATIONS)
+                firestore.collection(FirestoreCollections.NOTIFICATIONS)
                     .whereEqualTo(FirestoreFields.USER_ID, userId)
                     .whereEqualTo(FirestoreFields.IS_READ, false)
                     .get()
@@ -218,7 +214,7 @@ class NotificationRepository(
      */
     suspend fun deleteNotification(notificationId: String): Result<Unit> {
         return try {
-            firestore.collection(COLLECTION_NOTIFICATIONS)
+            firestore.collection(FirestoreCollections.NOTIFICATIONS)
                 .document(notificationId)
                 .delete()
                 .await()
@@ -264,7 +260,7 @@ class NotificationRepository(
                     createdAt = null
                 )
 
-            firestore.collection(COLLECTION_NOTIFICATIONS)
+            firestore.collection(FirestoreCollections.NOTIFICATIONS)
                 .add(notification)
                 .await()
 
@@ -289,7 +285,7 @@ class NotificationRepository(
 
             userIds.chunked(10).forEach { batch ->
                 val snapshot =
-                    firestore.collection(COLLECTION_FCM_TOKENS)
+                    firestore.collection(FirestoreCollections.FCM_TOKENS)
                         .whereIn(FirestoreFields.USER_ID, batch)
                         .get()
                         .await()

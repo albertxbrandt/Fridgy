@@ -295,8 +295,6 @@ class UserRepository(
             for (doc in fridgesQuery.documents) {
                 // Remove from members map
                 batch.update(doc.reference, "${FirestoreFields.MEMBERS}.$userId", FieldValue.delete())
-                // Remove from pendingInvites if present
-                batch.update(doc.reference, "${FirestoreFields.PENDING_INVITES}.$userId", FieldValue.delete())
             }
             batch.commit().await()
 
